@@ -1,0 +1,6 @@
+{
+  "name": "خدام | منصة الخدمات والحرفيين",
+  "description": "منصة رقمية خدمية متكاملة لربط طالبي الخدمات بالحرفيين والمهنيين المؤهلين بالقرب منك مع حجز فوري ومراسلة آمنة.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

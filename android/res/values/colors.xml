@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    نظام ألوان تطبيق "خـدّام" - Material Design 3 (Solid Colors)
+    - الكحلي الأساسي (Primary Navy): يعبر عن الأمان والمصداقية والاحتراف.
+    - القرميدي الثانوي (Terracotta/Brick Red): يعبر عن العمارة والحرف اليدوية.
+    - خلفيات رمادية فاتحة جداً (Light Gray): مريحة للعين بدون تشتيت.
+    - بدون تدرجات (No Gradients) ولا ظلال مبالغ فيها (Flat / Subtle Borders).
+-->
+<resources>
+    <!-- الألوان الأساسية الصلبة -->
+    <color name="khodam_primary_navy">#1A2B4C</color>
+    <color name="khodam_primary_navy_dark">#101B30</color>
+    <color name="khodam_secondary_terracotta">#C84B31</color>
+    
+    <!-- الخلفيات والأسطح -->
+    <color name="khodam_background_light">#F8F9FA</color>
+    <color name="khodam_surface_white">#FFFFFF</color>
+    <color name="khodam_border_subtle">#E2E8F0</color>
+    
+    <!-- النصوص وعناصر التباين -->
+    <color name="khodam_text_primary">#1E293B</color>
+    <color name="khodam_text_secondary">#64748B</color>
+    <color name="khodam_text_hint">#94A3B8</color>
+    
+    <!-- مؤشرات الحالة -->
+    <color name="khodam_star_gold">#EAB308</color>
+    <color name="khodam_verified_green">#10B981</color>
+    <color name="white">#FFFFFF</color>
+</resources>

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#78350f" flood-opacity="0.3" />
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="108" fill="url(#bg)" />
+  <circle cx="256" cy="256" r="190" fill="#ffffff" fill-opacity="0.15" />
+  
+  <g filter="url(#shadow)" fill="#ffffff" transform="translate(116, 116) scale(1.15)">
+    <!-- Shield / Badge & Tools -->
+    <path d="M120 10 L190 35 L190 120 C190 170 120 220 120 220 C120 220 50 170 50 120 L50 35 Z" fill="#0f172a" />
+    <!-- Hammer & Wrench Icon -->
+    <path d="M95 65 L115 85 L145 55 C148 52 153 52 156 55 L165 64 C168 67 168 72 165 75 L135 105 L155 125 L145 135 L125 115 L85 155 C82 158 77 158 74 155 L65 146 C62 143 62 138 65 135 L105 95 L85 75 Z" fill="#f59e0b" />
+    <circle cx="120" cy="150" r="14" fill="#ffffff" />
+  </g>
+  <text x="256" y="440" font-family="sans-serif" font-weight="900" font-size="52" fill="#ffffff" text-anchor="middle" letter-spacing="2">خـدّام</text>
+</svg>
