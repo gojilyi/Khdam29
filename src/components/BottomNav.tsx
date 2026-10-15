@@ -3,7 +3,9 @@ import { useApp } from '../context/AppContext';
 import { Home, Compass, ClipboardList, MessageSquare, User, ShieldCheck } from 'lucide-react';
 
 export const BottomNav: React.FC = () => {
-  const { activeTab, setActiveTab, activeOrders, t, language, isAdminAuthenticated } = useApp();
+  const { activeTab, setActiveTab, activeOrders, t, language, isAdminAuthenticated, role } = useApp();
+
+  const isEffectiveAdmin = isAdminAuthenticated || role === 'admin';
 
   const tabs = [
     {
@@ -11,7 +13,7 @@ export const BottomNav: React.FC = () => {
       label: t.navHome,
       icon: Home
     },
-    ...(isAdminAuthenticated ? [{
+    ...(isEffectiveAdmin ? [{
       id: 'admin',
       label: language === 'ar' ? 'الأدمن ⚙️' : 'Admin',
       icon: ShieldCheck

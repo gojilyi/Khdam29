@@ -7,7 +7,7 @@ interface AdBannerProps {
 }
 
 export const AdBanner: React.FC<AdBannerProps> = ({ position = 'bottom' }) => {
-  const { startIoConfig, adMobConfig, language } = useApp();
+  const { startIoConfig, adMobConfig, adsterraConfig, language } = useApp();
   const [isDismissed, setIsDismissed] = useState(false);
 
   // If user dismissed this instance
@@ -23,6 +23,11 @@ export const AdBanner: React.FC<AdBannerProps> = ({ position = 'bottom' }) => {
 
   // Active network
   const network = showStartIo ? 'startio' : 'admob';
+
+  // If Adsterra direct link is provided, prioritize it for the banner CTA destination
+  const destinationUrl = (adsterraConfig?.enabled && adsterraConfig?.directLinkEnabled && adsterraConfig?.directLinkUrl)
+    ? adsterraConfig.directLinkUrl
+    : network === 'startio' ? 'https://www.start.io' : 'https://admob.google.com';
 
   return (
     <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 my-4 animate-fade-in ${
@@ -67,7 +72,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({ position = 'bottom' }) => {
         {/* CTA and Close */}
         <div className="flex items-center gap-2 shrink-0">
           <a
-            href={network === 'startio' ? 'https://www.start.io' : 'https://admob.google.com'}
+            href={destinationUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-xs transition-colors"

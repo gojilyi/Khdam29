@@ -89,6 +89,9 @@ export const AdminPanel: React.FC = () => {
     setStartIoConfig,
     adMobConfig,
     setAdMobConfig,
+    adsterraConfig,
+    setAdsterraConfig,
+    updateAdsterraConfig,
     showInterstitialAd,
     billboardConfig,
     setBillboardConfig,
@@ -132,6 +135,7 @@ export const AdminPanel: React.FC = () => {
     adminCustomIcons,
     setAdminCustomIcon,
     resetAdminCustomIcons,
+    getAdminCustomIcon,
     homePanelsConfig,
     toggleHomePanel,
     deleteHomePanel,
@@ -174,10 +178,16 @@ export const AdminPanel: React.FC = () => {
     | 'jobMarket' 
     | 'playStoreLegal'
     | 'siteTexts'
+    | 'appIcon'
     | 'partnerPosts'
     | 'homePanels'
     | 'reports';
   const [activeAdminSubTab, setActiveAdminSubTab] = useState<AdminTab>('requests');
+
+  // App Icon & Logo Studio State
+  const [appIconSuccessMessage, setAppIconSuccessMessage] = useState<string | null>(null);
+  const [customAppIconInput, setCustomAppIconInput] = useState('');
+  const [isAppIconDragging, setIsAppIconDragging] = useState(false);
 
   // Confirmation states without window.confirm
   const [confirmDeleteArtisanId, setConfirmDeleteArtisanId] = useState<string | null>(null);
@@ -226,6 +236,19 @@ export const AdminPanel: React.FC = () => {
   const [craftSaveSuccess, setCraftSaveSuccess] = useState(false);
   const [newSubServiceName, setNewSubServiceName] = useState('');
   const [newSubServicePrice, setNewSubServicePrice] = useState('2000 - 5000 دج');
+  const applyAppIcon = (iconValue: string) => {
+    setAdminCustomIcon('app_logo', iconValue);
+    try {
+      const favicon = document.querySelector("link[rel*='icon']") as HTMLLinkElement | null;
+      if (favicon && !iconValue.startsWith('<svg')) {
+        favicon.href = iconValue;
+      }
+    } catch (e) {
+      console.log('Favicon update error', e);
+    }
+    setAppIconSuccessMessage('تم تحديث وتطبيق أيقونة وشعار التطبيق بنجاح في كافة أرجاء المنصة! ✨');
+    setTimeout(() => setAppIconSuccessMessage(null), 4000);
+  };
 
   const handleSaveEditCraft = (e: React.FormEvent) => {
     e.preventDefault();
@@ -781,6 +804,18 @@ export const AdminPanel: React.FC = () => {
             >
               <FileText className="w-3.5 h-3.5 text-amber-500" />
               <span>تعديل النصوص والأيقونات 📝🎨</span>
+            </button>
+
+            <button
+              onClick={() => setActiveAdminSubTab('appIcon')}
+              className={`px-3 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 ${
+                activeAdminSubTab === 'appIcon'
+                  ? 'bg-amber-500 text-slate-950 shadow-xs font-black'
+                  : 'text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 border border-amber-500/30'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span>أيقونة وشعار التطبيق (PWA & Logo) 📱✨</span>
             </button>
 
             <button
@@ -2215,6 +2250,317 @@ export const AdminPanel: React.FC = () => {
                       className="w-4 h-4 text-blue-600 rounded"
                     />
                   </div>
+                </div>
+              </div>
+
+              {/* 3. ADSTERRA PUBLISHERS NETWORK (شبكة إعلانات Adsterra للمواقع) */}
+              <div className="p-5 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-slate-50 dark:from-amber-950/30 dark:via-orange-950/10 dark:to-slate-900 rounded-2xl border-2 border-amber-500/40 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-amber-200 dark:border-amber-900/50">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 text-slate-950 flex items-center justify-center font-black text-xs shadow-sm">
+                      ADS
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-black text-slate-900 dark:text-white">
+                          شبكة إعلانات المواقع Adsterra Publishers
+                        </h4>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                          adsterraConfig.enabled 
+                            ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40' 
+                            : 'bg-slate-200 dark:bg-slate-800 text-slate-500'
+                        }`}>
+                          {adsterraConfig.enabled ? 'مفعلة ونشطة ✓' : 'معطلة'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        ربط وإدارة وحدات Adsterra: Social Bar، Popunder، Banners (728x90, 300x250)، Native Banners، و Direct Link.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <a
+                      href="https://beta.publishers.adsterra.com/websites"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs"
+                      title="فتح لوحة تحكم Adsterra للحصول على الأكواد"
+                    >
+                      <span>لوحة Adsterra ↗</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={() => updateAdsterraConfig({ enabled: !adsterraConfig.enabled })}
+                      className={`px-4 py-1.5 rounded-xl text-xs font-black transition-transform active:scale-95 cursor-pointer shadow-sm ${
+                        adsterraConfig.enabled 
+                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
+                          : 'bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                      }`}
+                    >
+                      {adsterraConfig.enabled ? 'مفعلة عاماً ✓' : 'تفعيل الشبكة'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Website domain mapping */}
+                <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                  <div className="space-y-0.5">
+                    <span className="font-bold text-slate-800 dark:text-slate-200 block">
+                      النطاق المسجل في Adsterra (Website Domain):
+                    </span>
+                    <span className="text-[11px] text-slate-400 block font-mono">
+                      https://beta.publishers.adsterra.com/websites
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    value={adsterraConfig.websiteDomain}
+                    onChange={(e) => updateAdsterraConfig({ websiteDomain: e.target.value })}
+                    placeholder="khodam.dz"
+                    className="w-full sm:w-64 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                {/* Adsterra Units Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                  {/* Unit 1: Social Bar */}
+                  <div className="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-amber-500" />
+                        <span className="text-xs font-black text-slate-900 dark:text-white">
+                          ١. كود Social Bar (شريط الإشعارات العائم)
+                        </span>
+                      </div>
+                      <label className="flex items-center gap-1 text-[11px] font-bold text-slate-500 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={adsterraConfig.socialBarEnabled}
+                          onChange={(e) => updateAdsterraConfig({ socialBarEnabled: e.target.checked })}
+                          className="w-3.5 h-3.5 text-amber-500 rounded"
+                        />
+                        <span>تفعيل</span>
+                      </label>
+                    </div>
+                    <textarea
+                      rows={3}
+                      value={adsterraConfig.socialBarCode}
+                      onChange={(e) => updateAdsterraConfig({ socialBarCode: e.target.value })}
+                      placeholder="الصق كود Social Bar هنا، مثال: <script type='text/javascript' src='//pl...invoke.js'></script>"
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-[11px] font-mono text-slate-900 dark:text-white leading-relaxed resize-y focus:outline-none focus:border-amber-500"
+                    />
+                    <div className="flex items-center justify-between text-[10px] text-slate-400">
+                      <span>إشعار تفاعلي عالي نسبة النقر (High CTR)</span>
+                      {adsterraConfig.socialBarCode ? (
+                        <span className="text-emerald-500 font-bold">✓ الكود مُدرج</span>
+                      ) : (
+                        <span className="text-amber-500">بانتظار الكود</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Unit 2: Popunder */}
+                  <div className="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-orange-500" />
+                        <span className="text-xs font-black text-slate-900 dark:text-white">
+                          ٢. كود Popunder (إعلان النوافذ المنبثقة)
+                        </span>
+                      </div>
+                      <label className="flex items-center gap-1 text-[11px] font-bold text-slate-500 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={adsterraConfig.popunderEnabled}
+                          onChange={(e) => updateAdsterraConfig({ popunderEnabled: e.target.checked })}
+                          className="w-3.5 h-3.5 text-orange-500 rounded"
+                        />
+                        <span>تفعيل</span>
+                      </label>
+                    </div>
+                    <textarea
+                      rows={3}
+                      value={adsterraConfig.popunderCode}
+                      onChange={(e) => updateAdsterraConfig({ popunderCode: e.target.value })}
+                      placeholder="الصق كود البوب أندر Popunder هنا من لوحة Adsterra..."
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-[11px] font-mono text-slate-900 dark:text-white leading-relaxed resize-y focus:outline-none focus:border-amber-500"
+                    />
+                    <div className="flex items-center justify-between text-[10px] text-slate-400">
+                      <span>يفتح نافذة منبثقة خلف التطبيق للمستخدم</span>
+                      {adsterraConfig.popunderCode ? (
+                        <span className="text-emerald-500 font-bold">✓ الكود مُدرج</span>
+                      ) : (
+                        <span className="text-amber-500">بانتظار الكود</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Unit 3: Top Banner (728x90 or 320x50) */}
+                  <div className="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-blue-500" />
+                        <span className="text-xs font-black text-slate-900 dark:text-white">
+                          ٣. البانر العلوي (Top Banner 728x90 / 320x50 / 468x60)
+                        </span>
+                      </div>
+                      <label className="flex items-center gap-1 text-[11px] font-bold text-slate-500 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={adsterraConfig.topBannerEnabled}
+                          onChange={(e) => updateAdsterraConfig({ topBannerEnabled: e.target.checked })}
+                          className="w-3.5 h-3.5 text-blue-500 rounded"
+                        />
+                        <span>تفعيل</span>
+                      </label>
+                    </div>
+                    <textarea
+                      rows={3}
+                      value={adsterraConfig.topBannerCode}
+                      onChange={(e) => updateAdsterraConfig({ topBannerCode: e.target.value })}
+                      placeholder="الصق كود البانر مع atOptions و invoke.js..."
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-[11px] font-mono text-slate-900 dark:text-white leading-relaxed resize-y focus:outline-none focus:border-amber-500"
+                    />
+                    <div className="flex items-center justify-between text-[10px] text-slate-400">
+                      <span>يعرض أعلى الواجهة الرئيسية</span>
+                      {adsterraConfig.topBannerCode ? (
+                        <span className="text-emerald-500 font-bold">✓ الكود مُدرج</span>
+                      ) : (
+                        <span className="text-amber-500">بانتظار الكود</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Unit 4: Bottom Banner (300x250) */}
+                  <div className="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                        <span className="text-xs font-black text-slate-900 dark:text-white">
+                          ٤. البانر المربع السفلي (300x250 Medium Rectangle)
+                        </span>
+                      </div>
+                      <label className="flex items-center gap-1 text-[11px] font-bold text-slate-500 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={adsterraConfig.bottomBannerEnabled}
+                          onChange={(e) => updateAdsterraConfig({ bottomBannerEnabled: e.target.checked })}
+                          className="w-3.5 h-3.5 text-indigo-500 rounded"
+                        />
+                        <span>تفعيل</span>
+                      </label>
+                    </div>
+                    <textarea
+                      rows={3}
+                      value={adsterraConfig.bottomBannerCode}
+                      onChange={(e) => updateAdsterraConfig({ bottomBannerCode: e.target.value })}
+                      placeholder="الصق كود البانر 300x250 مع atOptions و invoke.js..."
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-[11px] font-mono text-slate-900 dark:text-white leading-relaxed resize-y focus:outline-none focus:border-amber-500"
+                    />
+                    <div className="flex items-center justify-between text-[10px] text-slate-400">
+                      <span>يعرض في أسفل الواجهة وفوق شريط التنقل</span>
+                      {adsterraConfig.bottomBannerCode ? (
+                        <span className="text-emerald-500 font-bold">✓ الكود مُدرج</span>
+                      ) : (
+                        <span className="text-amber-500">بانتظار الكود</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Unit 5: Native Banner */}
+                  <div className="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-teal-500" />
+                        <span className="text-xs font-black text-slate-900 dark:text-white">
+                          ٥. إعلانات مدمجة (Native Banner Widget)
+                        </span>
+                      </div>
+                      <label className="flex items-center gap-1 text-[11px] font-bold text-slate-500 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={adsterraConfig.nativeBannerEnabled}
+                          onChange={(e) => updateAdsterraConfig({ nativeBannerEnabled: e.target.checked })}
+                          className="w-3.5 h-3.5 text-teal-500 rounded"
+                        />
+                        <span>تفعيل</span>
+                      </label>
+                    </div>
+                    <textarea
+                      rows={3}
+                      value={adsterraConfig.nativeBannerCode}
+                      onChange={(e) => updateAdsterraConfig({ nativeBannerCode: e.target.value })}
+                      placeholder="الصق كود الإعلانات المدمجة Native Banner هنا..."
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-[11px] font-mono text-slate-900 dark:text-white leading-relaxed resize-y focus:outline-none focus:border-amber-500"
+                    />
+                    <div className="flex items-center justify-between text-[10px] text-slate-400">
+                      <span>تندمج بتناسق مع تصميم وألوان التطبيق</span>
+                      {adsterraConfig.nativeBannerCode ? (
+                        <span className="text-emerald-500 font-bold">✓ الكود مُدرج</span>
+                      ) : (
+                        <span className="text-amber-500">بانتظار الكود</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Unit 6: Direct Link / Smartlink */}
+                  <div className="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                        <span className="text-xs font-black text-slate-900 dark:text-white">
+                          ٦. الرابط المباشر الذكي (Direct Link / Smartlink)
+                        </span>
+                      </div>
+                      <label className="flex items-center gap-1 text-[11px] font-bold text-slate-500 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={adsterraConfig.directLinkEnabled}
+                          onChange={(e) => updateAdsterraConfig({ directLinkEnabled: e.target.checked })}
+                          className="w-3.5 h-3.5 text-emerald-500 rounded"
+                        />
+                        <span>تفعيل</span>
+                      </label>
+                    </div>
+                    <input
+                      type="url"
+                      value={adsterraConfig.directLinkUrl}
+                      onChange={(e) => updateAdsterraConfig({ directLinkUrl: e.target.value })}
+                      placeholder="https://www.profitablecpmgate.com/..."
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                    />
+                    <div className="flex items-center justify-between text-[10px] text-slate-400">
+                      <span>رابط ذكي مباشر يحقق أعلى عائد CPM</span>
+                      {adsterraConfig.directLinkUrl ? (
+                        <span className="text-emerald-500 font-bold">✓ الرابط مُدرج</span>
+                      ) : (
+                        <span className="text-amber-500">بانتظار الرابط</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300">
+                    <Sparkles className="w-4 h-4 shrink-0" />
+                    <span>
+                      <strong>جاهز للاستقبال:</strong> أرسل كود أي وحدة إعلانية وسأقوم بدمجها فوراً في موضعها المناسب!
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateAdsterraConfig(adsterraConfig);
+                      alert('تم حفظ إعدادات إعلانات Adsterra بنجاح!');
+                    }}
+                    className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-transform active:scale-95 shrink-0 cursor-pointer"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>حفظ التعديلات ✓</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -4171,6 +4517,378 @@ export const AdminPanel: React.FC = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: App Icon & Branding Studio (استوديو أيقونة وشعار تطبيق خدّام) */}
+          {activeAdminSubTab === 'appIcon' && (
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 space-y-6">
+              {/* Studio Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-amber-500" />
+                    <span>استوديو أيقونة وشعار تطبيق خدّام (App Icon & Branding Studio)</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    تحكم فوري في أيقونة التطبيق، شعار الهيدر، أيقونة شاشة الهاتف (PWA Launcher Icon)، وأيقونة التبويب (Favicon). ارفع أيقونتك مباشرة أو اختر تصميماً جاهزاً.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setActiveTab('home')}
+                    className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Eye className="w-4 h-4" />
+                    <span>معاينة في التطبيق 🌐</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (confirm('هل تريد استعادة أيقونة وشعار خدّام الافتراضية؟')) {
+                        applyAppIcon('/icon.svg');
+                      }
+                    }}
+                    className="px-3 py-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    استعادة الشعار الأصلي
+                  </button>
+                </div>
+              </div>
+
+              {/* Success Notification Alert */}
+              {appIconSuccessMessage && (
+                <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 text-xs font-bold flex items-center gap-2.5 animate-fade-in shadow-xs">
+                  <CheckCircle2 className="w-5 h-5 shrink-0" />
+                  <span>{appIconSuccessMessage}</span>
+                </div>
+              )}
+
+              {/* SECTION 1: Real-time Multi-Device Live Mockup Grid */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <Eye className="w-4 h-4 text-amber-500" />
+                  <span>المعاينة المباشرة للأيقونة في شتى الواجهات (Live Multi-Context Preview):</span>
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Context 1: Mobile Android Home Screen */}
+                  <div className="p-4 rounded-2xl bg-slate-950 text-white border border-slate-800 flex flex-col items-center justify-between text-center min-h-[220px] relative overflow-hidden group shadow-lg">
+                    <div className="w-full flex justify-between items-center text-[10px] text-slate-400 font-mono px-1">
+                      <span>09:41</span>
+                      <span className="flex items-center gap-1">5G 🔋</span>
+                    </div>
+
+                    <div className="flex flex-col items-center gap-2 my-auto">
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-400 p-2 shadow-xl shadow-amber-500/30 flex items-center justify-center transform group-hover:scale-110 transition-transform">
+                        <AppIconRenderer
+                          icon={getAdminCustomIcon('app_logo', '/icon.svg')}
+                          className="w-12 h-12 object-contain"
+                          fallbackIcon="ShieldCheck"
+                        />
+                      </div>
+                      <span className="text-xs font-black tracking-wide text-slate-100">خـدّام</span>
+                    </div>
+
+                    <span className="text-[10px] text-amber-400/80 font-bold bg-slate-900/80 px-2.5 py-1 rounded-full border border-slate-800">
+                      شاشة الهاتف (PWA App Icon)
+                    </span>
+                  </div>
+
+                  {/* Context 2: Header Navigation Wordmark */}
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex flex-col items-center justify-between text-center min-h-[220px]">
+                    <span className="text-[10px] font-bold text-slate-400">شريط الهيدر العلوي للموقع</span>
+
+                    <div className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-3 shadow-xs">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-400 p-1 flex items-center justify-center text-white shadow-xs">
+                        <AppIconRenderer
+                          icon={getAdminCustomIcon('app_logo', '/icon.svg')}
+                          className="w-8 h-8 object-contain"
+                          fallbackIcon="ShieldCheck"
+                        />
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-extrabold text-slate-900 dark:text-white">خـدّام</div>
+                        <div className="text-[9px] text-amber-600 dark:text-amber-400 font-semibold">منصة الحرفيين والخدمات</div>
+                      </div>
+                    </div>
+
+                    <span className="text-[10px] text-slate-500 font-bold">
+                      شعار الهيدر (Header Logo)
+                    </span>
+                  </div>
+
+                  {/* Context 3: Browser Tab Favicon */}
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex flex-col items-center justify-between text-center min-h-[220px]">
+                    <span className="text-[10px] font-bold text-slate-400">تبويب المتصفح (Browser Tab)</span>
+
+                    <div className="w-full bg-slate-200 dark:bg-slate-700/80 p-2 rounded-xl">
+                      <div className="bg-white dark:bg-slate-900 rounded-lg p-2 flex items-center gap-2 shadow-xs text-right">
+                        <div className="w-5 h-5 rounded-md bg-amber-500 flex items-center justify-center shrink-0 p-0.5">
+                          <AppIconRenderer
+                            icon={getAdminCustomIcon('app_logo', '/icon.svg')}
+                            className="w-4 h-4 object-contain"
+                            fallbackIcon="ShieldCheck"
+                          />
+                        </div>
+                        <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate flex-1">
+                          خدام | منصة الخدمات...
+                        </span>
+                        <X className="w-3 h-3 text-slate-400 shrink-0" />
+                      </div>
+                    </div>
+
+                    <span className="text-[10px] text-slate-500 font-bold">
+                      أيقونة التبويب (Favicon)
+                    </span>
+                  </div>
+
+                  {/* Context 4: PWA Install Banner */}
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex flex-col items-center justify-between text-center min-h-[220px]">
+                    <span className="text-[10px] font-bold text-slate-400">بطاقة التثبيت (Install Prompt)</span>
+
+                    <div className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-2.5 shadow-xs w-full">
+                      <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-400 p-1 flex items-center justify-center shrink-0">
+                        <AppIconRenderer
+                          icon={getAdminCustomIcon('app_logo', '/icon.svg')}
+                          className="w-7 h-7 object-contain"
+                          fallbackIcon="ShieldCheck"
+                        />
+                      </div>
+                      <div className="text-right flex-1 min-w-0">
+                        <div className="text-[11px] font-bold text-slate-900 dark:text-white truncate">تثبيت خـدّام</div>
+                        <div className="text-[9px] text-slate-400 truncate">يعمل بدون إنترنت</div>
+                      </div>
+                    </div>
+
+                    <span className="text-[10px] text-slate-500 font-bold">
+                      نافذة متجر التطبيقات والـ PWA
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 2: Direct Image Upload from Device */}
+              <div className="p-5 rounded-2xl bg-amber-50/50 dark:bg-amber-950/20 border-2 border-dashed border-amber-400 dark:border-amber-600/50 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h4 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
+                      <Upload className="w-4 h-4 text-amber-500" />
+                      <span>رفع صورة أيقونة جديدة مباشرة من جهازك (PNG / SVG / JPG / WebP)</span>
+                    </h4>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      اسحب وأفلت ملف الأيقونة هنا، أو اضغط للاختيار من الكمبيوتر أو الهاتف. سيتم تطبيق الأيقونة فوراً في كل أرجاء الموقع!
+                    </p>
+                  </div>
+
+                  <label className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black rounded-xl text-xs flex items-center gap-2 shadow-md hover:from-amber-600 hover:to-amber-700 transition-transform active:scale-95 cursor-pointer shrink-0 self-start sm:self-auto">
+                    <Upload className="w-4 h-4" />
+                    <span>اختيار ملف من جهازك 📁</span>
+                    <input
+                      type="file"
+                      accept=".png,.svg,.jpg,.jpeg,.webp,.ico,image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (re) => {
+                            if (typeof re.target?.result === 'string') {
+                              applyAppIcon(re.target.result);
+                            }
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+
+                {/* Drag and Drop Zone */}
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsAppIconDragging(true);
+                  }}
+                  onDragLeave={() => setIsAppIconDragging(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsAppIconDragging(false);
+                    const file = e.dataTransfer.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = (re) => {
+                        if (typeof re.target?.result === 'string') {
+                          applyAppIcon(re.target.result);
+                        }
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className={`p-6 rounded-2xl border-2 border-dashed text-center transition-all ${
+                    isAppIconDragging
+                      ? 'border-amber-500 bg-amber-500/20 scale-[1.01]'
+                      : 'border-slate-300 dark:border-slate-700 bg-white/60 dark:bg-slate-900/60'
+                  }`}
+                >
+                  <Sparkles className="w-8 h-8 text-amber-500 mx-auto mb-2" />
+                  <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    أفلت ملف الأيقونة هنا للرفع الفوري المباشر
+                  </p>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    الأبعاد المثالية: 512×512 أو 192×192 بكسل بخلفية شفافة أو ملونة
+                  </p>
+                </div>
+              </div>
+
+              {/* SECTION 3: URL or Direct SVG Code Input */}
+              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-3">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                  <Link className="w-4 h-4 text-amber-500" />
+                  <span>أو أدخل رابط صورة أيقونة (URL) أو كود فيكتور SVG مباشر:</span>
+                </label>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={customAppIconInput}
+                    onChange={(e) => setCustomAppIconInput(e.target.value)}
+                    placeholder="https://example.com/logo.png أو <svg ...> أو /icon.svg"
+                    className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-white font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (customAppIconInput.trim()) {
+                        applyAppIcon(customAppIconInput.trim());
+                        setCustomAppIconInput('');
+                      }
+                    }}
+                    className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs transition-colors shrink-0 shadow-sm cursor-pointer"
+                  >
+                    تطبيق وحفظ 💾
+                  </button>
+                </div>
+              </div>
+
+              {/* SECTION 4: Professional Preset Logos (1-Click Apply) */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <Award className="w-4 h-4 text-amber-500" />
+                  <span>نماذج وتصميمات أيقونات احترافية جاهزة (تطبيق بنقرة واحدة):</span>
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                  {/* Preset 1: Default Golden Shield & Tools */}
+                  <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col items-center text-center gap-3 hover:border-amber-500 transition-colors">
+                    <div className="w-14 h-14 rounded-2xl bg-amber-500 p-2 shadow-md flex items-center justify-center">
+                      <AppIconRenderer icon="/icon.svg" className="w-10 h-10 object-contain" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-black text-slate-900 dark:text-white">الدرع والأدوات الذهبي</div>
+                      <div className="text-[10px] text-slate-400">النموذج الرسمي لمنصة خدّام</div>
+                    </div>
+                    <button
+                      onClick={() => applyAppIcon('/icon.svg')}
+                      className="w-full mt-auto py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg text-[10px] cursor-pointer"
+                    >
+                      تطبيق هذا النموذج
+                    </button>
+                  </div>
+
+                  {/* Preset 2: Royal Craft Crown */}
+                  <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col items-center text-center gap-3 hover:border-amber-500 transition-colors">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-600 to-amber-400 p-2 shadow-md flex items-center justify-center">
+                      <Award className="w-9 h-9 text-slate-950 stroke-[2.2]" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-black text-slate-900 dark:text-white">تاج الحرفي الملكي</div>
+                      <div className="text-[10px] text-slate-400">شعار التميز والجودة الذهبية</div>
+                    </div>
+                    <button
+                      onClick={() => applyAppIcon('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><linearGradient id="bg_cr" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#b45309"/></linearGradient></defs><rect width="512" height="512" rx="108" fill="url(#bg_cr)"/><circle cx="256" cy="256" r="190" fill="#ffffff" fill-opacity="0.15"/><path d="M120 340 L120 180 L200 250 L256 150 L312 250 L392 180 L392 340 Z" fill="#0f172a"/><circle cx="256" cy="300" r="24" fill="#fbbf24"/><text x="256" y="440" font-family="sans-serif" font-weight="900" font-size="52" fill="#ffffff" text-anchor="middle">خـدّام</text></svg>')}
+                      className="w-full mt-auto py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg text-[10px] cursor-pointer"
+                    >
+                      تطبيق هذا النموذج
+                    </button>
+                  </div>
+
+                  {/* Preset 3: Gear & Pro Wrench */}
+                  <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col items-center text-center gap-3 hover:border-amber-500 transition-colors">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-700 to-amber-500 p-2 shadow-md flex items-center justify-center">
+                      <Wrench className="w-9 h-9 text-slate-950 stroke-[2.2]" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-black text-slate-900 dark:text-white">ترس الصيانة الميكانيكية</div>
+                      <div className="text-[10px] text-slate-400">للصيانة والتركيب الاحترافي</div>
+                    </div>
+                    <button
+                      onClick={() => applyAppIcon('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><linearGradient id="bg_gw" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#d97706"/><stop offset="100%" stop-color="#78350f"/></linearGradient></defs><rect width="512" height="512" rx="108" fill="url(#bg_gw)"/><circle cx="256" cy="240" r="130" fill="#0f172a"/><path d="M210 180 L240 210 L300 150 L330 180 L270 240 L300 270 L280 290 L250 260 L200 310 C195 315 185 315 180 310 L170 300 C165 295 165 285 170 280 L220 230 L190 200 Z" fill="#fbbf24"/><text x="256" y="440" font-family="sans-serif" font-weight="900" font-size="52" fill="#ffffff" text-anchor="middle">خـدّام</text></svg>')}
+                      className="w-full mt-auto py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg text-[10px] cursor-pointer"
+                    >
+                      تطبيق هذا النموذج
+                    </button>
+                  </div>
+
+                  {/* Preset 4: Electric & Tech Shield */}
+                  <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col items-center text-center gap-3 hover:border-amber-500 transition-colors">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-sky-600 to-sky-400 p-2 shadow-md flex items-center justify-center">
+                      <Zap className="w-9 h-9 text-slate-950 stroke-[2.2]" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-black text-slate-900 dark:text-white">درع الكهرباء والتقنية</div>
+                      <div className="text-[10px] text-slate-400">للخدمات الرقمية والكهربائية</div>
+                    </div>
+                    <button
+                      onClick={() => applyAppIcon('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><linearGradient id="bg_sp" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0284c7"/><stop offset="100%" stop-color="#0369a1"/></linearGradient></defs><rect width="512" height="512" rx="108" fill="url(#bg_sp)"/><path d="M256 90 L370 140 L370 270 C370 350 256 410 256 410 C256 410 142 350 142 270 L142 140 Z" fill="#0f172a"/><path d="M270 160 L190 270 L250 270 L230 350 L320 230 L260 230 Z" fill="#38bdf8"/><text x="256" y="460" font-family="sans-serif" font-weight="900" font-size="44" fill="#ffffff" text-anchor="middle">خـدّام PRO</text></svg>')}
+                      className="w-full mt-auto py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg text-[10px] cursor-pointer"
+                    >
+                      تطبيق هذا النموذج
+                    </button>
+                  </div>
+
+                  {/* Preset 5: Modern Home & Architecture */}
+                  <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col items-center text-center gap-3 hover:border-amber-500 transition-colors">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-600 to-emerald-400 p-2 shadow-md flex items-center justify-center">
+                      <Home className="w-9 h-9 text-slate-950 stroke-[2.2]" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-black text-slate-900 dark:text-white">البيت والمعمار السكني</div>
+                      <div className="text-[10px] text-slate-400">للبناء والتشطيب والتصميم</div>
+                    </div>
+                    <button
+                      onClick={() => applyAppIcon('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><linearGradient id="bg_hm" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#059669"/><stop offset="100%" stop-color="#047857"/></linearGradient></defs><rect width="512" height="512" rx="108" fill="url(#bg_hm)"/><circle cx="256" cy="256" r="190" fill="#ffffff" fill-opacity="0.15"/><path d="M256 120 L380 220 L350 220 L350 340 L162 340 L162 220 L132 220 Z" fill="#0f172a"/><rect x="226" y="240" width="60" height="100" rx="6" fill="#10b981"/><text x="256" y="440" font-family="sans-serif" font-weight="900" font-size="52" fill="#ffffff" text-anchor="middle">خـدّام</text></svg>')}
+                      className="w-full mt-auto py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg text-[10px] cursor-pointer"
+                    >
+                      تطبيق هذا النموذج
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 5: Export & Android / PWA Specs */}
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                    <Smartphone className="w-4 h-4 text-emerald-500" />
+                    <span>ملفات الأيقونة الجاهزة للنشر في متجر Google Play ومتصفحات الويب:</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    ملفات النظام الحالية: <code>/public/icon.svg</code> (فيكتور عالي الدقة)، <code>/public/pwa-192x192.png</code>، <code>/public/pwa-512x512.png</code>، و<code>/manifest.json</code>.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <a
+                    href={getAdminCustomIcon('app_logo', '/icon.svg')}
+                    download="khodam-app-icon"
+                    className="px-4 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>تحميل ملف الأيقونة 📥</span>
+                  </a>
                 </div>
               </div>
             </div>

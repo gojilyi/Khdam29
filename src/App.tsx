@@ -29,6 +29,8 @@ import { AdminPanel } from './components/AdminPanel';
 import { BillboardHero } from './components/BillboardHero';
 import { SquareSpotlight } from './components/SquareSpotlight';
 import { AdBanner } from './components/AdBanner';
+import { AdsterraScriptManager } from './components/AdsterraScriptManager';
+import { AdsterraAdBanner } from './components/AdsterraAdBanner';
 import { InterstitialAdModal } from './components/InterstitialAdModal';
 import { NotificationToast } from './components/NotificationToast';
 import { AIDiagnosticModal } from './components/AIDiagnosticModal';
@@ -189,6 +191,9 @@ const MainContent: React.FC = () => {
 
                 {/* Sponsored Ad Banner (Start.io & AdMob) */}
                 <AdBanner position="top" />
+
+                {/* Adsterra Publishers Top Banner */}
+                <AdsterraAdBanner format="top" />
 
                 {/* Hero Section with Warm Master Craftsman Visual */}
                 <div className="relative rounded-3xl bg-gradient-to-r from-amber-950 via-slate-900 to-amber-900 text-white p-6 sm:p-9 overflow-hidden shadow-xl border border-amber-900/40">
@@ -450,6 +455,9 @@ const MainContent: React.FC = () => {
                 {/* Services Catalog with Real Photography */}
                 <ServicesGrid />
 
+                {/* Adsterra Native Banner Widget */}
+                <AdsterraAdBanner format="native" />
+
                 {/* 2-Column Discovery: Benchmark Pricing & Q&A Forum */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Card 1: Benchmark Pricing Catalog (قائمة أسعار استرشادية) */}
@@ -625,8 +633,14 @@ const MainContent: React.FC = () => {
       {/* Bottom Ad Banner (Start.io & AdMob) */}
       <AdBanner position="bottom" />
 
+      {/* Adsterra Publishers Bottom Banner */}
+      <AdsterraAdBanner format="bottom" />
+
       {/* Mobile Bottom Navigation */}
       <BottomNav />
+
+      {/* Adsterra Global Script Manager (Social Bar & Popunder) */}
+      <AdsterraScriptManager />
 
 
       {/* Global Interactive Modals */}

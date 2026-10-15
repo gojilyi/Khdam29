@@ -68,7 +68,9 @@ export const AdminQuickSwapModal: React.FC = () => {
     adminCustomIcons,
     setAdminCustomIcon,
     resetAdminCustomIcons,
-    artisans
+    artisans,
+    role,
+    currentUser
   } = useApp();
 
   // Local state for text edit
@@ -100,7 +102,8 @@ export const AdminQuickSwapModal: React.FC = () => {
     }
   }, [adminEditModalTarget]);
 
-  if (!isAdminAuthenticated) return null;
+  const isEffectiveAdmin = isAdminAuthenticated || role === 'admin' || currentUser?.role === 'admin';
+  if (!isEffectiveAdmin) return null;
   if (!adminEditModalTarget && !isMediaManagerModalOpen) return null;
 
   // Available Icon catalog

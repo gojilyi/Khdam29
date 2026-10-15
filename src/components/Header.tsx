@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { serviceCategories } from '../data/mockData';
 import { PWAInstallButton } from './PWAInstallButton';
+import { AppIconRenderer } from './AppIconRenderer';
 
 export const Header: React.FC = () => {
   const { 
@@ -46,8 +47,12 @@ export const Header: React.FC = () => {
     setIsChatDiagnosticsOpen,
     setIsMediaManagerModalOpen,
     setIsAIDiagnosticModalOpen,
-    setIsContactModalOpen
+    setIsContactModalOpen,
+    getAdminCustomIcon,
+    setAdminEditModalTarget
   } = useApp();
+
+  const appLogo = getAdminCustomIcon ? getAdminCustomIcon('app_logo', '/icon.svg') : '/icon.svg';
 
   return (
     <header className="sticky top-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors">
@@ -60,10 +65,26 @@ export const Header: React.FC = () => {
                 e.stopPropagation();
                 handleBrandSecretClick();
               }}
-              className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-400 flex items-center justify-center text-white shadow-sm shadow-amber-500/20 hover:scale-105 active:scale-95 transition-transform shrink-0 cursor-pointer"
-              title={isAdminAuthenticated ? "لوحة المشرف العام" : "الرئيسية (خدّام)"}
+              onDoubleClick={(e) => {
+                if (isAdminAuthenticated || role === 'admin') {
+                  e.stopPropagation();
+                  setAdminEditModalTarget({
+                    type: 'icon',
+                    id: 'app_logo',
+                    title: 'شعار وأيقونة تطبيق خدّام الرئيسية',
+                    currentValue: appLogo
+                  });
+                }
+              }}
+              className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-400 flex items-center justify-center text-white shadow-sm shadow-amber-500/20 hover:scale-105 active:scale-95 transition-transform shrink-0 cursor-pointer overflow-hidden p-1 relative group"
+              title={isAdminAuthenticated || role === 'admin' ? "الرئيسية (انقر مرتين لتعديل أيقونة وشعار التطبيق)" : "الرئيسية (خدّام)"}
             >
-              <ShieldCheck className="w-6 h-6 stroke-[2.2]" />
+              <AppIconRenderer icon={appLogo} className="w-8 h-8 object-contain rounded-lg" fallbackIcon="ShieldCheck" />
+              {(isAdminAuthenticated || role === 'admin') && (
+                <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
+                  <span className="text-[9px] font-black text-amber-300">تعديل</span>
+                </div>
+              )}
             </button>
             <div className="flex flex-col relative select-none">
               <div className="flex items-center gap-2">
@@ -78,7 +99,7 @@ export const Header: React.FC = () => {
                   {t.appName}
                 </button>
 
-                {isAdminAuthenticated && (
+                {(isAdminAuthenticated || role === 'admin') && (
                   <div className="flex items-center gap-1.5">
                     {activeTab === 'admin' ? (
                       <button

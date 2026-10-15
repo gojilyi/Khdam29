@@ -19,6 +19,7 @@ import {
   VerificationLevel,
   StartIoConfig,
   AdMobConfig,
+  AdsterraConfig,
   BillboardConfig,
   AppNotification,
   FirebaseFCMConfig,
@@ -244,11 +245,14 @@ interface AppContextType {
   toggleClientSuspension: (clientId: string) => void;
   removeClientAvatar: (clientId: string) => void;
 
-  // Ads Networks (Start.io & AdMob)
+  // Ads Networks (Start.io & AdMob & Adsterra)
   startIoConfig: StartIoConfig;
   setStartIoConfig: React.Dispatch<React.SetStateAction<StartIoConfig>>;
   adMobConfig: AdMobConfig;
   setAdMobConfig: React.Dispatch<React.SetStateAction<AdMobConfig>>;
+  adsterraConfig: AdsterraConfig;
+  setAdsterraConfig: React.Dispatch<React.SetStateAction<AdsterraConfig>>;
+  updateAdsterraConfig: (newConfig: Partial<AdsterraConfig>) => void;
   showInterstitialAd: (network?: 'startio' | 'admob') => void;
   activeInterstitial: { isOpen: boolean; network: 'startio' | 'admob'; title: string; image: string; link: string } | null;
   closeInterstitial: () => void;
@@ -450,6 +454,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  // Automatically authenticate admin features if role is admin
+  useEffect(() => {
+    if (role === 'admin' || currentUser?.role === 'admin') {
+      if (!isAdminAuthenticated) {
+        setIsAdminAuthenticated(true);
+        try { sessionStorage.setItem('khodam_admin_auth', 'true'); } catch (e) {}
+      }
+    }
+  }, [role, currentUser?.role, isAdminAuthenticated]);
+
   const [isAdminAuthModalOpen, setIsAdminAuthModalOpen] = useState(false);
   const [adminClickCount, setAdminClickCount] = useState(0);
 
@@ -611,6 +625,77 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     rewardedEnabled: true,
     nativeEnabled: true
   });
+
+  // Adsterra Publishers Ads Configuration (https://beta.publishers.adsterra.com/websites)
+  const defaultAdsterraConfig: AdsterraConfig = {
+    enabled: true,
+    websiteDomain: 'khodam.dz',
+    socialBarEnabled: true,
+    socialBarCode: '<script data-cfasync="false" src="https://abscloud.org/1/6cdd6d5b84411cc9fc386e383ab354a2"></script>',
+    popunderEnabled: true,
+    popunderCode: '<script data-cfasync="false" src="https://bauval.org/14/865fd58b19ae0fc3cccd9288109f775b"></script>',
+    topBannerEnabled: true,
+    topBannerCode: `<script>
+  atOptions = {
+    'key' : '2064ae2292addbaa6af77a458c1ed026',
+    'format' : 'iframe',
+    'height' : 300,
+    'width' : 160,
+    'params' : {}
+  };
+</script>
+<script src="https://bauval.org/22/2064ae2292addbaa6af77a458c1ed026"></script>`,
+    bottomBannerEnabled: true,
+    bottomBannerCode: `<script>
+  atOptions = {
+    'key' : '2064ae2292addbaa6af77a458c1ed026',
+    'format' : 'iframe',
+    'height' : 300,
+    'width' : 160,
+    'params' : {}
+  };
+</script>
+<script src="https://bauval.org/22/2064ae2292addbaa6af77a458c1ed026"></script>`,
+    nativeBannerEnabled: true,
+    nativeBannerCode: `<script async="async" data-cfasync="false" src="https://bauval.org/21/4637141dcafcb73f8eae0c22a79754da"></script>
+<div id="container-4637141dcafcb73f8eae0c22a79754da"></div>`,
+    directLinkEnabled: true,
+    directLinkUrl: 'https://araplhn.org/4/d31552b97c35b6c9edd37f8fc92f3b60'
+  };
+
+  const [adsterraConfig, setAdsterraConfig] = useState<AdsterraConfig>(() => {
+    try {
+      const saved = localStorage.getItem('khodam_adsterra_config');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          ...defaultAdsterraConfig,
+          ...parsed,
+          socialBarCode: parsed.socialBarCode || defaultAdsterraConfig.socialBarCode,
+          popunderCode: parsed.popunderCode || defaultAdsterraConfig.popunderCode,
+          topBannerCode: parsed.topBannerCode || defaultAdsterraConfig.topBannerCode,
+          bottomBannerCode: parsed.bottomBannerCode || defaultAdsterraConfig.bottomBannerCode,
+          nativeBannerCode: parsed.nativeBannerCode || defaultAdsterraConfig.nativeBannerCode,
+          directLinkUrl: parsed.directLinkUrl || defaultAdsterraConfig.directLinkUrl
+        };
+      }
+      return defaultAdsterraConfig;
+    } catch {
+      return defaultAdsterraConfig;
+    }
+  });
+
+  const updateAdsterraConfig = (newConfig: Partial<AdsterraConfig>) => {
+    setAdsterraConfig(prev => {
+      const next = { ...prev, ...newConfig };
+      try {
+        localStorage.setItem('khodam_adsterra_config', JSON.stringify(next));
+      } catch (e) {
+        console.error(e);
+      }
+      return next;
+    });
+  };
 
   // Active Interstitial Modal State
   const [activeInterstitial, setActiveInterstitial] = useState<{
@@ -2671,6 +2756,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setStartIoConfig,
         adMobConfig,
         setAdMobConfig,
+        adsterraConfig,
+        setAdsterraConfig,
+        updateAdsterraConfig,
         showInterstitialAd,
         activeInterstitial,
         closeInterstitial,

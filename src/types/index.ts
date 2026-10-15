@@ -1,4 +1,4 @@
-export type Role = 'client' | 'artisan';
+export type Role = 'client' | 'artisan' | 'admin';
 export type Language = 'ar' | 'fr' | 'en';
 
 export type VerificationStatus = 'verified' | 'pending' | 'unverified';
@@ -382,6 +382,29 @@ export interface AdMobConfig {
   interstitialEnabled: boolean;
   rewardedEnabled: boolean;
   nativeEnabled: boolean;
+}
+
+export interface AdsterraConfig {
+  enabled: boolean;
+  websiteDomain: string;
+  // Social Bar / In-Page Push
+  socialBarEnabled: boolean;
+  socialBarCode: string;
+  // Popunder
+  popunderEnabled: boolean;
+  popunderCode: string;
+  // Top Banner (728x90, 468x60, 320x50)
+  topBannerEnabled: boolean;
+  topBannerCode: string;
+  // Bottom / Square Banner (300x250)
+  bottomBannerEnabled: boolean;
+  bottomBannerCode: string;
+  // Native Banner
+  nativeBannerEnabled: boolean;
+  nativeBannerCode: string;
+  // Direct Link / Smartlink
+  directLinkEnabled: boolean;
+  directLinkUrl: string;
 }
 
 export interface BillboardConfig {
