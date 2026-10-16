@@ -143,10 +143,16 @@ export const AppIconRenderer: React.FC<AppIconRendererProps> = ({
   icon,
   className = 'w-5 h-5',
   size,
-  fallbackIcon = 'Wrench'
+  fallbackIcon = 'ShieldCheck'
 }) => {
-  if (!icon) {
-    const FallbackComponent = ICON_MAP[fallbackIcon] || Wrench;
+  const [hasImageError, setHasImageError] = React.useState(false);
+
+  React.useEffect(() => {
+    setHasImageError(false);
+  }, [icon]);
+
+  if (!icon || hasImageError) {
+    const FallbackComponent = ICON_MAP[fallbackIcon] || ShieldCheck;
     return <FallbackComponent className={className} />;
   }
 
@@ -158,6 +164,7 @@ export const AppIconRenderer: React.FC<AppIconRendererProps> = ({
       <img
         src={trimmed}
         alt="custom icon"
+        onError={() => setHasImageError(true)}
         className={`object-contain inline-block select-none ${className}`}
         style={size ? { width: size, height: size } : undefined}
       />
@@ -175,6 +182,7 @@ export const AppIconRenderer: React.FC<AppIconRendererProps> = ({
       <img
         src={trimmed}
         alt="custom icon"
+        onError={() => setHasImageError(true)}
         className={`object-contain inline-block select-none ${className}`}
         style={size ? { width: size, height: size } : undefined}
       />

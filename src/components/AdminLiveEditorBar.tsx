@@ -65,7 +65,8 @@ export const AdminLiveEditorBar: React.FC = () => {
     resetAdminCustomTexts,
     categories,
     role,
-    currentUser
+    currentUser,
+    setIsAdminAuthModalOpen
   } = useApp();
 
   const isEffectiveAdmin = isAdminAuthenticated || role === 'admin' || currentUser?.role === 'admin';
@@ -141,8 +142,6 @@ export const AdminLiveEditorBar: React.FC = () => {
 
   // 2. Global Double Click & Drag/Drop Interceptor for Admin
   useEffect(() => {
-    if (!isEffectiveAdmin) return;
-
     // A. Double Click Handler (Edit any text, icon, or image)
     const handleGlobalDoubleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
@@ -156,6 +155,18 @@ export const AdminLiveEditorBar: React.FC = () => {
         target.closest('.admin-modal') ||
         target.closest('[role="dialog"]')
       ) {
+        return;
+      }
+
+      // If user is not yet logged in as admin, double click invites them to authenticate
+      if (!isEffectiveAdmin) {
+        // Only trigger if double clicked on actual text, button, card or image
+        const hasContent = target.closest('h1, h2, h3, h4, h5, h6, p, span, button, a, img, svg');
+        if (hasContent) {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsAdminAuthModalOpen(true);
+        }
         return;
       }
 
@@ -395,7 +406,7 @@ export const AdminLiveEditorBar: React.FC = () => {
       window.removeEventListener('drop', handleGlobalDrop, true);
       window.removeEventListener('dragstart', handleGlobalDragStart, true);
     };
-  }, [isEffectiveAdmin, categories]);
+  }, [isEffectiveAdmin, categories, setIsAdminAuthModalOpen]);
 
   // Focus textarea when inline editor opens
   useEffect(() => {
@@ -417,9 +428,25 @@ export const AdminLiveEditorBar: React.FC = () => {
         setAdminCustomText(originalText, finalVal);
       }
 
-      // Immediate DOM update
+      // Immediate DOM update without removing sibling SVG icons or badges
       try {
-        element.textContent = finalVal;
+        let replaced = false;
+        for (let i = 0; i < element.childNodes.length; i++) {
+          const child = element.childNodes[i];
+          if (child.nodeType === Node.TEXT_NODE && child.nodeValue?.trim()) {
+            child.nodeValue = ` ${finalVal} `;
+            replaced = true;
+            break;
+          }
+        }
+        if (!replaced) {
+          const textSpan = element.querySelector('span, p, h1, h2, h3, h4, h5, h6, b, strong');
+          if (textSpan && !textSpan.querySelector('svg, img')) {
+            textSpan.textContent = finalVal;
+          } else {
+            element.textContent = finalVal;
+          }
+        }
       } catch (e) {
         console.error('DOM update error', e);
       }

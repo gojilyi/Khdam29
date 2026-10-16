@@ -4455,7 +4455,7 @@ export const AdminPanel: React.FC = () => {
                           className="w-11 h-11 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center justify-center p-2 shadow-sm shrink-0 cursor-pointer transition-transform active:scale-95"
                           title="اضغط لاختيار أو رفع أيقونة جديدة"
                         >
-                          <AppIconRenderer icon={cat.icon} className="w-6 h-6 text-slate-950 fill-current" />
+                          <AppIconRenderer icon={cat.icon} className="w-6 h-6 text-slate-950" />
                         </div>
 
                         <div className="min-w-0">

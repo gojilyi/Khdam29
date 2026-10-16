@@ -51,13 +51,22 @@ export const AdsterraAdBanner: React.FC<AdsterraAdBannerProps> = ({ format, clas
       const containerDiv = tempDiv.querySelector('div');
 
       if (containerDiv) {
+        containerDiv.style.minHeight = '120px';
+        containerDiv.style.width = '100%';
+        containerDiv.style.display = 'flex';
+        containerDiv.style.justifyContent = 'center';
+        containerDiv.style.alignItems = 'center';
         container.appendChild(containerDiv);
       }
-      if (scriptEl && scriptEl.src) {
+      if (scriptEl) {
         const s = document.createElement('script');
-        s.src = scriptEl.src;
-        s.async = true;
         s.setAttribute('data-cfasync', 'false');
+        if (scriptEl.src) {
+          s.src = scriptEl.src;
+          s.async = true;
+        } else {
+          s.text = scriptEl.text || scriptEl.innerHTML;
+        }
         container.appendChild(s);
       }
       setAdLoaded(true);

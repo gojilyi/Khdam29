@@ -66,7 +66,7 @@ export const ServicesGrid: React.FC = () => {
   const [isRentalModalOpen, setIsRentalModalOpen] = useState(false);
 
   const getCategoryIcon = (iconName: string) => {
-    return <AppIconRenderer icon={iconName} className="w-5 h-5 text-amber-500 fill-current" />;
+    return <AppIconRenderer icon={iconName} className="w-5 h-5 text-amber-500" />;
   };
 
   const filteredCategories = categories.filter(cat => {

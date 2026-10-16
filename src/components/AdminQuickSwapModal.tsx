@@ -487,7 +487,7 @@ export const AdminQuickSwapModal: React.FC = () => {
             <div className="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-2xl border border-amber-200 dark:border-amber-800/60 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center p-2 shadow-sm shrink-0">
-                  <AppIconRenderer icon={adminEditModalTarget.currentValue} className="w-6 h-6 text-slate-950 fill-current" />
+                  <AppIconRenderer icon={adminEditModalTarget.currentValue} className="w-6 h-6 text-slate-950" />
                 </div>
                 <div>
                   <span className="text-[10px] text-amber-700 dark:text-amber-400 font-bold block">الأيقونة الحالية:</span>

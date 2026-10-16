@@ -63,7 +63,9 @@ export const ProfileView: React.FC = () => {
     setActiveTab,
     setIsContactModalOpen,
     setIsLegalModalOpen,
-    setLegalModalTab
+    setLegalModalTab,
+    isAdminAuthenticated,
+    setIsAdminAuthModalOpen
   } = useApp();
 
   const isRtl = language === 'ar';
@@ -1016,6 +1018,51 @@ export const ProfileView: React.FC = () => {
 
           <div className="p-2 rounded-xl bg-amber-500 text-slate-950 group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform shrink-0">
             {language === 'ar' ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          </div>
+        </div>
+
+        {/* 6. ADMIN PORTAL & LIVE TEXT EDITING ACCESS (بوابة المشرف وتعديل النصوص) */}
+        <div className="p-4 sm:p-5 bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-amber-500/10 dark:from-amber-950/40 dark:to-slate-900 border border-amber-500/30 rounded-2xl space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shrink-0 shadow-sm">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
+                    {language === 'ar' ? 'بوابة إدارة المنصة وتعديل الواجهة' : 'Admin Portal & Live Customizer'}
+                  </h4>
+                  {isAdminAuthenticated && (
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] border border-emerald-500/30">
+                      {language === 'ar' ? 'مشرف مفعّل ✓' : 'Admin Active'}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  {language === 'ar' 
+                    ? 'التحكم في أيقونة وشعار التطبيق، إعلانات Adsterra، وتعديل أي نص بالنقر مرتين (Double Click).' 
+                    : 'Manage app branding, Adsterra ads, and live in-place double-click text editing.'}
+                </p>
+              </div>
+            </div>
+
+            {isAdminAuthenticated ? (
+              <button
+                onClick={() => setActiveTab('admin')}
+                className="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-transform active:scale-95 shrink-0 cursor-pointer"
+              >
+                <span>فتح لوحة الأدمن ⚙️</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setIsAdminAuthModalOpen(true)}
+                className="px-3.5 py-2 bg-slate-900 dark:bg-amber-500 text-white dark:text-slate-950 hover:bg-amber-600 dark:hover:bg-amber-400 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-transform active:scale-95 shrink-0 cursor-pointer"
+              >
+                <Key className="w-3.5 h-3.5" />
+                <span>دخول المشرف 🔑</span>
+              </button>
+            )}
           </div>
         </div>
 

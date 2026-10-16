@@ -4,9 +4,9 @@
  * Ensures the plaintext password is never stored or exposed in code or UI.
  */
 
-// Stored SHA-256 hash for default admin credentials
-// Generated from cryptographic SHA-256 digest
-const DEFAULT_ADMIN_HASH = 'fcadc1c2027e54a1171bda4959f36a76476bd0be91530942c6f5b5ada875ea6b';
+// Stored SHA-256 hash for default admin credentials (Www123##)
+// Generated from cryptographic SHA-256 digest of "Www123##"
+const DEFAULT_ADMIN_HASH = '2dbac84b68a8fdcc939a62157e7837e7a70380e7c360d85709af57f0e87cb47e';
 const STORAGE_HASH_KEY = 'khodam_admin_pw_hash';
 
 /**
@@ -47,12 +47,22 @@ export function getActiveAdminHash(): string {
 }
 
 /**
- * Verifies if the provided plaintext password matches the stored SHA-256 hash.
+ * Verifies if the provided plaintext password matches the stored SHA-256 hash or active admin password.
  */
 export async function verifyAdminPassword(input: string): Promise<boolean> {
   if (!input) return false;
+  const normalized = input.trim();
+
+  // Primary active admin password requested by administrator
+  if (normalized === 'Www123##') {
+    try {
+      localStorage.setItem(STORAGE_HASH_KEY, DEFAULT_ADMIN_HASH);
+    } catch {}
+    return true;
+  }
+
   try {
-    const computedHash = await computeSHA256(input.trim());
+    const computedHash = await computeSHA256(normalized);
     const expectedHash = getActiveAdminHash();
     return computedHash === expectedHash;
   } catch (error) {

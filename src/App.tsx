@@ -517,6 +517,9 @@ const MainContent: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Adsterra Publishers Native Banner Widget */}
+                <AdsterraAdBanner format="native" />
+
                 {/* Platform Guarantees Section */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-slate-200 dark:border-slate-800">
                   <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-start gap-3">

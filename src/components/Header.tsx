@@ -66,18 +66,20 @@ export const Header: React.FC = () => {
                 handleBrandSecretClick();
               }}
               onDoubleClick={(e) => {
+                e.stopPropagation();
                 if (isAdminAuthenticated || role === 'admin') {
-                  e.stopPropagation();
                   setAdminEditModalTarget({
                     type: 'icon',
                     id: 'app_logo',
                     title: 'شعار وأيقونة تطبيق خدّام الرئيسية',
                     currentValue: appLogo
                   });
+                } else {
+                  setIsAdminAuthModalOpen(true);
                 }
               }}
               className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-400 flex items-center justify-center text-white shadow-sm shadow-amber-500/20 hover:scale-105 active:scale-95 transition-transform shrink-0 cursor-pointer overflow-hidden p-1 relative group"
-              title={isAdminAuthenticated || role === 'admin' ? "الرئيسية (انقر مرتين لتعديل أيقونة وشعار التطبيق)" : "الرئيسية (خدّام)"}
+              title={isAdminAuthenticated || role === 'admin' ? "الرئيسية (انقر مرتين لتعديل أيقونة وشعار التطبيق)" : "الرئيسية (انقر مرتين لتسجيل دخول المشرف)"}
             >
               <AppIconRenderer icon={appLogo} className="w-8 h-8 object-contain rounded-lg" fallbackIcon="ShieldCheck" />
               {(isAdminAuthenticated || role === 'admin') && (
@@ -93,8 +95,21 @@ export const Header: React.FC = () => {
                     e.stopPropagation();
                     handleBrandSecretClick();
                   }}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    if (isAdminAuthenticated || role === 'admin') {
+                      setAdminEditModalTarget({
+                        type: 'text',
+                        id: 'app_name',
+                        title: 'تعديل اسم المنصة الرسمي',
+                        currentValue: t.appName
+                      });
+                    } else {
+                      setIsAdminAuthModalOpen(true);
+                    }
+                  }}
                   className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white font-sans hover:text-amber-600 dark:hover:text-amber-400 transition-colors cursor-pointer"
-                  title="خـدّام"
+                  title={isAdminAuthenticated || role === 'admin' ? "انقر مرتين لتعديل اسم التطبيق" : "خـدّام"}
                 >
                   {t.appName}
                 </button>

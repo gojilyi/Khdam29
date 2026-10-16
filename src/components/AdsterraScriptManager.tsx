@@ -37,6 +37,9 @@ export const AdsterraScriptManager: React.FC = () => {
           newScript.id = `adsterra-script-${identifier}-${idx}`;
 
           if (origScript.src) {
+            if (document.querySelector(`script[src="${origScript.src}"]`)) {
+              return;
+            }
             newScript.src = origScript.src;
             newScript.async = true;
           } else {
@@ -52,6 +55,9 @@ export const AdsterraScriptManager: React.FC = () => {
           });
         });
       } else if (trimmed.startsWith('http') || trimmed.startsWith('//')) {
+        if (document.querySelector(`script[src="${trimmed}"]`)) {
+          return;
+        }
         // Direct script URL
         const script = document.createElement('script');
         script.type = 'text/javascript';
