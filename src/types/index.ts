@@ -362,51 +362,6 @@ export interface CallSession {
   durationSeconds: number;
 }
 
-export interface StartIoConfig {
-  enabled: boolean;
-  appId: string;
-  bannerEnabled: boolean;
-  interstitialEnabled: boolean;
-  rewardedEnabled: boolean;
-  nativeEnabled: boolean;
-}
-
-export interface AdMobConfig {
-  enabled: boolean;
-  appId: string;
-  bannerUnitId: string;
-  interstitialUnitId: string;
-  rewardedUnitId: string;
-  nativeUnitId: string;
-  bannerEnabled: boolean;
-  interstitialEnabled: boolean;
-  rewardedEnabled: boolean;
-  nativeEnabled: boolean;
-}
-
-export interface AdsterraConfig {
-  enabled: boolean;
-  websiteDomain: string;
-  // Social Bar / In-Page Push
-  socialBarEnabled: boolean;
-  socialBarCode: string;
-  // Popunder
-  popunderEnabled: boolean;
-  popunderCode: string;
-  // Top Banner (728x90, 468x60, 320x50)
-  topBannerEnabled: boolean;
-  topBannerCode: string;
-  // Bottom / Square Banner (300x250)
-  bottomBannerEnabled: boolean;
-  bottomBannerCode: string;
-  // Native Banner
-  nativeBannerEnabled: boolean;
-  nativeBannerCode: string;
-  // Direct Link / Smartlink
-  directLinkEnabled: boolean;
-  directLinkUrl: string;
-}
-
 export interface BillboardConfig {
   isVisible: boolean;
   mediaType: 'image' | 'video';
@@ -537,7 +492,6 @@ export interface WorkPartnerPost {
 
 export interface HomePanelsConfig {
   billboard: boolean;
-  adBannerTop: boolean;
   heroMaster: boolean;
   aiDiagnostic: boolean;
   partnerFinder: boolean;
@@ -545,7 +499,6 @@ export interface HomePanelsConfig {
   categoriesGrid: boolean;
   squareSpotlight: boolean;
   guarantees: boolean;
-  adBannerBottom: boolean;
 }
 
 export interface ClientAccount {

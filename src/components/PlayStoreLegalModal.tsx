@@ -183,8 +183,8 @@ export const PlayStoreLegalModal: React.FC = () => {
                     </h4>
                     <p className="text-xs text-slate-600 dark:text-slate-400">
                       {language === 'ar'
-                        ? 'قد يعتمد التطبيق على خدمات Google Play Services، وخرائط الموقع الجغرافي، وشبكات الإعلانات المتوافقة مع سياسة العائلة في Google Play. لا نقوم ببيع أو تأجير بياناتك لأي جهة تجارية.'
-                        : 'The app uses Google Play Services, geolocation mapping, and Play-compliant ad networks. We never sell your personal information.'}
+                        ? 'يعتمد التطبيق على خدمات Google Play Services وخرائط الموقع الجغرافي. التطبيق خالٍ تماماً من أي إعلانات تجارية. لا نقوم ببيع أو تأجير بياناتك لأي جهة تجارية.'
+                        : 'The app uses Google Play Services and geolocation mapping. The application is completely free of commercial advertisements. We never sell your personal information.'}
                     </p>
                   </div>
                 </div>

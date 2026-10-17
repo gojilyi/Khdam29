@@ -1041,8 +1041,8 @@ export const ProfileView: React.FC = () => {
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                   {language === 'ar' 
-                    ? 'التحكم في أيقونة وشعار التطبيق، إعلانات Adsterra، وتعديل أي نص بالنقر مرتين (Double Click).' 
-                    : 'Manage app branding, Adsterra ads, and live in-place double-click text editing.'}
+                    ? 'التحكم في أيقونة وشعار التطبيق، وتعديل أي نص بالنقر مرتين (Double Click)، وإدارة المنصة.' 
+                    : 'Manage app branding, live in-place double-click text editing, and platform settings.'}
                 </p>
               </div>
             </div>

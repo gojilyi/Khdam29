@@ -17,9 +17,6 @@ import {
   WorkPost,
   VerificationRequest,
   VerificationLevel,
-  StartIoConfig,
-  AdMobConfig,
-  AdsterraConfig,
   BillboardConfig,
   AppNotification,
   FirebaseFCMConfig,
@@ -244,18 +241,6 @@ interface AppContextType {
   deleteClientAccount: (clientId: string) => void;
   toggleClientSuspension: (clientId: string) => void;
   removeClientAvatar: (clientId: string) => void;
-
-  // Ads Networks (Start.io & AdMob & Adsterra)
-  startIoConfig: StartIoConfig;
-  setStartIoConfig: React.Dispatch<React.SetStateAction<StartIoConfig>>;
-  adMobConfig: AdMobConfig;
-  setAdMobConfig: React.Dispatch<React.SetStateAction<AdMobConfig>>;
-  adsterraConfig: AdsterraConfig;
-  setAdsterraConfig: React.Dispatch<React.SetStateAction<AdsterraConfig>>;
-  updateAdsterraConfig: (newConfig: Partial<AdsterraConfig>) => void;
-  showInterstitialAd: (network?: 'startio' | 'admob') => void;
-  activeInterstitial: { isOpen: boolean; network: 'startio' | 'admob'; title: string; image: string; link: string } | null;
-  closeInterstitial: () => void;
 
   // Hero Billboard / Big Board
   billboardConfig: BillboardConfig;
@@ -602,110 +587,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   });
 
-  // Start.io Ads Configuration
-  const [startIoConfig, setStartIoConfig] = useState<StartIoConfig>({
-    enabled: true,
-    appId: '', // To be filled by Admin later
-    bannerEnabled: true,
-    interstitialEnabled: true,
-    rewardedEnabled: true,
-    nativeEnabled: true
-  });
-
-  // Google AdMob Configuration
-  const [adMobConfig, setAdMobConfig] = useState<AdMobConfig>({
-    enabled: true,
-    appId: '', // To be filled by Admin
-    bannerUnitId: '',
-    interstitialUnitId: '',
-    rewardedUnitId: '',
-    nativeUnitId: '',
-    bannerEnabled: true,
-    interstitialEnabled: true,
-    rewardedEnabled: true,
-    nativeEnabled: true
-  });
-
-  // Adsterra Publishers Ads Configuration (https://beta.publishers.adsterra.com/websites)
-  const defaultAdsterraConfig: AdsterraConfig = {
-    enabled: true,
-    websiteDomain: 'khodam.dz',
-    socialBarEnabled: true,
-    socialBarCode: '<script data-cfasync="false" src="https://abscloud.org/1/6cdd6d5b84411cc9fc386e383ab354a2"></script>',
-    popunderEnabled: true,
-    popunderCode: '<script data-cfasync="false" src="https://bauval.org/14/865fd58b19ae0fc3cccd9288109f775b"></script>',
-    topBannerEnabled: true,
-    topBannerCode: `<script>
-  atOptions = {
-    'key' : '2064ae2292addbaa6af77a458c1ed026',
-    'format' : 'iframe',
-    'height' : 300,
-    'width' : 160,
-    'params' : {}
-  };
-</script>
-<script src="https://bauval.org/22/2064ae2292addbaa6af77a458c1ed026"></script>`,
-    bottomBannerEnabled: true,
-    bottomBannerCode: `<script>
-  atOptions = {
-    'key' : '2064ae2292addbaa6af77a458c1ed026',
-    'format' : 'iframe',
-    'height' : 300,
-    'width' : 160,
-    'params' : {}
-  };
-</script>
-<script src="https://bauval.org/22/2064ae2292addbaa6af77a458c1ed026"></script>`,
-    nativeBannerEnabled: true,
-    nativeBannerCode: `<script async="async" data-cfasync="false" src="https://bauval.org/21/4637141dcafcb73f8eae0c22a79754da"></script>
-<div id="container-4637141dcafcb73f8eae0c22a79754da"></div>`,
-    directLinkEnabled: true,
-    directLinkUrl: 'https://araplhn.org/4/d31552b97c35b6c9edd37f8fc92f3b60'
-  };
-
-  const [adsterraConfig, setAdsterraConfig] = useState<AdsterraConfig>(() => {
-    try {
-      const saved = localStorage.getItem('khodam_adsterra_config');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return {
-          ...defaultAdsterraConfig,
-          ...parsed,
-          socialBarCode: parsed.socialBarCode || defaultAdsterraConfig.socialBarCode,
-          popunderCode: parsed.popunderCode || defaultAdsterraConfig.popunderCode,
-          topBannerCode: parsed.topBannerCode || defaultAdsterraConfig.topBannerCode,
-          bottomBannerCode: parsed.bottomBannerCode || defaultAdsterraConfig.bottomBannerCode,
-          nativeBannerCode: parsed.nativeBannerCode || defaultAdsterraConfig.nativeBannerCode,
-          directLinkUrl: parsed.directLinkUrl || defaultAdsterraConfig.directLinkUrl
-        };
-      }
-      return defaultAdsterraConfig;
-    } catch {
-      return defaultAdsterraConfig;
-    }
-  });
-
-  const updateAdsterraConfig = (newConfig: Partial<AdsterraConfig>) => {
-    setAdsterraConfig(prev => {
-      const next = { ...prev, ...newConfig };
-      try {
-        localStorage.setItem('khodam_adsterra_config', JSON.stringify(next));
-      } catch (e) {
-        console.error(e);
-      }
-      return next;
-    });
-  };
-
-  // Active Interstitial Modal State
-  const [activeInterstitial, setActiveInterstitial] = useState<{
-    isOpen: boolean;
-    network: 'startio' | 'admob';
-    title: string;
-    image: string;
-    link: string;
-  } | null>(null);
-
   // Big Hero Billboard Configuration
   const [billboardConfig, setBillboardConfig] = useState<BillboardConfig>({
     isVisible: true,
@@ -742,15 +623,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Home Display Panels Visibility Configuration (إدارة وحذف البانلات المعروضة في الواجهة)
   const defaultHomePanelsConfig: HomePanelsConfig = {
     billboard: true,
-    adBannerTop: true,
     heroMaster: true,
     aiDiagnostic: true,
     partnerFinder: true,
     appointmentsBanner: true,
     categoriesGrid: true,
     squareSpotlight: true,
-    guarantees: true,
-    adBannerBottom: true
+    guarantees: true
   };
 
   const [homePanelsConfig, setHomePanelsConfig] = useState<HomePanelsConfig>(() => {
@@ -2579,27 +2458,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
-  // Ads Networks Actions
-  const showInterstitialAd = (network?: 'startio' | 'admob') => {
-    const net = network || (startIoConfig.enabled && startIoConfig.interstitialEnabled ? 'startio' : 'admob');
-    if (net === 'startio' && (!startIoConfig.enabled || !startIoConfig.interstitialEnabled)) return;
-    if (net === 'admob' && (!adMobConfig.enabled || !adMobConfig.interstitialEnabled)) return;
-
-    setActiveInterstitial({
-      isOpen: true,
-      network: net,
-      title: net === 'startio' ? 'Start.io Sponsored App Showcase' : 'Google AdMob Interstitial Ad',
-      image: net === 'startio'
-        ? 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=80'
-        : 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&auto=format&fit=crop&q=80',
-      link: 'https://www.start.io'
-    });
-  };
-
-  const closeInterstitial = () => {
-    setActiveInterstitial(null);
-  };
-
   // Push Notifications & Firebase FCM Actions
   const sendPushNotification = (notif: Omit<AppNotification, 'id' | 'sentAt'>) => {
     const newNotif: AppNotification = {
@@ -2752,16 +2610,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteClientAccount,
         toggleClientSuspension,
         removeClientAvatar,
-        startIoConfig,
-        setStartIoConfig,
-        adMobConfig,
-        setAdMobConfig,
-        adsterraConfig,
-        setAdsterraConfig,
-        updateAdsterraConfig,
-        showInterstitialAd,
-        activeInterstitial,
-        closeInterstitial,
         billboardConfig,
         setBillboardConfig,
         deleteBillboardMedia,
