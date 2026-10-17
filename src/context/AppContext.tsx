@@ -465,8 +465,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const setAdminCustomText = (key: string, value: string) => {
     setAdminCustomTexts(prev => {
-      const next = { ...prev, [key]: value };
-      try { localStorage.setItem('khodam_admin_custom_texts', JSON.stringify(next)); } catch (e) { console.error(e); }
+      const next = { ...prev };
+      if (!value) {
+        delete next[key];
+      } else {
+        next[key] = value;
+      }
+      try { 
+        if (Object.keys(next).length > 0) {
+          localStorage.setItem('khodam_admin_custom_texts', JSON.stringify(next)); 
+        } else {
+          localStorage.removeItem('khodam_admin_custom_texts');
+        }
+      } catch (e) { console.error(e); }
       return next;
     });
   };

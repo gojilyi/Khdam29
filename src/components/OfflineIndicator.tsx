@@ -22,14 +22,19 @@ export const OfflineIndicator: React.FC = () => {
   const [showReconnectedToast, setShowReconnectedToast] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Poll or refresh pending actions
+  // Poll or refresh pending actions safely
   const refreshPending = () => {
-    setPendingActions(getOfflinePendingActions());
+    const next = getOfflinePendingActions();
+    setPendingActions(prev => {
+      if (prev.length === 0 && next.length === 0) return prev;
+      if (prev.length === next.length && JSON.stringify(prev) === JSON.stringify(next)) return prev;
+      return next;
+    });
   };
 
   useEffect(() => {
     refreshPending();
-    const interval = setInterval(refreshPending, 2000);
+    const interval = setInterval(refreshPending, 10000);
     return () => clearInterval(interval);
   }, []);
 

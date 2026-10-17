@@ -3813,10 +3813,7 @@ export const AdminPanel: React.FC = () => {
                         </div>
                         <button
                           onClick={() => {
-                            const copy = { ...adminCustomTexts };
-                            delete copy[orig];
-                            try { localStorage.setItem('khodam_admin_custom_texts', JSON.stringify(copy)); } catch (e) {}
-                            window.location.reload();
+                            setAdminCustomText(orig, '');
                           }}
                           className="p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg shrink-0"
                           title="حذف هذا التعديل"
@@ -3848,7 +3845,6 @@ export const AdminPanel: React.FC = () => {
                       onClick={() => {
                         if (confirm('هل أنت متأكد من رغبتك في استعادة كافة الأيقونات الافتراضية؟')) {
                           resetAdminCustomIcons();
-                          window.location.reload();
                         }
                       }}
                       className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:text-rose-500 text-slate-600 dark:text-slate-400 rounded-xl text-xs font-bold transition-colors cursor-pointer"
