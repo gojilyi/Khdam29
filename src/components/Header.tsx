@@ -16,7 +16,8 @@ import {
   Key,
   Lock,
   Headphones,
-  Calendar
+  Calendar,
+  Bell
 } from 'lucide-react';
 import { serviceCategories } from '../data/mockData';
 import { PWAInstallButton } from './PWAInstallButton';
@@ -49,7 +50,9 @@ export const Header: React.FC = () => {
     setIsAIDiagnosticModalOpen,
     setIsContactModalOpen,
     getAdminCustomIcon,
-    setAdminEditModalTarget
+    setAdminEditModalTarget,
+    setIsNotificationsModalOpen,
+    unreadNotificationsCount
   } = useApp();
 
   const appLogo = getAdminCustomIcon ? getAdminCustomIcon('app_logo', '/icon.svg') : '/icon.svg';
@@ -369,6 +372,21 @@ export const Header: React.FC = () => {
             <Sparkles className="w-3.5 h-3.5 text-slate-950" />
             <span className="hidden sm:inline">تشخيص AI للأعطال</span>
             <span className="sm:hidden">تشخيص AI</span>
+          </button>
+
+          {/* Notification Center Bell Button */}
+          <button
+            onClick={() => setIsNotificationsModalOpen(true)}
+            className="relative p-2 rounded-xl text-slate-700 hover:text-amber-600 dark:text-slate-300 dark:hover:text-amber-400 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+            title="مركز التنبيهات المباشرة (تحديثات الطلبات وردود الاستشارات)"
+            aria-label="Notifications"
+          >
+            <Bell className="w-4 h-4" />
+            {unreadNotificationsCount > 0 && (
+              <span className="absolute -top-1 -right-1 px-1.5 min-w-[18px] h-4.5 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white dark:border-slate-900 animate-pulse">
+                {unreadNotificationsCount > 9 ? '+9' : unreadNotificationsCount}
+              </span>
+            )}
           </button>
 
           {/* Contact Us Support Button */}

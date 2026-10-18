@@ -12,7 +12,9 @@ import {
   MapPin,
   Compass,
   PhoneCall,
-  DollarSign
+  DollarSign,
+  Truck,
+  MessageSquare
 } from 'lucide-react';
 
 export const NotificationToast: React.FC = () => {
@@ -105,11 +107,23 @@ export const NotificationToast: React.FC = () => {
       {activeNotificationToast && (
         <div className="fixed top-20 right-4 left-4 sm:left-auto sm:right-6 sm:w-96 z-50 animate-slide-down">
           <div className="bg-slate-900 text-white border-2 border-amber-500/80 rounded-2xl p-4 shadow-2xl flex items-start gap-3 backdrop-blur-md">
-            <div className="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center shrink-0 shadow-md">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-md ${
+              activeNotificationToast.type === 'order' 
+                ? 'bg-emerald-500 text-white' 
+                : activeNotificationToast.type === 'qna'
+                ? 'bg-blue-600 text-white'
+                : activeNotificationToast.type === 'alert'
+                ? 'bg-rose-500 text-white'
+                : 'bg-amber-500 text-slate-950'
+            }`}>
               {activeNotificationToast.type === 'update' ? (
                 <Download className="w-5 h-5" />
               ) : activeNotificationToast.type === 'alert' ? (
-                <AlertTriangle className="w-5 h-5 text-rose-950" />
+                <AlertTriangle className="w-5 h-5" />
+              ) : activeNotificationToast.type === 'order' ? (
+                <Truck className="w-5 h-5" />
+              ) : activeNotificationToast.type === 'qna' ? (
+                <MessageSquare className="w-5 h-5" />
               ) : (
                 <Bell className="w-5 h-5" />
               )}
@@ -118,7 +132,11 @@ export const NotificationToast: React.FC = () => {
             <div className="flex-1 min-w-0 space-y-1">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-mono text-amber-400 uppercase font-bold tracking-wider">
-                  Firebase Cloud Messaging · FCM
+                  {activeNotificationToast.type === 'order' 
+                    ? '📦 تحديث مباشر للطلب · Live Order' 
+                    : activeNotificationToast.type === 'qna'
+                    ? '💬 منتدى الاستشارات · Consultations Q&A'
+                    : 'Firebase Cloud Messaging · FCM'}
                 </span>
                 <button
                   onClick={dismissNotificationToast}
@@ -161,7 +179,13 @@ export const NotificationToast: React.FC = () => {
                       }
                       dismissNotificationToast();
                     }}
-                    className="w-full py-1.5 px-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition-transform active:scale-95"
+                    className={`w-full py-2 px-3 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition-transform active:scale-95 ${
+                      activeNotificationToast.type === 'order'
+                        ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                        : activeNotificationToast.type === 'qna'
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                        : 'bg-amber-500 hover:bg-amber-600 text-slate-950'
+                    }`}
                   >
                     <span>{activeNotificationToast.linkText || 'زيارة الرابط والمزيد'}</span>
                     <ExternalLink className="w-3.5 h-3.5" />

@@ -21,7 +21,9 @@ import {
   Calendar,
   Zap,
   Globe,
-  Award
+  Award,
+  Bell,
+  Volume2
 } from 'lucide-react';
 import { OrderStatus, Order } from '../types';
 
@@ -354,13 +356,20 @@ export const ActiveOrderTracker: React.FC = () => {
 
             {/* Interactive Simulation Controls to Test Complete Lifecycle */}
             <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold border border-emerald-200 dark:border-emerald-800">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping inline-block" />
+                  <span>تنبيهات الطلب المباشرة مفعلة 🔔</span>
+                </span>
+
                 {activeOrder.status !== 'completed' && (
                   <button
                     onClick={() => advanceOrderStatus(activeOrder.id)}
                     className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                    title="تقديم المرحلة وإرسال إشعار فوري صوتي"
                   >
-                    <span>{language === 'ar' ? 'محاكاة تقديم المرحلة' : 'Advance Stage'}</span>
+                    <Volume2 className="w-3.5 h-3.5 text-amber-500" />
+                    <span>{language === 'ar' ? 'محاكاة تقديم المرحلة (إشعار صوتي)' : 'Advance Stage'}</span>
                     <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
                   </button>
                 )}

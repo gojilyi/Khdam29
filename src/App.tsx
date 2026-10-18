@@ -29,6 +29,7 @@ import { AdminPanel } from './components/AdminPanel';
 import { BillboardHero } from './components/BillboardHero';
 import { SquareSpotlight } from './components/SquareSpotlight';
 import { NotificationToast } from './components/NotificationToast';
+import { NotificationsModal } from './components/NotificationsModal';
 import { AIDiagnosticModal } from './components/AIDiagnosticModal';
 import { BenchmarkPricingGuide } from './components/BenchmarkPricingGuide';
 import { ArtisanQnAForum } from './components/ArtisanQnAForum';
@@ -634,6 +635,7 @@ const MainContent: React.FC = () => {
         artisan={selectedArtisanForProfile || undefined}
       />
       <NotificationToast />
+      <NotificationsModal />
       <AIDiagnosticModal />
       <ContactUsModal />
       <PlayStoreLegalModal />

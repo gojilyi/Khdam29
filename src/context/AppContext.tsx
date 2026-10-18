@@ -61,6 +61,7 @@ import {
 import { translations, getTranslation } from '../utils/translations';
 import { verifyAdminPassword } from '../utils/security';
 import { saveOfflinePendingAction, recordCacheSync } from '../utils/offlineSync';
+import { playNotificationChime, showNativeNotification } from '../utils/notificationSound';
 
 interface AppContextType {
   role: Role;
@@ -263,21 +264,30 @@ interface AppContextType {
   appSecurityConfig: AppSecurityConfig;
   setAppSecurityConfig: React.Dispatch<React.SetStateAction<AppSecurityConfig>>;
 
-  // Push Notifications & Firebase FCM
+  // Push Notifications & Notification Center
   firebaseConfig: FirebaseFCMConfig;
   setFirebaseConfig: React.Dispatch<React.SetStateAction<FirebaseFCMConfig>>;
   notifications: AppNotification[];
   sendPushNotification: (notif: Omit<AppNotification, 'id' | 'sentAt'>) => void;
   activeNotificationToast: AppNotification | null;
+  dismissNotificationToast: () => void;
+  markAllNotificationsRead: () => void;
+  markNotificationAsRead: (id: string) => void;
+  clearAllNotifications: () => void;
+  unreadNotificationsCount: number;
+  isNotificationsModalOpen: boolean;
+  setIsNotificationsModalOpen: (open: boolean) => void;
+  triggerOrderStatusNotification: (order: Order, status: OrderStatus) => void;
+  testSimulateOrderNotification: (customStatus?: OrderStatus) => void;
+  testSimulateQnAReplyNotification: (questionId?: string) => void;
+  isUpdateModalOpen: boolean;
+  updateModalData: AppNotification | null;
+  closeUpdateModal: () => void;
 
   // Artisan Reporting (التبليغ عن الحرفيين)
   reports: Report[];
   reportArtisan: (artisanId: string, reason: Report['reason']) => void;
   resolveReport: (reportId: string) => void;
-  dismissNotificationToast: () => void;
-  isUpdateModalOpen: boolean;
-  updateModalData: AppNotification | null;
-  closeUpdateModal: () => void;
 
   // Favorite Artisans Management (ميزة حرفي مفضل)
   favoriteArtisanIds: string[];
@@ -891,17 +901,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     appCurrentVersion: '1.4.2'
   });
 
-  const [notifications, setNotifications] = useState<AppNotification[]>([
-    {
-      id: 'notif_1',
-      title: 'مرحباً بك في منصة خـدّام!',
-      message: 'تم تفعيل حسابك بنجاح. يمكنك الآن طلب مختلف الخدمات أو عرض خدماتك كحرفي موثق.',
-      type: 'announcement',
-      audience: 'all',
-      sentAt: 'منذ ساعتين',
-      isRead: false
+  const [isNotificationsModalOpen, setIsNotificationsModalOpen] = useState(false);
+  const [notifications, setNotifications] = useState<AppNotification[]>(() => {
+    try {
+      const saved = localStorage.getItem('khodam_app_notifications');
+      return saved ? JSON.parse(saved) : [
+        {
+          id: 'notif_welcome',
+          title: 'مرحباً بك في منصة خـدّام! 🇩🇿',
+          message: 'تم تفعيل نظام التنبيهات المباشرة. ستصلك إشعارات فورية عند تحديث حالة طلباتك أو عند استلام رد في منتدى الاستشارات.',
+          type: 'announcement',
+          audience: 'all',
+          sentAt: 'اليوم',
+          isRead: false
+        }
+      ];
+    } catch {
+      return [];
     }
-  ]);
+  });
 
   // Reports
   const [reports, setReports] = useState<Report[]>(() => {
@@ -1170,6 +1188,189 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const toggleDarkMode = () => setIsDarkMode(prev => !prev);
   const t = getTranslation(language);
 
+  // Push Notifications & Firebase FCM Actions
+  const sendPushNotification = (notif: Omit<AppNotification, 'id' | 'sentAt'>) => {
+    const newNotif: AppNotification = {
+      ...notif,
+      id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      sentAt: 'الآن',
+      isRead: false
+    };
+
+    setNotifications(prev => {
+      const updated = [newNotif, ...prev];
+      try {
+        localStorage.setItem('khodam_app_notifications', JSON.stringify(updated.slice(0, 50)));
+      } catch (e) {
+        console.error(e);
+      }
+      return updated;
+    });
+
+    setActiveNotificationToast(newNotif);
+    playNotificationChime();
+    showNativeNotification(newNotif.title, newNotif.message);
+
+    // Auto dismiss toast after 6.5 seconds
+    setTimeout(() => {
+      setActiveNotificationToast(prev => (prev?.id === newNotif.id ? null : prev));
+    }, 6500);
+
+    if (notif.type === 'update') {
+      setUpdateModalData(newNotif);
+      setIsUpdateModalOpen(true);
+    }
+  };
+
+  const dismissNotificationToast = () => {
+    setActiveNotificationToast(null);
+  };
+
+  const markAllNotificationsRead = () => {
+    setNotifications(prev => {
+      const updated = prev.map(n => ({ ...n, isRead: true }));
+      try {
+        localStorage.setItem('khodam_app_notifications', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+  };
+
+  const markNotificationAsRead = (id: string) => {
+    setNotifications(prev => {
+      const updated = prev.map(n => n.id === id ? { ...n, isRead: true } : n);
+      try {
+        localStorage.setItem('khodam_app_notifications', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+  };
+
+  const clearAllNotifications = () => {
+    setNotifications([]);
+    try {
+      localStorage.removeItem('khodam_app_notifications');
+    } catch (e) {}
+  };
+
+  const unreadNotificationsCount = notifications.filter(n => !n.isRead).length;
+
+  const triggerOrderStatusNotification = (order: Order, status: OrderStatus) => {
+    const artisanName = order.artisanName || 'الحرفي المعتمد';
+    const serviceName = order.subServiceName || 'الخدمة المطلوبة';
+
+    let title = '';
+    let message = '';
+    let linkText = 'تتبع الطلب مباشرة 📍';
+
+    switch (status) {
+      case 'searching':
+        title = '🔍 جاري البحث عن أقرب حرفي مؤهل لطلبك';
+        message = `تم تسجيل طلبك (${serviceName}) في ${order.city}. الرادار يبحث الآن عن الحرفيين المؤهلين الأقرب إليك.`;
+        linkText = 'عرض شاشة الرادار والطلب 📡';
+        break;
+      case 'artisan_assigned':
+        title = '👷‍♂️ تم قبول وتعيين حرفي لطلبك!';
+        message = `قبل الحرفي (${artisanName}) طلبك (${serviceName})، وهو يجهز معداته حالياً للبدء.`;
+        linkText = 'تتبع الحرفي والتواصل 📞';
+        break;
+      case 'on_the_way':
+        title = '🚗💨 الحرفي في الطريق إلى موقعك!';
+        message = `انطلق الحرفي (${artisanName}) باتجاه عنوانك (${order.address || order.city}). يمكنك تتبع مساره مباشرة على الخريطة.`;
+        linkText = 'تتبع المسار المباشر 🗺️';
+        break;
+      case 'in_progress':
+        title = '🔧 بدأ الحرفي بتنفيذ الخدمة الآن';
+        message = `وصل الحرفي (${artisanName}) وبدأ العمل الفعلي على (${serviceName}) وفق معايير الجودة والسلامة.`;
+        linkText = 'متابعة مراحل التنفيذ ⏱️';
+        break;
+      case 'awaiting_confirmation':
+        title = '✅ اكتمل العمل بانتظار فحصك وتأكيدك';
+        message = `أنهى الحرفي العمل على (${serviceName}). يرجى معاينة النتيجة بدقة ثم تأكيد إتمام الخدمة.`;
+        linkText = 'فحص الخدمة وتأكيد الإتمام 👍';
+        break;
+      case 'completed':
+        title = '⭐ تم إكمال طلبك بنجاح!';
+        message = `تم إنهاء طلب (${serviceName}) بنجاح. يسعدنا تقييم الحرفي لمساعدتنا في مكافأة المتميزين.`;
+        linkText = 'تقييم الحرفي وإبداء الرأي ⭐';
+        break;
+      case 'cancelled':
+        title = '❌ تم إلغاء طلب الخدمة';
+        message = `تم إلغاء طلب (${serviceName}). يمكنك تقديم طلب جديد في أي وقت يناسبك.`;
+        linkText = 'عرض سجل الطلبات 📋';
+        break;
+      default:
+        title = '📦 تحديث جديد في حالة طلبك';
+        message = `تم تحديث حالة طلب (${serviceName}) إلى: ${status}`;
+    }
+
+    sendPushNotification({
+      title,
+      message,
+      type: 'order',
+      audience: 'clients',
+      actionLink: 'orders',
+      linkText
+    });
+  };
+
+  const testSimulateOrderNotification = (customStatus?: OrderStatus) => {
+    const currentOrMockOrder: Order = activeOrder || {
+      id: `ord_${Date.now()}`,
+      clientId: currentUser.id || 'client_me',
+      clientName: currentUser.name || 'هشام بن علي',
+      clientPhone: currentUser.phone || '0555123456',
+      artisanId: 'art_1',
+      artisanName: 'المعلم كمال بلقاسم',
+      artisanPhone: '0550112233',
+      categoryId: 'cat_plumbing',
+      subServiceId: 'sub_leak',
+      subServiceName: 'إصلاح تسرب المياه بالمنزل',
+      status: 'on_the_way',
+      scheduledDate: 'اليوم',
+      scheduledTime: '15:30',
+      address: 'حي البساتين، الجزائر العاصمة',
+      city: 'الجزائر العاصمة',
+      estimatedCost: 3200,
+      createdAt: 'منذ قليل',
+      updatedAt: 'الآن',
+      ratingGiven: false
+    };
+
+    const nextStatuses: OrderStatus[] = ['artisan_assigned', 'on_the_way', 'in_progress', 'awaiting_confirmation', 'completed'];
+    const selected = customStatus || (activeOrder ? (
+      nextStatuses[(nextStatuses.indexOf(activeOrder.status) + 1) % nextStatuses.length] || 'on_the_way'
+    ) : 'on_the_way');
+
+    if (activeOrder) {
+      advanceOrderStatus(activeOrder.id, selected);
+    } else {
+      triggerOrderStatusNotification({ ...currentOrMockOrder, status: selected }, selected);
+    }
+  };
+
+  const testSimulateQnAReplyNotification = (questionId?: string) => {
+    const targetQ = (questionId ? qnaQuestions.find(q => q.id === questionId) : null) || qnaQuestions[0];
+    const qTitle = targetQ ? targetQ.title : 'تسرب ماء في سخان الحمام';
+    const artisan = artisans[0]; // Master Kamal
+
+    const adviceText = 'أنصحك بفصل صمام الأمان وتفريغ ضغط الخزان أولاً، مع وضع شريط مانع التسرب التفلون مؤقتاً وسأكون بخدمتك للمعاينة الميدانية.';
+    
+    if (targetQ) {
+      addQnAAnswer(targetQ.id, adviceText);
+    } else {
+      sendPushNotification({
+        title: '💬 رد جديد في منتدى الاستشارات!',
+        message: `أجاب الحرفي ${artisan.name} (${artisan.trade}) على استشارتك: "${qTitle}"`,
+        type: 'qna',
+        audience: 'clients',
+        actionLink: 'qna',
+        linkText: 'عرض الرد في المنتدى 💡',
+        note: adviceText
+      });
+    }
+  };
+
   // Multi-order flow: Clients can publish and track MULTIPLE orders simultaneously!
   const createOrder = (orderData: Partial<Order>) => {
     const matchedArtisan = orderData.artisanId ? artisans.find(a => a.id === orderData.artisanId) : null;
@@ -1214,24 +1415,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         title: `طلب خدمة: ${newOrder.subServiceName}`,
         payload: newOrder
       });
-      setActiveNotificationToast({
-        id: `notif_${Date.now()}`,
+      sendPushNotification({
         title: '📴 تم حفظ طلبك دون اتصال بالإنترنت!',
         message: 'تم تسجيل طلبك بأمان على هاتفك، وسيتم مزامنته وتأكيده مع الحرفي فور عودة الشبكة.',
         type: 'announcement',
         audience: 'clients',
-        sentAt: 'الآن',
-        isRead: false
+        actionLink: 'orders',
+        linkText: 'عرض الطلبات المحفوظة'
       });
     } else {
+      // Send immediate push notification
+      sendPushNotification({
+        title: '📋 تم تسجيل طلبك بنجاح!',
+        message: `طلبك لخدمة (${newOrder.subServiceName}) قيد التوجيه. سنوافيك بإشعار فوري فور قبول الحرفي.`,
+        type: 'order',
+        audience: 'clients',
+        actionLink: 'orders',
+        linkText: 'تتبع مسار طلبك مباشرة 📍'
+      });
+
       // Simulate instant matching progression for this order
       setTimeout(() => {
-        setActiveOrders(prev => prev.map(o => o.id === newOrder.id ? { ...o, status: 'artisan_assigned' } : o));
-      }, 2500);
+        advanceOrderStatus(newOrder.id, 'artisan_assigned');
+      }, 3500);
 
       setTimeout(() => {
-        setActiveOrders(prev => prev.map(o => o.id === newOrder.id ? { ...o, status: 'on_the_way' } : o));
-      }, 6000);
+        advanceOrderStatus(newOrder.id, 'on_the_way');
+      }, 8000);
     }
 
     return { success: true, orderId: newOrder.id };
@@ -1241,27 +1451,46 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const orderIdToAdvance = targetOrderId || (activeOrder ? activeOrder.id : null);
     if (!orderIdToAdvance) return;
 
-    setActiveOrders(prev => prev.map(order => {
-      if (order.id !== orderIdToAdvance) return order;
+    let targetUpdatedOrder: Order | null = null;
+    let nextStatus: OrderStatus | null = null;
 
-      if (overrideStatus) {
-        return { ...order, status: overrideStatus, updatedAt: 'الآن' };
-      }
+    setActiveOrders(prev => {
+      const updated = prev.map(order => {
+        if (order.id !== orderIdToAdvance) return order;
 
-      const flow: OrderStatus[] = [
-        'searching',
-        'artisan_assigned',
-        'on_the_way',
-        'in_progress',
-        'awaiting_confirmation',
-        'completed'
-      ];
-      const currentIndex = flow.indexOf(order.status);
-      if (currentIndex >= 0 && currentIndex < flow.length - 1) {
-        return { ...order, status: flow[currentIndex + 1], updatedAt: 'الآن' };
-      }
-      return order;
-    }));
+        if (overrideStatus) {
+          nextStatus = overrideStatus;
+          targetUpdatedOrder = { ...order, status: overrideStatus, updatedAt: 'الآن' };
+          return targetUpdatedOrder;
+        }
+
+        const flow: OrderStatus[] = [
+          'searching',
+          'artisan_assigned',
+          'on_the_way',
+          'in_progress',
+          'awaiting_confirmation',
+          'completed'
+        ];
+        const currentIndex = flow.indexOf(order.status);
+        if (currentIndex >= 0 && currentIndex < flow.length - 1) {
+          nextStatus = flow[currentIndex + 1];
+          targetUpdatedOrder = { ...order, status: nextStatus, updatedAt: 'الآن' };
+          return targetUpdatedOrder;
+        }
+        return order;
+      });
+
+      try {
+        localStorage.setItem('khodam_active_orders', JSON.stringify(updated));
+      } catch (e) {}
+
+      return updated;
+    });
+
+    if (targetUpdatedOrder && nextStatus) {
+      triggerOrderStatusNotification(targetUpdatedOrder, nextStatus);
+    }
   };
 
   const cancelCurrentOrder = (targetOrderId?: string) => {
@@ -1273,6 +1502,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const cancelled: Order = { ...targetOrder, status: 'cancelled', updatedAt: 'الآن' };
       setOrderHistory(prev => [cancelled, ...prev]);
       setActiveOrders(prev => prev.filter(o => o.id !== orderIdToCancel));
+      triggerOrderStatusNotification(cancelled, 'cancelled');
     }
   };
 
@@ -1284,6 +1514,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (targetOrder) {
       const completed: Order = { ...targetOrder, status: 'completed', updatedAt: 'الآن', ratingGiven: !!reviewData };
       setOrderHistory(prev => [completed, ...prev]);
+      triggerOrderStatusNotification(completed, 'completed');
       
       if (reviewData) {
         const newReview: Review = {
@@ -1523,15 +1754,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isResolved: false,
       answers: []
     };
+
     setQnaQuestions(prev => {
       const updated = [newQ, ...prev];
       try { localStorage.setItem('khodam_qna_questions', JSON.stringify(updated)); } catch (e) { console.error(e); }
       return updated;
     });
+
+    sendPushNotification({
+      title: '💡 تم نشر استشارتك في المنتدى!',
+      message: `تم عرض استشارتك (${data.title}) في قسم ${data.category}. ستتلقى تنبيهاً فورياً فور إجابة الحرفيين المعتمدين.`,
+      type: 'qna',
+      audience: 'clients',
+      actionLink: 'qna',
+      linkText: 'عرض استشارتك في المنتدى 💡'
+    });
+
+    // Realistic simulation: a certified artisan posts an answer after 6 seconds
+    setTimeout(() => {
+      const sampleReplies: Record<string, string> = {
+        'السباكة والترصيص الصحي': 'أهلاً بك أخي الكريم. هذا العطل يتطلب فحص جلدة المحبس والشدادات أولاً لمنع تسرب المياه، ويمكنك لف شريط التفلون مؤقتاً وسأكون بخدمتك.',
+        'الكهرباء المنزلية والإنارة': 'وعليكم السلام. يرجى إطفاء القاطع الفرعي فوراً وعدم لمس الأسلاك، وغالباً المشكلة سببها حمولة زائدة أو ارتخاء في مسمار التوصيل.',
+        'التبريد والتكييف والأجهزة': 'مرحباً. أصوات الاهتزاز أو ضعف التبريد سببها الشائع اتساخ الفلاتر أو نقص شحنة الغاز، يفضل عدم تشغيله لفترة طويلة لتفادي احتراق المحرك.',
+        'النجارة والأقفال': 'أهلاً بك. يمكنك رش رذاذ السيليكون أو القليل من بودرة الجرافيت داخل قلب الكالون (Cylindre) لتليين حركة المفتاح دون كسر القفل.'
+      };
+
+      const replyText = sampleReplies[data.category] || 'تحياتي لك، الإجراء السليم هو فحص المشكلة بعناية والتأكد من شروط السلامة قبل المباشرة بأي خطوة يدوية.';
+      addQnAAnswer(newQ.id, replyText);
+    }, 6000);
   };
 
   const addQnAAnswer = (questionId: string, answerText: string) => {
-    const activeArtisan = artisans[0]; // Master Kamal
+    const activeArtisan = artisans[0]; // Master Kamal or first certified artisan
     const newAns: QnAAnswer = {
       id: `ans_${Date.now()}`,
       artisanId: activeArtisan.id,
@@ -1546,9 +1800,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isVerifiedSolution: true
     };
 
+    let targetQuestionTitle = 'استشارتك الفنية';
+
     setQnaQuestions(prev => {
       const updated = prev.map(q => {
         if (q.id === questionId) {
+          targetQuestionTitle = q.title;
           return {
             ...q,
             isResolved: true,
@@ -1559,6 +1816,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
       try { localStorage.setItem('khodam_qna_questions', JSON.stringify(updated)); } catch (e) { console.error(e); }
       return updated;
+    });
+
+    // Trigger Live Push Alert to the user!
+    sendPushNotification({
+      title: '💬 رد جديد في منتدى الاستشارات!',
+      message: `أجاب الحرفي ${newAns.artisanName} (${newAns.artisanTrade}) على استشارتك: "${targetQuestionTitle}"`,
+      type: 'qna',
+      audience: 'clients',
+      actionLink: 'qna',
+      linkText: 'عرض الإجابة والحل الفني 💡',
+      note: answerText.slice(0, 95) + (answerText.length > 95 ? '...' : '')
     });
   };
 
@@ -2469,27 +2737,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
-  // Push Notifications & Firebase FCM Actions
-  const sendPushNotification = (notif: Omit<AppNotification, 'id' | 'sentAt'>) => {
-    const newNotif: AppNotification = {
-      ...notif,
-      id: `notif_${Date.now()}`,
-      sentAt: 'الآن',
-      isRead: false
-    };
-    setNotifications(prev => [newNotif, ...prev]);
-    setActiveNotificationToast(newNotif);
-
-    if (notif.type === 'update') {
-      setUpdateModalData(newNotif);
-      setIsUpdateModalOpen(true);
-    }
-  };
-
-  const dismissNotificationToast = () => {
-    setActiveNotificationToast(null);
-  };
-
   const closeUpdateModal = () => {
     setIsUpdateModalOpen(false);
   };
@@ -2640,6 +2887,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         sendPushNotification,
         activeNotificationToast,
         dismissNotificationToast,
+        markAllNotificationsRead,
+        markNotificationAsRead,
+        clearAllNotifications,
+        unreadNotificationsCount,
+        isNotificationsModalOpen,
+        setIsNotificationsModalOpen,
+        triggerOrderStatusNotification,
+        testSimulateOrderNotification,
+        testSimulateQnAReplyNotification,
         reports,
         reportArtisan,
         resolveReport,

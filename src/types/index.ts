@@ -377,7 +377,7 @@ export interface AppNotification {
   id: string;
   title: string;
   message: string;
-  type: 'update' | 'announcement' | 'alert' | 'note';
+  type: 'update' | 'announcement' | 'alert' | 'note' | 'order' | 'qna';
   audience: 'all' | 'artisans' | 'clients';
   version?: string;
   updateUrl?: string;

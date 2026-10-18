@@ -19,7 +19,9 @@ import {
   Sparkles,
   ArrowRight,
   ArrowLeft,
-  Briefcase
+  Briefcase,
+  Bell,
+  Volume2
 } from 'lucide-react';
 import { QnAQuestion } from '../types';
 
@@ -33,7 +35,9 @@ export const ArtisanQnAForum: React.FC = () => {
     artisans, 
     currentUser, 
     language,
-    role
+    role,
+    testSimulateQnAReplyNotification,
+    setIsNotificationsModalOpen
   } = useApp();
 
   const isRtl = language === 'ar';
@@ -120,6 +124,22 @@ export const ArtisanQnAForum: React.FC = () => {
             <p className="text-xs sm:text-sm text-amber-100/90 leading-relaxed">
               اطرح أسئلتك حول الأعطال المنزلية والحلول المؤقتة مجاناً، ويجيبك عليها نخبة من الحرفيين المعتمدين لتعزيز سمعتهم وبناء الثقة المتبادلة لتوظيفهم لاحقاً.
             </p>
+
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/25 border border-emerald-400 text-emerald-200 text-xs font-bold backdrop-blur-md">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
+                <span>نظام التنبيهات المباشرة للردود مفعل 🔔</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => testSimulateQnAReplyNotification()}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 hover:bg-white/30 text-white text-xs font-bold border border-white/30 backdrop-blur-md transition-colors"
+                title="اضغط هنا لتجربة وصول تنبيه فوري وصوتي عند إجابة الحرفي"
+              >
+                <Volume2 className="w-3.5 h-3.5" />
+                <span>تجربة تنبيه رد استشارة 💬</span>
+              </button>
+            </div>
           </div>
 
           <button
