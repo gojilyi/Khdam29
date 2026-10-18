@@ -99,7 +99,7 @@ export const SquareSpotlight: React.FC = () => {
             >
               <img
                 src={squareSpotlightConfig.mediaUrl}
-                alt={squareSpotlightConfig.title || 'منطقة 5×5 الإعلانية'}
+                alt={squareSpotlightConfig.title || 'منطقة 5×5 الإعلامية'}
                 className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300"
                 referrerPolicy="no-referrer"
               />

@@ -90,7 +90,7 @@ export const BillboardHero: React.FC = () => {
           ) : (
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
           )}
-          <span>{billboardConfig.badge || 'إعلان رسمي من منصة خدام'}</span>
+          <span>{billboardConfig.badge || 'منصة خدام الرسمية · جودة وأمان'}</span>
           {isAdminAuthenticated && (
             <span className="px-1.5 py-0.2 rounded bg-amber-500 text-slate-950 text-[9px] font-black mr-1">
               أدمن

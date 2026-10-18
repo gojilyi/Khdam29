@@ -213,7 +213,7 @@ export const WorkPartnerFinder: React.FC = () => {
       }).catch(() => {});
     } else {
       navigator.clipboard?.writeText?.(url);
-      setShareToast(`تم نسخ رابط إعلان الشراكة "${post.title.slice(0, 25)}..." لمشاركته!`);
+      setShareToast(`تم نسخ رابط عرض الشراكة "${post.title.slice(0, 25)}..." لمشاركته!`);
       setTimeout(() => setShareToast(null), 3000);
     }
   };
@@ -328,7 +328,7 @@ export const WorkPartnerFinder: React.FC = () => {
               className="px-6 py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black rounded-2xl text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 transition-transform active:scale-95 cursor-pointer"
             >
               <Plus className="w-5 h-5 stroke-[2.5]" />
-              <span>نشر إعلان شراكة عمل ✍️</span>
+              <span>نشر عرض شراكة عمل ✍️</span>
             </button>
             <span className="text-[11px] text-slate-400 text-center">
               متاح مجاناً لكافة الحرفيين والمهنيين
@@ -426,7 +426,7 @@ export const WorkPartnerFinder: React.FC = () => {
         {(selectedType !== 'all' || selectedWilaya !== 'all' || selectedTrade !== 'all' || searchQuery) && (
           <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100 dark:border-slate-800">
             <span className="text-slate-500">
-              تم العثور على <strong className="text-amber-600 dark:text-amber-400">{filteredPosts.length}</strong> إعلان شراكة مطابق للبحث
+              تم العثور على <strong className="text-amber-600 dark:text-amber-400">{filteredPosts.length}</strong> عرض شراكة مطابق للبحث
             </span>
             <button
               onClick={() => {
@@ -452,7 +452,7 @@ export const WorkPartnerFinder: React.FC = () => {
             </div>
             <div className="space-y-1">
               <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                لم يتم العثور على إعلانات شراكة مطابقة للبحث
+                لم يتم العثور على عروض شراكة مطابقة للبحث
               </h3>
               <p className="text-xs text-slate-500 max-w-md mx-auto">
                 جرب تغيير خيارات التصفية أو كن أول من ينشر عرض شراكة عمل في هذا المجال!
@@ -462,7 +462,7 @@ export const WorkPartnerFinder: React.FC = () => {
               onClick={() => setIsCreateModalOpen(true)}
               className="px-5 py-2.5 bg-amber-500 text-slate-950 font-bold rounded-xl text-xs hover:bg-amber-400 transition-colors"
             >
-              نشر إعلان شراكة الآن 🤝
+              نشر عرض شراكة الآن 🤝
             </button>
           </div>
         ) : (
@@ -520,12 +520,12 @@ export const WorkPartnerFinder: React.FC = () => {
                     {(isAdminAuthenticated || currentUser?.id === post.authorId) && (
                       <button
                         onClick={() => {
-                          if (confirm('هل أنت متأكد من حذف هذا الإعلان؟')) {
+                          if (confirm('هل أنت متأكد من حذف هذا العرض؟')) {
                             deletePartnerPost(post.id);
                           }
                         }}
                         className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-colors"
-                        title="حذف الإعلان"
+                        title="حذف هذا العرض"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -643,7 +643,7 @@ export const WorkPartnerFinder: React.FC = () => {
                     <button
                       onClick={() => handleShare(post)}
                       className="h-10 px-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors"
-                      title="مشاركة إعلان الشراكة"
+                      title="مشاركة عرض الشراكة"
                     >
                       <Share2 className="w-4 h-4" />
                     </button>
@@ -688,7 +688,7 @@ export const WorkPartnerFinder: React.FC = () => {
                             handleAddComment(post.id);
                           }
                         }}
-                        placeholder="اكتب تعليقك أو استفسارك لصاحب الإعلان..."
+                        placeholder="اكتب تعليقك أو استفسارك لصاحب العرض..."
                         className="flex-1 h-10 px-3.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                       />
                       <button
@@ -780,7 +780,7 @@ export const WorkPartnerFinder: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                    نشر إعلان شراكة عمل جديد 🤝
+                    نشر عرض شراكة عمل جديد 🤝
                   </h3>
                   <p className="text-xs text-slate-500">
                     أدخل تفاصيل الشراكة والمطلوب ليتفاعل معها الحرفيون والشركاء
@@ -800,7 +800,7 @@ export const WorkPartnerFinder: React.FC = () => {
               {/* Title */}
               <div className="space-y-1.5">
                 <label className="font-bold text-slate-700 dark:text-slate-300 block">
-                  عنوان الإعلان الرئيسي *
+                  عنوان عرض الشراكة الرئيسي *
                 </label>
                 <input
                   type="text"
@@ -1013,7 +1013,7 @@ export const WorkPartnerFinder: React.FC = () => {
                   className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs shadow-md transition-transform active:scale-95 flex items-center gap-2"
                 >
                   <Plus className="w-4 h-4 stroke-[2.5]" />
-                  <span>نشر الإعلان الآن</span>
+                  <span>نشر عرض الشراكة الآن</span>
                 </button>
               </div>
             </form>

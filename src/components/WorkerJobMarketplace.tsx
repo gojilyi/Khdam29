@@ -1511,7 +1511,7 @@ export const WorkerJobMarketplace: React.FC = () => {
                     <button
                       onClick={() => deleteJobSeekerPost(js.id)}
                       className="p-2 text-slate-400 hover:text-rose-600 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
-                      title="حذف هذا الإعلان"
+                      title="حذف هذا المنشور"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

@@ -754,7 +754,7 @@ export const AdminPanel: React.FC = () => {
               }`}
             >
               <Briefcase className="w-3.5 h-3.5" />
-              <span>إعلانات سوق العمل والباحثين عن عمل ({jobSeekers.length})</span>
+              <span>سوق العمل والباحثين عن عمل ({jobSeekers.length})</span>
             </button>
 
             <button
@@ -807,7 +807,7 @@ export const AdminPanel: React.FC = () => {
               }`}
             >
               <Users className="w-3.5 h-3.5" />
-              <span>إعلانات شريك عمل ({partnerPosts.length}) 🤝</span>
+              <span>منشورات شريك عمل ({partnerPosts.length}) 🤝</span>
             </button>
 
             <button
@@ -1630,7 +1630,7 @@ export const AdminPanel: React.FC = () => {
             <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 space-y-6">
               <div>
                 <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  التحكم في اللوحة الإعلانية الكبرى (صور / فيديو / نص إعلاني)
+                  التحكم في اللوحة الرئيسية الكبرى (صور / فيديو / ترويج المنصة)
                 </h3>
                 <p className="text-xs text-slate-500">
                   لوحة تفاعلية بارزة في واجهة التطبيق الرئيسية، يمكنك إخفاؤها أو إظهارها، وتعيين صورة أو فيديو وكتابة ما تريد.
@@ -1999,7 +1999,7 @@ export const AdminPanel: React.FC = () => {
                   إرسال الإشعارات الفورية والربط بـ Firebase Cloud Messaging (FCM)
                 </h3>
                 <p className="text-xs text-slate-500">
-                  إرسال إشعارات فورية لجميع الأجهزة لتحديث التطبيق، أو نشر إعلان عام، أو تنبيهات أمنية.
+                  إرسال إشعارات فورية لجميع الأجهزة لتحديث التطبيق، أو نشر تنبيه عام، أو تنبيهات أمنية.
                 </p>
               </div>
 
@@ -2036,7 +2036,7 @@ export const AdminPanel: React.FC = () => {
                       onChange={(e: any) => setNotifType(e.target.value)}
                       className="w-full bg-white dark:bg-slate-900 border rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white"
                     >
-                      <option value="announcement">📢 نشر إعلان أو تنبيه عام</option>
+                      <option value="announcement">📢 نشر تنبيه أو إشعار عام</option>
                       <option value="update">🚀 إشعار تحديث التطبيق (App Update Required)</option>
                       <option value="alert">⚠️ تنبيه أمني أو إداري عاجل</option>
                     </select>
@@ -2195,7 +2195,7 @@ export const AdminPanel: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-slate-900 dark:text-white">{n.title}</span>
                         <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-slate-200 dark:bg-slate-700">
-                          {n.type === 'update' ? 'تحديث تطبيق' : n.type === 'alert' ? 'تنبيه أمني' : n.type === 'note' ? 'ملاحظة وتنويه' : 'إعلان'}
+                          {n.type === 'update' ? 'تحديث تطبيق' : n.type === 'alert' ? 'تنبيه أمني' : n.type === 'note' ? 'ملاحظة وتنويه' : 'إشعار وتنويه'}
                         </span>
                       </div>
                       <p className="text-slate-600 dark:text-slate-400 text-[11px]">{n.message}</p>
@@ -3268,7 +3268,7 @@ export const AdminPanel: React.FC = () => {
                           className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 rounded-xl text-xs font-bold flex items-center gap-1"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
-                          <span>حذف الإعلان</span>
+                          <span>حذف المنشور</span>
                         </button>
                       </div>
                     </div>
@@ -4315,14 +4315,14 @@ export const AdminPanel: React.FC = () => {
             </div>
           )}
 
-          {/* TAB: Work Partner Posts Management (إعلانات البحث عن شريك عمل) */}
+          {/* TAB: Work Partner Posts Management (منشورات البحث عن شريك عمل) */}
           {activeAdminSubTab === 'partnerPosts' && (
             <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
                 <div>
                   <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <Users className="w-5 h-5 text-amber-500" />
-                    <span>إدارة إعلانات البحث عن شريك عمل ({partnerPosts.length})</span>
+                    <span>إدارة منشورات البحث عن شريك عمل ({partnerPosts.length})</span>
                   </h3>
                   <p className="text-xs text-slate-500 mt-1">
                     متابعة عروض الشراكة والورشات المنشورة، حذف المنشورات المخالفة، والاطلاع على التفاعل والقلوب.
@@ -4340,7 +4340,7 @@ export const AdminPanel: React.FC = () => {
 
               {partnerPosts.length === 0 ? (
                 <div className="text-center py-12 text-slate-400 text-xs">
-                  لا توجد إعلانات شراكة منشورة حالياً.
+                  لا توجد منشورات شراكة حالياً.
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -4379,7 +4379,7 @@ export const AdminPanel: React.FC = () => {
                       <div className="flex items-center gap-2 self-end sm:self-center">
                         <button
                           onClick={() => {
-                            if (confirm(`هل أنت متأكد من حذف إعلان الشراكة "${post.title}"؟`)) {
+                            if (confirm(`هل أنت متأكد من حذف منشور الشراكة "${post.title}"؟`)) {
                               deletePartnerPost(post.id);
                             }
                           }}

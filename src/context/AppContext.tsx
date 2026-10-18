@@ -605,7 +605,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     mediaUrl: '/src/assets/images/khodam_hero_craftsman_1791156490478.jpg',
     title: 'منصة خدام — الأيدي الأمينة والحرفيون المؤهلون في خدمتك',
     description: 'شاهد إنجازات وتوثيق حرفيي الجزائر العاصمة وجميع الولايات. معايير أمان مشددة، ومكالمات مشفرة بدون كشف رقمك.',
-    badge: 'إعلان المنصة الرسمي · جودة وأمان',
+    badge: 'منصة خدام الرسمية · جودة وأمان',
     buttonText: 'تشغيل رادار البحث الحي',
     buttonLink: 'radar'
   });
@@ -813,8 +813,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
     setActiveNotificationToast({
       id: `notif_${Date.now()}`,
-      title: '🤝 تم نشر إعلان الشراكة بنجاح!',
-      message: 'إعلانك معروض الآن في قسم البحث عن شريك للعمل، وبإمكان الحرفيين التفاعل والتعليق والتواصل.',
+      title: '🤝 تم نشر طلب الشراكة بنجاح!',
+      message: 'طلبك معروض الآن في قسم البحث عن شريك للعمل، وبإمكان الحرفيين التفاعل والتعليق والتواصل.',
       type: 'announcement',
       audience: 'all',
       sentAt: 'الآن',
