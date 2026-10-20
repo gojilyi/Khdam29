@@ -447,7 +447,7 @@ export interface SupportTicket {
   name: string;
   contact: string;
   contactMethod?: 'phone' | 'whatsapp' | 'email';
-  category: 'general' | 'complaint' | 'financial' | 'partnership' | 'suggestion' | 'technical' | 'account_deletion';
+  category: 'general' | 'complaint' | 'financial' | 'partnership' | 'suggestion' | 'technical' | 'account_deletion' | 'emergency';
   priority?: 'normal' | 'urgent' | 'emergency';
   subject: string;
   message: string;

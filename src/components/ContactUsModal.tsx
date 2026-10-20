@@ -9,27 +9,29 @@ import {
   MapPin, 
   Send, 
   Headphones, 
-  Info,
-  CheckCircle2,
-  AlertCircle,
-  Copy,
-  Check,
-  Paperclip,
-  Trash2,
-  HelpCircle,
-  ShieldAlert,
-  Sparkles,
-  ChevronDown,
-  ChevronUp,
-  FileText,
-  Search,
-  User,
-  ShieldCheck,
-  MessageCircle,
-  CornerDownLeft,
+  CheckCircle2, 
+  AlertCircle, 
+  Copy, 
+  Check, 
+  Paperclip, 
+  Trash2, 
+  HelpCircle, 
+  ShieldAlert, 
+  Sparkles, 
+  ChevronDown, 
+  ChevronUp, 
+  FileText, 
+  Search, 
+  User, 
+  ShieldCheck, 
+  MessageCircle, 
   Smartphone,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Wrench,
+  Scale,
+  Lightbulb,
+  ExternalLink
 } from 'lucide-react';
 
 interface LiveChatMessage {
@@ -52,14 +54,13 @@ export const ContactUsModal: React.FC = () => {
     addTicketUserReply
   } = useApp();
 
-  // Active Tab
-  const [activeTab, setActiveTab] = useState<'form' | 'live_chat' | 'channels' | 'my_tickets' | 'faq'>('form');
+  // Active Tab: Live Chat by default for easiest, instant assistance
+  const [activeTab, setActiveTab] = useState<'live_chat' | 'form' | 'my_tickets' | 'channels' | 'faq'>('live_chat');
 
   // Form State
   const [name, setName] = useState('');
-  const [contactMethod, setContactMethod] = useState<'phone' | 'whatsapp' | 'email'>('phone');
   const [contact, setContact] = useState('');
-  const [category, setCategory] = useState<'general' | 'complaint' | 'financial' | 'partnership' | 'suggestion' | 'technical' | 'account_deletion'>('general');
+  const [category, setCategory] = useState<'general' | 'complaint' | 'financial' | 'partnership' | 'suggestion' | 'technical' | 'account_deletion' | 'emergency'>('general');
   const [priority, setPriority] = useState<'normal' | 'urgent' | 'emergency'>('normal');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
@@ -87,17 +88,17 @@ export const ContactUsModal: React.FC = () => {
       id: 'welcome_1',
       sender: 'agent',
       senderName: 'أنيسة (خدمة العملاء)',
-      text: 'مرحباً بك في منصة خـدّام! 👋 أنا هنا لمساعدتك والإجابة على أي استفسار أو التنسيق الفوري.',
+      text: 'مرحباً بك في منصة خـدّام! 👋 أنا أنيسة من فريق التنسيق والدعم الفني. كيف يمكنني مساعدتك اليوم؟',
       time: 'الآن'
     }
   ]);
   const [liveChatInput, setLiveChatInput] = useState('');
   const [isAgentTyping, setIsAgentTyping] = useState(false);
+
+  // Refs for isolated, smooth scrolling without touching outer page
   const liveChatContainerRef = useRef<HTMLDivElement>(null);
   const modalBodyRef = useRef<HTMLDivElement>(null);
   const [showModalScrollTop, setShowModalScrollTop] = useState(false);
-  const [showLiveChatScrollTop, setShowLiveChatScrollTop] = useState(false);
-  const [showLiveChatScrollBottom, setShowLiveChatScrollBottom] = useState(false);
 
   const scrollLiveChatToBottom = (behavior: ScrollBehavior = 'smooth') => {
     const c = liveChatContainerRef.current;
@@ -131,30 +132,25 @@ export const ContactUsModal: React.FC = () => {
     modalBodyRef.current?.scrollTo({ top: 0, behavior: 'auto' });
   }, [activeTab]);
 
-  // Safe isolated live chat scroll without affecting parent modal
+  // Safe isolated live chat scroll
   useEffect(() => {
     if (activeTab === 'live_chat') {
-      scrollLiveChatToBottom('smooth');
+      const timer = setTimeout(() => {
+        scrollLiveChatToBottom('smooth');
+      }, 50);
+      return () => clearTimeout(timer);
     }
   }, [liveChatMessages.length, activeTab, isAgentTyping]);
-
-  const handleLiveChatScroll = () => {
-    const c = liveChatContainerRef.current;
-    if (!c) return;
-    const distanceToBottom = c.scrollHeight - c.scrollTop - c.clientHeight;
-    setShowLiveChatScrollBottom(distanceToBottom > 60);
-    setShowLiveChatScrollTop(c.scrollTop > 60);
-  };
 
   const handleModalBodyScroll = () => {
     const b = modalBodyRef.current;
     if (!b) return;
-    setShowModalScrollTop(b.scrollTop > 100);
+    setShowModalScrollTop(b.scrollTop > 120);
   };
 
   if (!isContactModalOpen) return null;
 
-  // Contact details with professional Algerian fallbacks
+  // Contact details
   const contactDetails = {
     phone: playStoreConfig.supportPhone || '+213 23 45 67 89',
     whatsapp: playStoreConfig.whatsappNumber || '+213 550 12 34 56',
@@ -188,17 +184,15 @@ export const ContactUsModal: React.FC = () => {
         ticketNumber: generatedTicketNumber,
         name: name.trim(),
         contact: contact.trim(),
-        contactMethod,
+        contactMethod: 'phone',
         category,
         priority,
         subject: subject.trim() || (
           category === 'complaint' ? 'شكوى أو نزاع حول خدمة' :
           category === 'financial' ? 'نزاع مالي أو استفسار ضمان' :
-          category === 'partnership' ? 'طلب انضمام حرفي أو شراكة' :
-          category === 'technical' ? 'إبلاغ عن عطل تقني' :
-          category === 'suggestion' ? 'اقتراح تطوير' :
-          category === 'account_deletion' ? 'طلب حذف الحساب' :
-          'استفسار عام حول خدمات خـدّام'
+          category === 'suggestion' ? 'اقتراح وتطوير' :
+          category === 'emergency' ? 'بلاغ طارئ وتدخل عاجل' :
+          'طلب مساعدة واستفسار عام'
         ),
         message: message.trim(),
         attachmentUrl: attachmentImage || undefined
@@ -206,7 +200,7 @@ export const ContactUsModal: React.FC = () => {
 
       setIsSubmitting(false);
       setSubmittedTicket({ id: `ticket_${Date.now()}`, ticketNumber: generatedTicketNumber });
-    }, 400);
+    }, 350);
   };
 
   const copyToClipboard = (text: string, type: 'ticket' | 'channel' | 'faq', faqIdx?: number) => {
@@ -251,16 +245,16 @@ export const ContactUsModal: React.FC = () => {
     setIsAgentTyping(true);
 
     setTimeout(() => {
-      let reply = 'شكراً لتواصلك! تم استلام رسالتك وسنقدم لك المساعدة فوراً. لحالات الطوارئ، يمكنك الاتصال مباشرة بخط الدعم 24/7.';
+      let reply = 'شكراً لتواصلك! استلمت استفسارك وسأساعدك فوراً. إذا كان طلبك طارئاً يمكنك الاتصال المباشر على الرقم 24/7.';
       const lower = userMsg.toLowerCase();
-      if (lower.includes('حرفي') || lower.includes('طلب') || lower.includes('خدمة')) {
-        reply = 'يمكنك طلب الحرفي المعتمد عبر الصفحة الرئيسية أو الرادار الحي، مع الاطلاع المسبق على تقييماته وشهاداته الموثقة.';
-      } else if (lower.includes('سعر') || lower.includes('تكلفة') || lower.includes('دج') || lower.includes('دينار')) {
-        reply = 'أسعار الخدمات محددة بشفافية مسبقاً قبل وصول الحرفي وبدون أي مصاريف إضافية خفية.';
-      } else if (lower.includes('ضمان') || lower.includes('شكوى') || lower.includes('نزاع')) {
-        reply = 'تضمن خـدّام حماية حقوقك بالكامل! يمكنك فتح تذكرة نزاع وسيتدخل خبير معتمد للمعاينة الفورية.';
-      } else if (lower.includes('طوارئ') || lower.includes('غاز') || lower.includes('ماء')) {
-        reply = '🚨 لحالات الطوارئ الخطرة، يرجى الاتصال الفوري عبر زر الطوارئ في تبويب "القنوات المباشرة".';
+      if (lower.includes('حرفي') || lower.includes('طلب') || lower.includes('خدمة') || lower.includes('سباك') || lower.includes('كهربائي')) {
+        reply = 'يمكنك طلب أي حرفي معتمد عبر القائمة الرئيسية أو زر الرادار، مع رؤية تقييماته وبطاقته المهنية المعتمدة قبل تأكيد الطلب.';
+      } else if (lower.includes('سعر') || lower.includes('تكلفة') || lower.includes('دج') || lower.includes('دينار') || lower.includes('كم')) {
+        reply = 'أسعار الخدمات الاسترشادية محددة بدقة في قسم "دليل الأسعار المعتمدة" لمنع المزايدة وضمان العدالة بين الطرفين.';
+      } else if (lower.includes('ضمان') || lower.includes('شكوى') || lower.includes('نزاع') || lower.includes('حق')) {
+        reply = 'حقك مضمون 100%! في حال أي خلاف أو عدم اكتمال العمل، افتح تذكرة نزاع من هنا وسيقوم خبير المنصة بالتحقيق فوراً.';
+      } else if (lower.includes('طوارئ') || lower.includes('غاز') || lower.includes('ماء') || lower.includes('تسرب')) {
+        reply = '🚨 لحالات الطوارئ الميدانية العاجلة، اضغط على تبويب "اتصال مباشر" للاتصال بخط الطوارئ المجاني.';
       }
 
       setLiveChatMessages(prev => [
@@ -274,24 +268,14 @@ export const ContactUsModal: React.FC = () => {
         }
       ]);
       setIsAgentTyping(false);
-    }, 1100);
+    }, 900);
   };
 
-  const quickSubjects = [
-    'توثيق شارة الحرفي 🎖️',
-    'فحص جودة وضمان الخدمة 🛡️',
-    'أسعار الفحص والتدخل 💰',
-    'تأخر وصول الحرفي ⏱️',
-    'انضمام حرفي للمنصة 👷‍♂️'
-  ];
-
-  const categories = [
-    { id: 'general', label: 'استفسار عام', icon: MessageSquare, desc: 'معلومات عامة حول التطبيق' },
-    { id: 'complaint', label: 'شكوى ونزاع', icon: AlertCircle, desc: 'خلاف حول عمل أو جودة' },
-    { id: 'financial', label: 'ضمان واسترجاع', icon: ShieldCheck, desc: 'فواتير وضمان الخدمة' },
-    { id: 'technical', label: 'مشكلة تقنية', icon: Info, desc: 'خطأ في الحساب أو الموقع' },
-    { id: 'suggestion', label: 'اقتراح وتطوير', icon: Sparkles, desc: 'أفكار لمزايا جديدة' },
-    { id: 'account_deletion', label: 'حذف الحساب', icon: Trash2, desc: 'مسح البيانات نهائياً' }
+  const simpleCategories = [
+    { id: 'general', label: 'صيانة ومساعدة عامة', icon: Wrench, color: 'text-amber-600 bg-amber-500/10 border-amber-500/30' },
+    { id: 'complaint', label: 'شكوى أو نزاع مالي', icon: Scale, color: 'text-rose-600 bg-rose-500/10 border-rose-500/30' },
+    { id: 'suggestion', label: 'اقتراح أو استفسار', icon: Lightbulb, color: 'text-blue-600 bg-blue-500/10 border-blue-500/30' },
+    { id: 'emergency', label: 'بلاغ طارئ وتدخل عاجل', icon: ShieldAlert, color: 'text-red-600 bg-red-500/10 border-red-500/30' }
   ];
 
   const faqs = [
@@ -325,533 +309,193 @@ export const ContactUsModal: React.FC = () => {
   const filteredFaqs = faqs.filter(f => 
     !faqSearchQuery.trim() || 
     f.q.toLowerCase().includes(faqSearchQuery.toLowerCase()) || 
-    f.a.toLowerCase().includes(faqSearchQuery.toLowerCase()) ||
-    f.cat.toLowerCase().includes(faqSearchQuery.toLowerCase())
+    f.a.toLowerCase().includes(faqSearchQuery.toLowerCase())
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-3 bg-slate-950/75 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
       <div 
-        className="w-full max-w-xl max-h-[86vh] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden text-slate-900 dark:text-slate-100"
+        className="w-full max-w-lg max-h-[88vh] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl flex flex-col overflow-hidden text-slate-900 dark:text-slate-100 relative"
         onClick={(e) => e.stopPropagation()}
       >
         
         {/* ============================================================== */}
-        {/* Header: Compact & Elegant                                      */}
+        {/* Header: Clean, Trustworthy & Professional                      */}
         {/* ============================================================== */}
-        <div className="px-4 py-3 sm:px-5 sm:py-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shadow-sm shrink-0">
-              <Headphones className="w-5 h-5" />
+        <div className="px-4 py-3.5 sm:px-5 sm:py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/80 dark:bg-slate-900/80 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold shadow-md shadow-amber-500/20">
+                <Headphones className="w-5 h-5" />
+              </div>
+              <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900 animate-pulse" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
-                  علبة التواصل والدعم الفني
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  مركز التواصل والدعم الفني
                 </h3>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping inline-block" />
-                  <span>متاح الآن</span>
+                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                  متاح الآن
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                متابعة البلاغات، حل النزاعات، والاستفسارات المباشرة
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                فريق خدمة العملاء جاهز لمساعدتك وحل أي استفسار
               </p>
             </div>
           </div>
 
           <button
             onClick={() => setIsContactModalOpen(false)}
-            className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
-            title="إغلاق علبة التواصل"
+            className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+            title="إغلاق النافذة"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* ============================================================== */}
-        {/* Navigation Tabs Bar: Compact & Clean                           */}
+        {/* Navigation Tabs Bar: Segmented, Spacious & Easy to Tap         */}
         {/* ============================================================== */}
-        <div className="px-3 sm:px-4 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 flex items-center gap-1 overflow-x-auto scrollbar-none shrink-0">
-          {/* Tab 1: Form */}
-          <button
-            onClick={() => {
-              setActiveTab('form');
-              setSubmittedTicket(null);
-            }}
-            className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 shrink-0 cursor-pointer ${
-              activeTab === 'form'
-                ? 'bg-amber-500 text-slate-950 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
-            }`}
-          >
-            <Send className="w-3 h-3 rtl:rotate-180" />
-            <span>تذكرة جديدة</span>
-          </button>
+        <div className="p-2 border-b border-slate-200 dark:border-slate-800 bg-slate-100/70 dark:bg-slate-800/50 shrink-0">
+          <div className="grid grid-cols-5 gap-1 bg-white dark:bg-slate-900 p-1 rounded-2xl border border-slate-200/80 dark:border-slate-800">
+            {/* Tab 1: Live Chat */}
+            <button
+              onClick={() => setActiveTab('live_chat')}
+              className={`py-2 px-1.5 rounded-xl text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer ${
+                activeTab === 'live_chat'
+                  ? 'bg-amber-500 text-slate-950 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <MessageCircle className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">محادثة</span>
+            </button>
 
-          {/* Tab 2: Live Support Chat */}
-          <button
-            onClick={() => setActiveTab('live_chat')}
-            className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 shrink-0 cursor-pointer ${
-              activeTab === 'live_chat'
-                ? 'bg-amber-500 text-slate-950 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
-            }`}
-          >
-            <div className="relative">
-              <MessageCircle className="w-3 h-3" />
-              <span className="absolute -top-0.5 -right-0.5 w-1 h-1 rounded-full bg-emerald-500" />
-            </div>
-            <span>شات الدعم</span>
-          </button>
+            {/* Tab 2: New Ticket */}
+            <button
+              onClick={() => {
+                setActiveTab('form');
+                setSubmittedTicket(null);
+              }}
+              className={`py-2 px-1.5 rounded-xl text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer ${
+                activeTab === 'form'
+                  ? 'bg-amber-500 text-slate-950 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Send className="w-3.5 h-3.5 rtl:rotate-180 shrink-0" />
+              <span className="truncate">تذكرة</span>
+            </button>
 
-          {/* Tab 3: Direct Channels */}
-          <button
-            onClick={() => setActiveTab('channels')}
-            className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 shrink-0 cursor-pointer ${
-              activeTab === 'channels'
-                ? 'bg-amber-500 text-slate-950 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
-            }`}
-          >
-            <Phone className="w-3 h-3" />
-            <span>اتصال مباشر</span>
-          </button>
+            {/* Tab 3: My Tickets */}
+            <button
+              onClick={() => setActiveTab('my_tickets')}
+              className={`py-2 px-1.5 rounded-xl text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer relative ${
+                activeTab === 'my_tickets'
+                  ? 'bg-amber-500 text-slate-950 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">تذاكري</span>
+              {supportTickets.length > 0 && (
+                <span className={`text-[10px] font-black px-1.5 py-0.2 rounded-full ${
+                  activeTab === 'my_tickets' ? 'bg-slate-950 text-white' : 'bg-amber-500 text-slate-950'
+                }`}>
+                  {supportTickets.length}
+                </span>
+              )}
+            </button>
 
-          {/* Tab 4: My Tickets */}
-          <button
-            onClick={() => setActiveTab('my_tickets')}
-            className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 shrink-0 cursor-pointer relative ${
-              activeTab === 'my_tickets'
-                ? 'bg-amber-500 text-slate-950 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
-            }`}
-          >
-            <FileText className="w-3 h-3" />
-            <span>تذاكري</span>
-            {supportTickets.length > 0 && (
-              <span className={`px-1 rounded-full text-[9px] font-black ${
-                activeTab === 'my_tickets' ? 'bg-slate-950 text-white' : 'bg-amber-500 text-slate-950'
-              }`}>
-                {supportTickets.length}
-              </span>
-            )}
-          </button>
+            {/* Tab 4: Direct Channels */}
+            <button
+              onClick={() => setActiveTab('channels')}
+              className={`py-2 px-1.5 rounded-xl text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer ${
+                activeTab === 'channels'
+                  ? 'bg-amber-500 text-slate-950 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Phone className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">اتصال</span>
+            </button>
 
-          {/* Tab 5: FAQ */}
-          <button
-            onClick={() => setActiveTab('faq')}
-            className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 shrink-0 cursor-pointer ${
-              activeTab === 'faq'
-                ? 'bg-amber-500 text-slate-950 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
-            }`}
-          >
-            <HelpCircle className="w-3 h-3" />
-            <span>الأسئلة الشائعة</span>
-          </button>
+            {/* Tab 5: FAQ */}
+            <button
+              onClick={() => setActiveTab('faq')}
+              className={`py-2 px-1.5 rounded-xl text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer ${
+                activeTab === 'faq'
+                  ? 'bg-amber-500 text-slate-950 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <HelpCircle className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">الأسئلة</span>
+            </button>
+          </div>
         </div>
 
         {/* ============================================================== */}
-        {/* Content Body: Organized & Proportionate                        */}
+        {/* Content Body: Clean, High Readability & Smooth Touch Scrolling */}
         {/* ============================================================== */}
         <div 
           ref={modalBodyRef}
           onScroll={handleModalBodyScroll}
-          className="p-3.5 sm:p-4 overflow-y-auto space-y-3.5 flex-1 text-xs overscroll-contain"
+          className="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1 text-xs overscroll-contain"
           style={{ WebkitOverflowScrolling: 'touch' }}
         >
-          
-          {/* ============================================================ */}
-          {/* TAB 1: FORM (إرسال تذكرة أو بلاغ)                            */}
-          {/* ============================================================ */}
-          {activeTab === 'form' && (
-            <div>
-              {submittedTicket ? (
-                /* Success Confirmation View */
-                <div className="py-6 px-4 bg-gradient-to-b from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/30 rounded-2xl text-center space-y-3 animate-fade-in">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center mx-auto shadow-md">
-                    <CheckCircle2 className="w-7 h-7" />
-                  </div>
-
-                  <div className="space-y-0.5">
-                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 block">
-                      تم استلام تذكرتك بنجاح
-                    </span>
-                    <h4 className="text-base font-bold text-slate-900 dark:text-white">
-                      شكراً لتواصلك مع إدارة خـدّام!
-                    </h4>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-                      تم تسجيل استفسارك وسيقوم فريق الدعم بالرد وإشعارك فوراً.
-                    </p>
-                  </div>
-
-                  {/* Ticket Number Card */}
-                  <div className="p-3 bg-white dark:bg-slate-800 rounded-xl border border-emerald-200 dark:border-emerald-800/60 max-w-xs mx-auto shadow-2xs space-y-1.5">
-                    <span className="text-[10px] text-slate-500 block">
-                      الرقم المرجعي لمتابعة تذكرتك:
-                    </span>
-                    <div className="flex items-center justify-center gap-2">
-                      <span className="text-base font-black font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                        #{submittedTicket.ticketNumber}
-                      </span>
-                      <button
-                        onClick={() => copyToClipboard(submittedTicket.ticketNumber, 'ticket')}
-                        className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 text-slate-600 transition-colors cursor-pointer"
-                        title="نسخ رقم التذكرة"
-                      >
-                        {copiedTicketNum === submittedTicket.ticketNumber ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-500" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-                    <button
-                      onClick={() => setActiveTab('my_tickets')}
-                      className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-xs"
-                    >
-                      <FileText className="w-3.5 h-3.5" />
-                      <span>عرض التذكرة في سجلي</span>
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('live_chat')}
-                      className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-xs"
-                    >
-                      <MessageCircle className="w-3.5 h-3.5" />
-                      <span>شات الدعم المباشر</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSubmittedTicket(null);
-                        setMessage('');
-                        setSubject('');
-                        setAttachmentImage(null);
-                      }}
-                      className="px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-xl text-xs cursor-pointer"
-                    >
-                      تذكرة أخرى
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                /* The Contact Form */
-                <form onSubmit={handleSubmit} className="space-y-3">
-                  {/* Category Selection: Compact 3-col Grid */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                      طبيعة الطلب أو التصنيف:
-                    </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                      {categories.map((cat) => {
-                        const Icon = cat.icon;
-                        const isSelected = category === cat.id;
-                        return (
-                          <button
-                            type="button"
-                            key={cat.id}
-                            onClick={() => setCategory(cat.id as any)}
-                            className={`p-2 rounded-xl border text-start transition-all cursor-pointer relative ${
-                              isSelected
-                                ? 'bg-amber-500/10 border-amber-500 text-slate-900 dark:text-white ring-1 ring-amber-500/30'
-                                : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 hover:border-amber-300'
-                            }`}
-                          >
-                            <div className="flex items-center gap-1.5">
-                              <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${
-                                isSelected ? 'bg-amber-500 text-slate-950' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
-                              }`}>
-                                <Icon className="w-3 h-3" />
-                              </div>
-                              <span className="text-[11px] font-bold truncate">{cat.label}</span>
-                            </div>
-                            <span className="text-[9px] text-slate-400 block mt-0.5 line-clamp-1">
-                              {cat.desc}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Name & Contact Method: 2 Columns */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        الاسم الكامل *
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          required
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          placeholder="اسمك الكامل"
-                          className="w-full pl-2.5 pr-8 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none"
-                        />
-                        <User className="w-3.5 h-3.5 text-slate-400 absolute top-2.5 right-2.5 pointer-events-none" />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                          وسيلة الرد *
-                        </label>
-                        <div className="flex items-center gap-1 text-[10px] bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
-                          <button
-                            type="button"
-                            onClick={() => setContactMethod('phone')}
-                            className={`px-1.5 py-0.5 rounded cursor-pointer ${
-                              contactMethod === 'phone' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-500'
-                            }`}
-                          >
-                            هاتف
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setContactMethod('whatsapp')}
-                            className={`px-1.5 py-0.5 rounded cursor-pointer ${
-                              contactMethod === 'whatsapp' ? 'bg-emerald-500 text-white font-bold' : 'text-slate-500'
-                            }`}
-                          >
-                            واتساب
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setContactMethod('email')}
-                            className={`px-1.5 py-0.5 rounded cursor-pointer ${
-                              contactMethod === 'email' ? 'bg-sky-500 text-white font-bold' : 'text-slate-500'
-                            }`}
-                          >
-                            إيميل
-                          </button>
-                        </div>
-                      </div>
-
-                      {contactMethod === 'email' ? (
-                        <div className="relative">
-                          <input
-                            type="email"
-                            required
-                            value={contact}
-                            onChange={(e) => setContact(e.target.value)}
-                            placeholder="user@domain.com"
-                            className="w-full pl-2.5 pr-8 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none dir-ltr text-left"
-                          />
-                          <Mail className="w-3.5 h-3.5 text-slate-400 absolute top-2.5 right-2.5 pointer-events-none" />
-                        </div>
-                      ) : (
-                        <div className="flex items-center rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden focus-within:ring-1 focus-within:ring-amber-500">
-                          <span className="px-2 py-2 bg-slate-200/80 dark:bg-slate-700/80 text-slate-700 dark:text-slate-200 text-[11px] font-mono font-bold flex items-center gap-0.5 shrink-0 select-none">
-                            <span>🇩🇿</span>
-                            <span>+213</span>
-                          </span>
-                          <input
-                            type="tel"
-                            required
-                            value={contact}
-                            onChange={(e) => setContact(e.target.value)}
-                            placeholder="0550 12 34 56"
-                            className="w-full px-2.5 py-2 bg-transparent text-xs focus:outline-none dir-ltr text-left font-mono"
-                          />
-                          <Smartphone className="w-3.5 h-3.5 text-slate-400 ml-2 mr-1 pointer-events-none shrink-0" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Priority & Urgency: Compact Pill Row */}
-                  <div className="p-2 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700/80 flex items-center justify-between gap-2 text-[11px]">
-                    <span className="font-bold text-slate-700 dark:text-slate-300">
-                      درجة الأهمية:
-                    </span>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => setPriority('normal')}
-                        className={`px-2 py-1 rounded-lg font-bold text-[10px] cursor-pointer ${
-                          priority === 'normal'
-                            ? 'bg-slate-800 text-white dark:bg-slate-700'
-                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
-                        }`}
-                      >
-                        عادي
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPriority('urgent')}
-                        className={`px-2 py-1 rounded-lg font-bold text-[10px] cursor-pointer ${
-                          priority === 'urgent'
-                            ? 'bg-amber-500 text-slate-950'
-                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
-                        }`}
-                      >
-                        مهم ⚠️
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPriority('emergency')}
-                        className={`px-2 py-1 rounded-lg font-bold text-[10px] cursor-pointer ${
-                          priority === 'emergency'
-                            ? 'bg-rose-600 text-white'
-                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
-                        }`}
-                      >
-                        طارئ 🚨
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Subject input + Quick Suggested Chips */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      موضوع التذكرة / الاستفسار
-                    </label>
-                    <input
-                      type="text"
-                      value={subject}
-                      onChange={(e) => setSubject(e.target.value)}
-                      placeholder="عنوان مختصر لطلبك..."
-                      className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none"
-                    />
-
-                    {/* Quick suggested chips */}
-                    <div className="flex gap-1 overflow-x-auto pt-1.5 scrollbar-none">
-                      {quickSubjects.map((qs, i) => (
-                        <button
-                          key={i}
-                          type="button"
-                          onClick={() => setSubject(qs)}
-                          className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-[10px] text-slate-600 dark:text-slate-400 whitespace-nowrap transition-colors cursor-pointer"
-                        >
-                          {qs}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Details Textarea */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                        التفاصيل أو البلاغ *
-                      </label>
-                      <span className="text-[9px] text-slate-400 font-mono">
-                        {message.length} حرف
-                      </span>
-                    </div>
-                    <textarea
-                      required
-                      rows={3}
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      placeholder="اكتب التفاصيل ورقم الطلب إن وجد..."
-                      className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none resize-none leading-relaxed"
-                    />
-                  </div>
-
-                  {/* Image Attachment Row */}
-                  <div className="flex items-center justify-between gap-2 p-2 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700 text-[11px]">
-                    <label className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold flex items-center gap-1.5 cursor-pointer hover:border-amber-400">
-                      <Paperclip className="w-3 h-3 text-amber-500" />
-                      <span>إرفاق صورة أو إثبات</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageAttachment}
-                        className="hidden"
-                      />
-                    </label>
-
-                    {attachmentImage ? (
-                      <div className="flex items-center gap-1.5 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/30">
-                        <img
-                          src={attachmentImage}
-                          alt="مرفق"
-                          className="w-6 h-6 rounded object-cover border border-amber-500/50"
-                        />
-                        <span className="text-[10px] text-amber-800 dark:text-amber-200 font-bold">صورة جاهزة</span>
-                        <button
-                          type="button"
-                          onClick={() => setAttachmentImage(null)}
-                          className="p-0.5 text-rose-500 hover:text-rose-700 cursor-pointer"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ) : (
-                      <span className="text-[10px] text-slate-400">(اختياري)</span>
-                    )}
-                  </div>
-
-                  {/* Submit Button */}
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-950 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition-transform active:scale-95 cursor-pointer"
-                  >
-                    <Send className="w-3.5 h-3.5 rtl:rotate-180" />
-                    <span>{isSubmitting ? 'جاري الإرسال...' : 'إرسال التذكرة لفريق الدعم'}</span>
-                  </button>
-                </form>
-              )}
-            </div>
-          )}
 
           {/* ============================================================ */}
-          {/* TAB 2: LIVE CHAT (محادثة فورية مع خدمة العملاء)             */}
+          {/* TAB 1: LIVE CHAT (محادثة مباشرة فورية مع الدعم)             */}
           {/* ============================================================ */}
           {activeTab === 'live_chat' && (
-            <div className="space-y-2.5">
-              {/* Agent Top Bar with Quick Jump Controls */}
-              <div className="p-2.5 bg-slate-900 text-white rounded-xl flex items-center justify-between border border-slate-800">
-                <div className="flex items-center gap-2">
-                  <div className="relative">
-                    <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold">
-                      <Headphones className="w-4 h-4" />
-                    </div>
-                    <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-emerald-500 rounded-full border border-slate-900" />
+            <div className="space-y-3 flex flex-col h-full min-h-[360px]">
+              {/* Agent Status Strip with Jump Buttons */}
+              <div className="p-3 bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-2xl flex items-center justify-between border border-slate-700/60 shadow-xs shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold text-xs">
+                    أن
                   </div>
                   <div>
-                    <span className="font-bold text-xs block">أنيسة - خدمة العملاء والتنسيق</span>
-                    <span className="text-[9px] text-emerald-400">متصلة للرد الفوري</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-xs">أنيسة بوزيان</span>
+                      <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                    </div>
+                    <span className="text-[10px] text-emerald-400 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+                      <span>متصلة للرد الفوري المباشر</span>
+                    </span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5">
-                  {/* Jump Buttons */}
-                  <div className="flex items-center gap-1 bg-slate-800 p-0.5 rounded-lg border border-slate-700">
-                    <button
-                      type="button"
-                      onClick={() => scrollLiveChatToTop('smooth')}
-                      className="px-2 py-0.5 text-[10px] font-bold text-slate-300 hover:text-amber-400 flex items-center gap-0.5 transition-colors cursor-pointer"
-                      title="صعود لأعلى الرسائل"
-                    >
-                      <ArrowUp className="w-3 h-3" />
-                      <span>الأعلى</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => scrollLiveChatToBottom('smooth')}
-                      className="px-2 py-0.5 text-[10px] font-bold text-slate-300 hover:text-amber-400 flex items-center gap-0.5 transition-colors cursor-pointer"
-                      title="النزول لآخر رسالة"
-                    >
-                      <ArrowDown className="w-3 h-3" />
-                      <span>الأسفل</span>
-                    </button>
-                  </div>
+                {/* Quick Scroll Jump Buttons */}
+                <div className="flex items-center gap-1 bg-slate-800/90 p-1 rounded-xl border border-slate-700">
+                  <button
+                    type="button"
+                    onClick={() => scrollLiveChatToTop('smooth')}
+                    className="px-2 py-1 text-[10px] font-bold text-slate-300 hover:text-amber-400 flex items-center gap-1 transition-colors cursor-pointer"
+                    title="الصعود لأعلى المحادثة"
+                  >
+                    <ArrowUp className="w-3 h-3" />
+                    <span className="hidden sm:inline">الأعلى</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => scrollLiveChatToBottom('smooth')}
+                    className="px-2 py-1 text-[10px] font-bold text-slate-300 hover:text-amber-400 flex items-center gap-1 transition-colors cursor-pointer"
+                    title="النزول لآخر رسالة"
+                  >
+                    <ArrowDown className="w-3 h-3" />
+                    <span className="hidden sm:inline">الأسفل</span>
+                  </button>
                 </div>
               </div>
 
-              {/* Chat Thread */}
+              {/* Chat Thread Container: Isolated & Smooth */}
               <div 
                 ref={liveChatContainerRef}
-                onScroll={handleLiveChatScroll}
-                className="h-64 sm:h-72 overflow-y-auto p-3 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2.5 relative overscroll-contain"
+                className="h-64 sm:h-72 overflow-y-auto p-3.5 bg-slate-50/80 dark:bg-slate-950/50 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3 relative overscroll-contain"
                 style={{ WebkitOverflowScrolling: 'touch' }}
               >
                 {liveChatMessages.map((msg) => {
@@ -862,14 +506,14 @@ export const ContactUsModal: React.FC = () => {
                       className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} animate-fade-in`}
                     >
                       <div
-                        className={`max-w-[85%] p-2.5 rounded-xl text-xs leading-relaxed space-y-0.5 shadow-2xs ${
+                        className={`max-w-[85%] p-3 rounded-2xl text-xs leading-relaxed space-y-1 shadow-2xs ${
                           isMe
-                            ? 'bg-amber-500 text-slate-950 rounded-br-none font-medium'
-                            : 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-bl-none'
+                            ? 'bg-amber-500 text-slate-950 rounded-ee-sm font-medium'
+                            : 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-es-sm'
                         }`}
                       >
                         <p>{msg.text}</p>
-                        <span className="text-[9px] font-mono opacity-60 block text-end">
+                        <span className="text-[9px] font-mono opacity-60 block text-end pt-0.5">
                           {msg.time}
                         </span>
                       </div>
@@ -878,26 +522,26 @@ export const ContactUsModal: React.FC = () => {
                 })}
 
                 {isAgentTyping && (
-                  <div className="flex items-center gap-1.5 p-1.5 bg-white dark:bg-slate-800 rounded-xl max-w-[150px] border border-slate-200 dark:border-slate-700 text-[10px] text-slate-500">
+                  <div className="flex items-center gap-2 p-2 bg-white dark:bg-slate-800 rounded-xl max-w-[140px] border border-slate-200 dark:border-slate-700 text-[10px] text-slate-500">
                     <span>أنيسة تكتب...</span>
-                    <span className="w-1 h-1 rounded-full bg-amber-500 animate-ping" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
                   </div>
                 )}
               </div>
 
-              {/* Quick Prompt Chips */}
-              <div className="flex gap-1 overflow-x-auto scrollbar-none">
+              {/* Quick Questions Suggestions */}
+              <div className="flex gap-1.5 overflow-x-auto scrollbar-none py-1">
                 {[
                   'كيف أضمن حقي عند طلب حرفي؟',
-                  'استفسار عن أسعار الصيانة والتدخل',
-                  'التبليغ عن عطل طارئ',
-                  'كيف أصبح حرفياً معتمداً؟'
+                  'أسعار الصيانة والتدخل المقترحة',
+                  'التبليغ عن نزاع أو شكوى طارئة',
+                  'كيف يتم توثيق شارة الحرفي؟'
                 ].map((prompt, idx) => (
                   <button
                     key={idx}
                     type="button"
                     onClick={() => setLiveChatInput(prompt)}
-                    className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-[10px] text-slate-600 dark:text-slate-400 whitespace-nowrap transition-colors cursor-pointer shrink-0"
+                    className="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-[11px] text-slate-700 dark:text-slate-300 whitespace-nowrap transition-colors cursor-pointer shrink-0 border border-slate-200/60 dark:border-slate-700"
                   >
                     {prompt}
                   </button>
@@ -905,22 +549,22 @@ export const ContactUsModal: React.FC = () => {
               </div>
 
               {/* Chat Input Bar */}
-              <div className="flex items-center gap-1.5 pt-0.5">
+              <div className="flex items-center gap-2 pt-1 shrink-0">
                 <input
                   type="text"
                   value={liveChatInput}
                   onChange={(e) => setLiveChatInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSendLiveChatMessage()}
-                  placeholder="اكتب استفسارك للدعم المباشر..."
-                  className="flex-1 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                  placeholder="اكتب استفسارك هنا..."
+                  className="flex-1 px-4 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
                 />
                 <button
                   type="button"
                   onClick={handleSendLiveChatMessage}
                   disabled={!liveChatInput.trim()}
-                  className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1 cursor-pointer shrink-0"
+                  className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-slate-950 font-bold rounded-2xl text-xs flex items-center gap-1.5 cursor-pointer shadow-sm transition-transform active:scale-95 shrink-0"
                 >
-                  <Send className="w-3 h-3 rtl:rotate-180" />
+                  <Send className="w-3.5 h-3.5 rtl:rotate-180" />
                   <span>إرسال</span>
                 </button>
               </div>
@@ -928,153 +572,199 @@ export const ContactUsModal: React.FC = () => {
           )}
 
           {/* ============================================================ */}
-          {/* TAB 3: DIRECT CHANNELS (القنوات المباشرة)                     */}
+          {/* TAB 2: NEW TICKET (تذكرة جديدة سهلة ومباشرة)                 */}
           {/* ============================================================ */}
-          {activeTab === 'channels' && (
-            <div className="space-y-2.5">
-              {/* Emergency Banner */}
-              <div className="p-3 bg-gradient-to-r from-rose-600 to-amber-700 rounded-2xl text-white shadow-sm flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <ShieldAlert className="w-5 h-5 text-amber-200 shrink-0" />
-                  <div>
-                    <span className="text-[10px] font-bold text-amber-200 block">طوارئ 24/7 (غاز / ماء / كهرباء)</span>
-                    <span className="text-xs font-bold">تدخل ميداني سريع للحالات الحرجة</span>
+          {activeTab === 'form' && (
+            <div>
+              {submittedTicket ? (
+                /* Success View */
+                <div className="py-8 px-4 bg-emerald-500/10 border border-emerald-500/30 rounded-3xl text-center space-y-3.5 animate-fade-in">
+                  <div className="w-14 h-14 rounded-2xl bg-emerald-500 text-white flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/30">
+                    <CheckCircle2 className="w-8 h-8" />
                   </div>
-                </div>
-                <a
-                  href={`tel:${contactDetails.phone}`}
-                  className="px-3 py-1.5 bg-white text-rose-950 font-black rounded-lg text-xs flex items-center gap-1 shrink-0 shadow-xs"
-                >
-                  <Phone className="w-3 h-3 text-rose-600" />
-                  <span>اتصال</span>
-                </a>
-              </div>
 
-              {/* Grid of Channels */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {/* WhatsApp */}
-                <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-7 h-7 rounded-lg bg-emerald-500 text-white flex items-center justify-center shrink-0">
-                      <MessageSquare className="w-3.5 h-3.5" />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 block">واتساب فوري</span>
-                      <a
-                        href={`https://wa.me/${contactDetails.whatsapp.replace(/[^0-9]/g, '')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs font-mono font-bold text-slate-900 dark:text-white dir-ltr block truncate hover:underline"
-                      >
-                        {contactDetails.whatsapp}
-                      </a>
-                    </div>
+                  <div className="space-y-1">
+                    <h4 className="text-base font-bold text-slate-900 dark:text-white">
+                      تم تسجيل تذكرتك بنجاح!
+                    </h4>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 max-w-sm mx-auto">
+                      سيقوم فريق خدمة العملاء بمراجعة تذكرتك والتواصل معك في أقرب وقت.
+                    </p>
                   </div>
-                  <button
-                    onClick={() => copyToClipboard(contactDetails.whatsapp, 'channel')}
-                    className="p-1 text-slate-400 hover:text-emerald-600 cursor-pointer"
-                    title="نسخ"
-                  >
-                    {copiedChannelText === contactDetails.whatsapp ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                  </button>
-                </div>
 
-                {/* Phone */}
-                <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-7 h-7 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center shrink-0 font-bold">
-                      <Phone className="w-3.5 h-3.5" />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 block">الهاتف المباشر</span>
-                      <a
-                        href={`tel:${contactDetails.phone}`}
-                        className="text-xs font-mono font-bold text-slate-900 dark:text-white dir-ltr block truncate hover:underline"
-                      >
-                        {contactDetails.phone}
-                      </a>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => copyToClipboard(contactDetails.phone, 'channel')}
-                    className="p-1 text-slate-400 hover:text-amber-600 cursor-pointer"
-                    title="نسخ"
-                  >
-                    {copiedChannelText === contactDetails.phone ? <Check className="w-3.5 h-3.5 text-amber-500" /> : <Copy className="w-3.5 h-3.5" />}
-                  </button>
-                </div>
-
-                {/* Email */}
-                <div className="p-2.5 bg-sky-500/10 border border-sky-500/30 rounded-xl flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-7 h-7 rounded-lg bg-sky-500 text-white flex items-center justify-center shrink-0">
-                      <Mail className="w-3.5 h-3.5" />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="text-[10px] font-bold text-sky-700 dark:text-sky-300 block">البريد الرسمي</span>
-                      <a
-                        href={`mailto:${contactDetails.email}`}
-                        className="text-xs font-mono font-bold text-slate-900 dark:text-white block truncate hover:underline"
-                      >
-                        {contactDetails.email}
-                      </a>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => copyToClipboard(contactDetails.email, 'channel')}
-                    className="p-1 text-slate-400 hover:text-sky-600 cursor-pointer"
-                    title="نسخ"
-                  >
-                    {copiedChannelText === contactDetails.email ? <Check className="w-3.5 h-3.5 text-sky-500" /> : <Copy className="w-3.5 h-3.5" />}
-                  </button>
-                </div>
-
-                {/* Working Hours */}
-                <div className="p-2.5 bg-purple-500/10 border border-purple-500/30 rounded-xl flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-purple-500 text-white flex items-center justify-center shrink-0">
-                    <Clock className="w-3.5 h-3.5" />
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-[10px] font-bold text-purple-700 dark:text-purple-300 block">أوقات العمل</span>
-                    <span className="text-xs font-bold text-slate-900 dark:text-white block truncate">
-                      {contactDetails.workingHours}
+                  <div className="p-3.5 bg-white dark:bg-slate-800 rounded-2xl border border-emerald-200 dark:border-emerald-800 max-w-xs mx-auto shadow-sm space-y-1">
+                    <span className="text-[11px] text-slate-500 block">
+                      رقم التذكرة للمتابعة:
                     </span>
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-lg font-black font-mono text-emerald-600 dark:text-emerald-400">
+                        #{submittedTicket.ticketNumber}
+                      </span>
+                      <button
+                        onClick={() => copyToClipboard(submittedTicket.ticketNumber, 'ticket')}
+                        className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 hover:text-emerald-600 transition-colors cursor-pointer"
+                        title="نسخ رقم التذكرة"
+                      >
+                        {copiedTicketNum === submittedTicket.ticketNumber ? (
+                          <Check className="w-4 h-4 text-emerald-500" />
+                        ) : (
+                          <Copy className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                    <button
+                      onClick={() => setActiveTab('my_tickets')}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>متابعة التذكرة في سجلي</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSubmittedTicket(null);
+                        setMessage('');
+                        setSubject('');
+                        setAttachmentImage(null);
+                      }}
+                      className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold rounded-xl text-xs cursor-pointer"
+                    >
+                      فتح تذكرة أخرى
+                    </button>
                   </div>
                 </div>
-
-                {/* Address */}
-                <div className="p-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-between gap-2 sm:col-span-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-7 h-7 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
-                      <MapPin className="w-3.5 h-3.5 text-amber-500" />
+              ) : (
+                /* The Easy 3-Step Form */
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  
+                  {/* Step 1: Category */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-900 dark:text-white mb-2">
+                      1. اختر نوع الطلب أو المشكلة:
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {simpleCategories.map((cat) => {
+                        const Icon = cat.icon;
+                        const isSelected = category === cat.id;
+                        return (
+                          <button
+                            type="button"
+                            key={cat.id}
+                            onClick={() => setCategory(cat.id as any)}
+                            className={`p-3 rounded-2xl border text-start transition-all cursor-pointer flex items-center gap-2.5 ${
+                              isSelected
+                                ? 'bg-amber-500/10 border-amber-500 text-slate-900 dark:text-white ring-2 ring-amber-500/20'
+                                : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 hover:border-amber-300'
+                            }`}
+                          >
+                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                              isSelected ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                            }`}>
+                              <Icon className="w-4 h-4" />
+                            </div>
+                            <span className="text-xs font-bold leading-snug">{cat.label}</span>
+                          </button>
+                        );
+                      })}
                     </div>
-                    <div className="min-w-0">
-                      <span className="text-[10px] font-bold text-slate-500 block">المقر الرئيسي</span>
-                      <span className="text-xs font-bold text-slate-900 dark:text-white block truncate">
-                        {contactDetails.address}
+                  </div>
+
+                  {/* Step 2: Contact Phone & Name */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        الاسم الكامل *
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          required
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          placeholder="مثال: هشام بن علي"
+                          className="w-full pl-3 pr-9 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                        />
+                        <User className="w-4 h-4 text-slate-400 absolute top-3 right-3 pointer-events-none" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        رقم الهاتف للتواصل *
+                      </label>
+                      <div className="flex items-center rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden focus-within:ring-2 focus-within:ring-amber-500">
+                        <span className="px-2.5 py-2.5 bg-slate-200/80 dark:bg-slate-700/80 text-slate-700 dark:text-slate-200 text-xs font-mono font-bold select-none shrink-0">
+                          🇩🇿 +213
+                        </span>
+                        <input
+                          type="tel"
+                          required
+                          value={contact}
+                          onChange={(e) => setContact(e.target.value)}
+                          placeholder="0550 12 34 56"
+                          className="w-full px-3 py-2.5 bg-transparent text-xs focus:outline-none dir-ltr text-left font-mono"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Step 3: Message Textarea */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                        2. اشرح المشكلة أو الاستفسار *
+                      </label>
+                      <span className="text-[10px] text-slate-400">
+                        {message.length} حرف
                       </span>
                     </div>
+                    <textarea
+                      required
+                      rows={3}
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      placeholder="اكتب تفاصيل طلبك هنا بوضوح، ورقم الطلب إن وُجد..."
+                      className="w-full p-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none resize-none leading-relaxed"
+                    />
                   </div>
-                  <button
-                    onClick={() => copyToClipboard(contactDetails.address, 'channel')}
-                    className="p-1 text-slate-400 hover:text-amber-500 cursor-pointer"
-                    title="نسخ"
-                  >
-                    {copiedChannelText === contactDetails.address ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                  </button>
-                </div>
-              </div>
+
+                  {/* Image Attachment & Submit Button */}
+                  <div className="flex items-center justify-between gap-2 pt-1">
+                    <label className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors">
+                      <Paperclip className="w-3.5 h-3.5 text-amber-500" />
+                      <span>{attachmentImage ? 'تم إرفاق صورة ✓' : 'إرفاق صورة'}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageAttachment}
+                        className="hidden"
+                      />
+                    </label>
+
+                    <button
+                      type="submit"
+                      disabled={isSubmitting || !name.trim() || !contact.trim() || !message.trim()}
+                      className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-md shadow-amber-500/20 transition-transform active:scale-95"
+                    >
+                      <Send className="w-3.5 h-3.5 rtl:rotate-180" />
+                      <span>{isSubmitting ? 'جاري الإرسال...' : 'إرسال التذكرة الآن'}</span>
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
           )}
 
           {/* ============================================================ */}
-          {/* TAB 4: MY TICKETS (تذاكري ومتابعة الردود والحلول)             */}
+          {/* TAB 3: MY TICKETS (تذاكري وسجل المتابعة مع الرد المباشر)      */}
           {/* ============================================================ */}
           {activeTab === 'my_tickets' && (
             <div className="space-y-3">
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-900 dark:text-white">
-                  تذاكري السابقة ({supportTickets.length})
+                  قائمة التذاكر المسجلة ({supportTickets.length})
                 </span>
 
                 <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg text-[10px] font-bold">
@@ -1093,18 +783,20 @@ export const ContactUsModal: React.FC = () => {
               </div>
 
               {supportTickets.length === 0 ? (
-                <div className="py-8 px-4 text-center space-y-2 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-800">
-                  <FileText className="w-8 h-8 text-amber-500/50 mx-auto" />
-                  <p className="text-xs text-slate-500">لا توجد تذاكر مسجلة حالياً.</p>
+                <div className="py-10 px-4 text-center space-y-2.5 bg-slate-50 dark:bg-slate-800/40 rounded-3xl border border-slate-200 dark:border-slate-800">
+                  <FileText className="w-10 h-10 text-amber-500/40 mx-auto" />
+                  <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    لا توجد لديك أي تذاكر مفتوحة حالياً.
+                  </p>
                   <button
                     onClick={() => setActiveTab('form')}
-                    className="px-3 py-1.5 bg-amber-500 text-slate-950 font-bold rounded-lg text-xs"
+                    className="px-4 py-2 bg-amber-500 text-slate-950 font-bold rounded-xl text-xs cursor-pointer shadow-sm"
                   >
-                    فتح تذكرة جديدة
+                    فتح تذكرة جديدة الآن
                   </button>
                 </div>
               ) : (
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   {supportTickets
                     .filter(t => {
                       if (ticketFilter === 'new') return t.status === 'new';
@@ -1120,30 +812,30 @@ export const ContactUsModal: React.FC = () => {
                       return (
                         <div
                           key={t.id}
-                          className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2 shadow-2xs"
+                          className="p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2.5 shadow-xs"
                         >
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-[10px] font-mono font-bold border border-amber-200 dark:border-amber-800">
+                              <span className="px-2 py-0.5 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-[10px] font-mono font-bold border border-amber-200 dark:border-amber-800">
                                 #{t.ticketNumber || t.id.slice(-6)}
                               </span>
-                              <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
+                              <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold ${
                                 isResolved
                                   ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
                                   : isInProgress
                                   ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300'
                                   : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300'
                               }`}>
-                                {isResolved ? 'تم الرد ✓' : isInProgress ? 'قيد المتابعة ⏳' : 'جديدة'}
+                                {isResolved ? 'تم الرد والحل ✓' : isInProgress ? 'قيد المتابعة ⏳' : 'جديدة'}
                               </span>
                             </div>
 
                             <button
                               onClick={() => deleteSupportTicket(t.id)}
-                              className="p-1 text-slate-400 hover:text-rose-500 rounded cursor-pointer"
-                              title="حذف"
+                              className="p-1 text-slate-400 hover:text-rose-500 rounded-lg cursor-pointer"
+                              title="حذف التذكرة"
                             >
-                              <Trash2 className="w-3 h-3" />
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
 
@@ -1151,34 +843,36 @@ export const ContactUsModal: React.FC = () => {
                             {t.subject}
                           </h5>
 
-                          <div className="p-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-slate-700 dark:text-slate-300 text-[11px] leading-relaxed">
+                          <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl text-slate-700 dark:text-slate-300 text-xs leading-relaxed">
                             {t.message}
                           </div>
 
                           {/* Admin Reply */}
                           {t.reply && (
-                            <div className="p-2.5 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/50 rounded-lg space-y-1">
+                            <div className="p-3 bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 rounded-xl space-y-1">
                               <div className="flex items-center justify-between text-[10px] font-bold text-blue-700 dark:text-blue-300">
                                 <span className="flex items-center gap-1">
-                                  <Headphones className="w-3 h-3" />
-                                  <span>رد إدارة خـدّام:</span>
+                                  <Headphones className="w-3.5 h-3.5" />
+                                  <span>رد فريق الدعم:</span>
                                 </span>
                                 <span className="font-mono text-slate-400">{t.repliedAt || 'الآن'}</span>
                               </div>
-                              <p className="text-[11px] text-slate-800 dark:text-slate-200 leading-relaxed">{t.reply}</p>
+                              <p className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed">
+                                {t.reply}
+                              </p>
                             </div>
                           )}
 
-                          {/* Replies Thread */}
+                          {/* Thread replies */}
                           {t.replies && t.replies.length > 0 && (
                             <div className="space-y-1.5 pt-1">
                               {t.replies.map((rep) => (
                                 <div
                                   key={rep.id}
-                                  className={`p-2 rounded-lg text-[11px] leading-relaxed ${
+                                  className={`p-2 rounded-xl text-xs leading-relaxed ${
                                     rep.sender === 'user'
-                                      ? 'bg-amber-500/10 border border-amber-500/30'
-                                      : 'bg-blue-500/10 border border-blue-500/30'
+                                      ? 'bg-amber-500/10 border border-amber-500/20'
+                                      : 'bg-blue-500/10 border border-blue-500/20'
                                   }`}
                                 >
                                   <div className="flex items-center justify-between text-[9px] font-bold text-slate-400 mb-0.5">
@@ -1191,54 +885,41 @@ export const ContactUsModal: React.FC = () => {
                             </div>
                           )}
 
-                          {/* Reply Box */}
-                          <div className="pt-0.5">
+                          {/* Reply Form */}
+                          <div className="pt-1">
                             {isReplyingThis ? (
-                              <div className="space-y-1.5 p-2 bg-slate-50 dark:bg-slate-800 rounded-lg border border-amber-500/30 animate-fade-in">
-                                <textarea
-                                  rows={2}
+                              <div className="flex items-center gap-1.5">
+                                <input
+                                  type="text"
                                   value={replyInputText}
                                   onChange={(e) => setReplyInputText(e.target.value)}
-                                  placeholder="اكتب تعقيبك أو استفسارك الإضافي..."
-                                  className="w-full p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-[11px] focus:outline-none"
+                                  onKeyDown={(e) => e.key === 'Enter' && handleSendTicketReply(t.id)}
+                                  placeholder="اكتب ردك ومتابعتك..."
+                                  className="flex-1 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none"
                                 />
-                                <div className="flex items-center justify-end gap-1.5">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setActiveReplyTicketId(null);
-                                      setReplyInputText('');
-                                    }}
-                                    className="px-2 py-1 text-slate-500 text-[10px]"
-                                  >
-                                    إلغاء
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleSendTicketReply(t.id)}
-                                    disabled={!replyInputText.trim()}
-                                    className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-slate-950 font-bold rounded-md text-[10px] flex items-center gap-1"
-                                  >
-                                    <CornerDownLeft className="w-3 h-3" />
-                                    <span>إرسال التعقيب</span>
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
-                                <span>{t.createdAt}</span>
                                 <button
                                   type="button"
-                                  onClick={() => {
-                                    setActiveReplyTicketId(t.id);
-                                    setReplyInputText('');
-                                  }}
-                                  className="text-amber-600 dark:text-amber-400 font-bold hover:underline flex items-center gap-0.5 cursor-pointer"
+                                  onClick={() => handleSendTicketReply(t.id)}
+                                  className="px-3 py-1.5 bg-amber-500 text-slate-950 font-bold rounded-xl text-xs cursor-pointer"
                                 >
-                                  <CornerDownLeft className="w-3 h-3" />
-                                  <span>تعقيب / رد</span>
+                                  إرسال
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setActiveReplyTicketId(null)}
+                                  className="px-2 py-1.5 text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
+                                >
+                                  إلغاء
                                 </button>
                               </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setActiveReplyTicketId(t.id)}
+                                className="text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1 cursor-pointer"
+                              >
+                                <span>+ كتابة رد أو متابعة</span>
+                              </button>
                             )}
                           </div>
                         </div>
@@ -1250,51 +931,195 @@ export const ContactUsModal: React.FC = () => {
           )}
 
           {/* ============================================================ */}
-          {/* TAB 5: FAQ (الأسئلة الشائعة والأجوبة الفورية)                  */}
+          {/* TAB 4: DIRECT CHANNELS (الاتصال المباشر والواتساب)            */}
+          {/* ============================================================ */}
+          {activeTab === 'channels' && (
+            <div className="space-y-3">
+              {/* Emergency Hotline Banner */}
+              <div className="p-3.5 bg-gradient-to-r from-red-600 to-rose-700 rounded-2xl text-white shadow-md flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                    <ShieldAlert className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-rose-200 block">
+                      خط الطوارئ الميداني 24/7
+                    </span>
+                    <span className="text-xs font-bold">
+                      تسرب غاز أو ماء أو التماس كهربائي حاد
+                    </span>
+                  </div>
+                </div>
+
+                <a
+                  href={`tel:${contactDetails.phone}`}
+                  className="px-4 py-2 bg-white text-rose-900 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-sm shrink-0 transition-transform active:scale-95"
+                >
+                  <Phone className="w-3.5 h-3.5 text-rose-600" />
+                  <span>اتصال فوري</span>
+                </a>
+              </div>
+
+              {/* Direct Channels Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {/* WhatsApp */}
+                <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/25 rounded-2xl flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-bold shrink-0 shadow-sm">
+                      <MessageSquare className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 block">
+                        محادثة واتساب سريعة
+                      </span>
+                      <a
+                        href={`https://wa.me/${contactDetails.whatsapp.replace(/[^0-9]/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-mono font-bold text-slate-900 dark:text-white dir-ltr block truncate hover:underline"
+                      >
+                        {contactDetails.whatsapp}
+                      </a>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => copyToClipboard(contactDetails.whatsapp, 'channel')}
+                    className="p-2 text-slate-400 hover:text-emerald-600 rounded-lg cursor-pointer"
+                    title="نسخ الرقم"
+                  >
+                    {copiedChannelText === contactDetails.whatsapp ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+
+                {/* Direct Phone */}
+                <div className="p-3.5 bg-amber-500/10 border border-amber-500/25 rounded-2xl flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold shrink-0 shadow-sm">
+                      <Phone className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 block">
+                        الهاتف المباشر الموحد
+                      </span>
+                      <a
+                        href={`tel:${contactDetails.phone}`}
+                        className="text-xs font-mono font-bold text-slate-900 dark:text-white dir-ltr block truncate hover:underline"
+                      >
+                        {contactDetails.phone}
+                      </a>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => copyToClipboard(contactDetails.phone, 'channel')}
+                    className="p-2 text-slate-400 hover:text-amber-600 rounded-lg cursor-pointer"
+                    title="نسخ الرقم"
+                  >
+                    {copiedChannelText === contactDetails.phone ? <Check className="w-4 h-4 text-amber-500" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+
+                {/* Email */}
+                <div className="p-3.5 bg-blue-500/10 border border-blue-500/25 rounded-2xl flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shrink-0 shadow-sm">
+                      <Mail className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[10px] font-bold text-blue-700 dark:text-blue-300 block">
+                        البريد الرسمي
+                      </span>
+                      <a
+                        href={`mailto:${contactDetails.email}`}
+                        className="text-xs font-mono font-bold text-slate-900 dark:text-white block truncate hover:underline"
+                      >
+                        {contactDetails.email}
+                      </a>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => copyToClipboard(contactDetails.email, 'channel')}
+                    className="p-2 text-slate-400 hover:text-blue-600 rounded-lg cursor-pointer"
+                    title="نسخ البريد"
+                  >
+                    {copiedChannelText === contactDetails.email ? <Check className="w-4 h-4 text-blue-500" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+
+                {/* Working Hours */}
+                <div className="p-3.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center font-bold shrink-0">
+                    <Clock className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-bold text-slate-500 block">
+                      ساعات العمل الرسمية
+                    </span>
+                    <span className="text-xs font-bold text-slate-900 dark:text-white block truncate">
+                      {contactDetails.workingHours}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Headquarter */}
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-2xl flex items-center gap-2.5 text-xs text-slate-600 dark:text-slate-400">
+                <MapPin className="w-4 h-4 text-amber-500 shrink-0" />
+                <span>{contactDetails.address}</span>
+              </div>
+            </div>
+          )}
+
+          {/* ============================================================ */}
+          {/* TAB 5: FAQ (الأسئلة الشائعة مع البحث الفوري)                  */}
           {/* ============================================================ */}
           {activeTab === 'faq' && (
-            <div className="space-y-2.5">
-              {/* Instant Search Bar */}
+            <div className="space-y-3">
+              {/* Search Bar */}
               <div className="relative">
                 <input
                   type="text"
                   value={faqSearchQuery}
                   onChange={(e) => setFaqSearchQuery(e.target.value)}
                   placeholder="ابحث في الأسئلة الشائعة..."
-                  className="w-full pl-3 pr-7 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                  className="w-full pl-3 pr-9 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
                 />
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute top-2 right-2 pointer-events-none" />
+                <Search className="w-4 h-4 text-slate-400 absolute top-3 right-3 pointer-events-none" />
               </div>
 
-              <div className="space-y-1.5">
+              {/* FAQ Accordion Items */}
+              <div className="space-y-2">
                 {filteredFaqs.map((faq, i) => {
                   const isOpen = openFaqIndex === i;
                   return (
                     <div
                       key={i}
-                      className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900"
+                      className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden bg-white dark:bg-slate-900 transition-colors"
                     >
                       <button
+                        type="button"
                         onClick={() => setOpenFaqIndex(isOpen ? null : i)}
-                        className="w-full p-2.5 text-start flex items-center justify-between gap-2 text-xs font-bold text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer"
+                        className="w-full p-3.5 text-start flex items-center justify-between gap-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50"
                       >
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-amber-500 font-mono text-[11px]">0{i + 1}.</span>
-                          <span>{faq.q}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                          <span className="font-bold text-xs text-slate-900 dark:text-white">
+                            {faq.q}
+                          </span>
                         </div>
-                        {isOpen ? <ChevronUp className="w-3.5 h-3.5 text-amber-500 shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />}
+                        {isOpen ? <ChevronUp className="w-4 h-4 text-slate-400 shrink-0" /> : <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />}
                       </button>
 
                       {isOpen && (
-                        <div className="px-3 pb-3 pt-1 text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-1.5">
+                        <div className="px-3.5 pb-3.5 pt-1 text-xs text-slate-600 dark:text-slate-300 leading-relaxed border-t border-slate-100 dark:border-slate-800 space-y-2 animate-fade-in">
                           <p>{faq.a}</p>
-                          <div className="flex justify-end">
+                          <div className="flex items-center justify-end pt-1">
                             <button
+                              type="button"
                               onClick={() => copyToClipboard(faq.a, 'faq', i)}
-                              className="px-2 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-bold text-slate-500 hover:text-amber-600 flex items-center gap-1 cursor-pointer"
+                              className="text-[10px] text-amber-600 dark:text-amber-400 font-bold hover:underline flex items-center gap-1 cursor-pointer"
                             >
                               {copiedFaqIndex === i ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
-                              <span>نسخ</span>
+                              <span>{copiedFaqIndex === i ? 'تم النسخ' : 'نسخ الإجابة'}</span>
                             </button>
                           </div>
                         </div>
@@ -1303,17 +1128,27 @@ export const ContactUsModal: React.FC = () => {
                   );
                 })}
               </div>
+
+              <div className="pt-2 text-center">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('live_chat')}
+                  className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline"
+                >
+                  لم تجد إجابة لسؤالك؟ تحدث مع الدعم المباشر الآن ←
+                </button>
+              </div>
             </div>
           )}
 
         </div>
 
-        {/* Floating Scroll to Top button for Contact Us Modal */}
+        {/* Floating Scroll to Top button for Modal */}
         {showModalScrollTop && (
           <button
             type="button"
             onClick={() => scrollModalToTop('smooth')}
-            className="absolute bottom-14 left-5 z-20 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl shadow-lg border border-amber-300 transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 text-[11px]"
+            className="absolute bottom-16 left-5 z-20 px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-2xl shadow-lg border border-amber-300 transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 text-xs"
             title="الصعود لأعلى النافذة"
           >
             <ArrowUp className="w-3.5 h-3.5" />
@@ -1322,17 +1157,19 @@ export const ContactUsModal: React.FC = () => {
         )}
 
         {/* ============================================================== */}
-        {/* Footer: Compact & Clean                                        */}
+        {/* Footer: Compact, Trust & Close                                 */}
         {/* ============================================================== */}
-        <div className="px-4 py-2.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 flex items-center justify-between text-[11px] text-slate-500 shrink-0">
+        <div className="px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/90 flex items-center justify-between text-xs text-slate-500 shrink-0">
           <div className="flex items-center gap-1.5">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-            <span>نظام علبة تواصل آمن ومعتمد</span>
+            <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
+            <span className="font-semibold text-slate-700 dark:text-slate-300">
+              دعم فني معتمد وحماية كاملة للمستخدم
+            </span>
           </div>
 
           <button
             onClick={() => setIsContactModalOpen(false)}
-            className="px-3 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white font-bold rounded-lg transition-colors cursor-pointer text-xs"
+            className="px-3.5 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-bold rounded-xl transition-colors cursor-pointer text-xs"
           >
             إغلاق
           </button>
