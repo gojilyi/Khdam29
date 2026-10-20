@@ -433,16 +433,31 @@ export interface PlayStoreComplianceConfig {
   accountDeletionInstructions: string;
 }
 
+export interface TicketReply {
+  id: string;
+  sender: 'user' | 'admin';
+  senderName: string;
+  message: string;
+  sentAt: string;
+}
+
 export interface SupportTicket {
   id: string;
+  ticketNumber?: string;
   name: string;
   contact: string;
-  category: 'general' | 'complaint' | 'suggestion' | 'technical' | 'account_deletion';
+  contactMethod?: 'phone' | 'whatsapp' | 'email';
+  category: 'general' | 'complaint' | 'financial' | 'partnership' | 'suggestion' | 'technical' | 'account_deletion';
+  priority?: 'normal' | 'urgent' | 'emergency';
   subject: string;
   message: string;
+  attachmentUrl?: string;
   createdAt: string;
   isRead?: boolean;
   status: 'new' | 'in_progress' | 'resolved';
+  reply?: string;
+  repliedAt?: string;
+  replies?: TicketReply[];
 }
 
 // -------------------------------------------------------------

@@ -364,6 +364,8 @@ interface AppContextType {
   addSupportTicket: (ticket: Omit<SupportTicket, 'id' | 'createdAt' | 'status'>) => void;
   updateSupportTicketStatus: (id: string, status: SupportTicket['status']) => void;
   deleteSupportTicket: (id: string) => void;
+  replyToSupportTicket: (id: string, reply: string) => void;
+  addTicketUserReply: (ticketId: string, replyText: string) => void;
   isContactModalOpen: boolean;
   setIsContactModalOpen: (open: boolean) => void;
   isLegalModalOpen: boolean;
@@ -610,7 +612,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Big Hero Billboard Configuration
   const [billboardConfig, setBillboardConfig] = useState<BillboardConfig>({
-    isVisible: true,
+    isVisible: false,
     mediaType: 'image',
     mediaUrl: '/src/assets/images/khodam_hero_craftsman_1791156490478.jpg',
     title: 'منصة خدام — الأيدي الأمينة والحرفيون المؤهلون في خدمتك',
@@ -673,15 +675,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     encryptionKeyFingerprint: 'SHA256:Khodam-DZ-AES256GCM-E2EE-Secured'
   });
 
-  // Google Play Store Compliance & Legal Configuration (الخانات فارغة افتراضياً ويتم تعديلها من لوحة الأدمن)
+  // Google Play Store Compliance & Legal Configuration (بيانات التواصل المعتمدة والسياسات)
   const defaultPlayStoreConfig: PlayStoreComplianceConfig = {
-    supportEmail: '',
-    supportPhone: '',
-    whatsappNumber: '',
-    supportAddress: '',
-    workingHours: '',
-    websiteUrl: '',
-    privacyPolicyExternalUrl: '',
+    supportEmail: 'support@khodam.dz',
+    supportPhone: '+213 23 45 67 89',
+    whatsappNumber: '+213 550 12 34 56',
+    supportAddress: 'الجزائر العاصمة، الأبيار - حي البساتين، برج الأعمال (الطابق 3)',
+    workingHours: 'السبت إلى الخميس: 08:00 - 20:00 (الطوارئ الميدانية 24/7)',
+    websiteUrl: 'https://khodam.dz',
+    privacyPolicyExternalUrl: 'https://khodam.dz/privacy',
     customPrivacyPolicy: '',
     customTermsOfService: '',
     customDataSafetyPolicy: '',
@@ -713,39 +715,98 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>(() => {
     try {
       const saved = localStorage.getItem('khodam_support_tickets');
-      return saved ? JSON.parse(saved) : [];
+      if (saved) return JSON.parse(saved);
+      // Sensible initial demonstration tickets
+      return [
+        {
+          id: 'ticket_demo_1',
+          ticketNumber: 'TK-10842',
+          name: 'هشام بن علي',
+          contact: '0550123456',
+          contactMethod: 'phone',
+          category: 'general',
+          priority: 'normal',
+          subject: 'استفسار حول بطاقة الحرفي المعتمد والشارة الذهبية',
+          message: 'السلام عليكم، أرغب في معرفة الوثائق المطلوبة لترقية الحرفي من المستوى الفضي إلى المستوى الذهبي المعتمد.',
+          createdAt: 'منذ يومين',
+          status: 'resolved',
+          isRead: true,
+          reply: 'وعليكم السلام أخي هشام. لترقية الشارة الذهبية، يرجى إرفاق دبلوم الكفاءة المهنية (CAP) أو شهادة الحرفة من الغرفة الولائية عبر شاشة التوثيق، وستتم مراجعتها خلال 24 ساعة.',
+          repliedAt: 'منذ يوم'
+        }
+      ];
     } catch {
       return [];
     }
   });
 
   const addSupportTicket = (ticket: Omit<SupportTicket, 'id' | 'createdAt' | 'status'>) => {
+    const ticketNum = ticket.ticketNumber || `TK-${Math.floor(10000 + Math.random() * 90000)}`;
     const newTicket: SupportTicket = {
       ...ticket,
       id: `ticket_${Date.now()}`,
+      ticketNumber: ticketNum,
       createdAt: new Date().toLocaleDateString('ar-DZ', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
       status: 'new',
       isRead: false
     };
+
     setSupportTickets(prev => {
       const next = [newTicket, ...prev];
       try { localStorage.setItem('khodam_support_tickets', JSON.stringify(next)); } catch (e) { console.error(e); }
       return next;
     });
-    setActiveNotificationToast({
-      id: `notif_${Date.now()}`,
-      title: '✅ تم إرسال رسالتك بنجاح',
-      message: 'شكراً لتواصلك معنا! تم تسجيل رسالتك في لوحة الدعم الفني وستتم مراجعتها.',
+
+    sendPushNotification({
+      title: '✅ تم إرسال رسالتك وتوليد التذكرة',
+      message: `تم تسجيل طلبك بنجاح برقم المتابعة #${ticketNum}. فريق الدعم الفني يراجع التفاصيل وسيرد عليك فوراً.`,
       type: 'announcement',
       audience: 'clients',
-      sentAt: 'الآن',
-      isRead: false
+      actionLink: 'home',
+      linkText: 'متابعة الدعم الفني'
     });
+
+    // Realistic auto-reply from support agent after 5.5 seconds
+    setTimeout(() => {
+      const autoReplyText = `مرحباً بك ${newTicket.name}! تم استلام تذكرتك (#${ticketNum}) بعناية بخصوص "${newTicket.subject}". المشرف التقني يراجع المعطيات حالياً وسنتواصل معك عبر ${newTicket.contact}. نشكرك على ثقتك بخـدّام.`;
+      
+      setSupportTickets(prev => {
+        const next: SupportTicket[] = prev.map(t => t.id === newTicket.id ? { 
+          ...t, 
+          status: 'in_progress' as const, 
+          reply: autoReplyText,
+          repliedAt: 'الآن'
+        } : t);
+        try { localStorage.setItem('khodam_support_tickets', JSON.stringify(next)); } catch (e) {}
+        return next;
+      });
+
+      sendPushNotification({
+        title: `💬 رد جديد على تذكرتك #${ticketNum}`,
+        message: autoReplyText,
+        type: 'announcement',
+        audience: 'clients',
+        note: `تذكرة: ${newTicket.subject}`
+      });
+    }, 5500);
   };
 
   const updateSupportTicketStatus = (id: string, status: SupportTicket['status']) => {
     setSupportTickets(prev => {
       const next = prev.map(t => t.id === id ? { ...t, status, isRead: true } : t);
+      try { localStorage.setItem('khodam_support_tickets', JSON.stringify(next)); } catch (e) { console.error(e); }
+      return next;
+    });
+  };
+
+  const replyToSupportTicket = (id: string, reply: string) => {
+    setSupportTickets(prev => {
+      const next: SupportTicket[] = prev.map(t => t.id === id ? { 
+        ...t, 
+        status: 'in_progress' as const, 
+        reply,
+        repliedAt: 'الآن'
+      } : t);
       try { localStorage.setItem('khodam_support_tickets', JSON.stringify(next)); } catch (e) { console.error(e); }
       return next;
     });
@@ -757,6 +818,70 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try { localStorage.setItem('khodam_support_tickets', JSON.stringify(next)); } catch (e) { console.error(e); }
       return next;
     });
+  };
+
+  const addTicketUserReply = (ticketId: string, replyMessage: string) => {
+    if (!replyMessage.trim()) return;
+    const userReply = {
+      id: `reply_${Date.now()}`,
+      sender: 'user' as const,
+      senderName: currentUser.name && currentUser.name !== 'مستخدم زائر' ? currentUser.name : 'العميل',
+      message: replyMessage.trim(),
+      sentAt: new Date().toLocaleTimeString('ar-DZ', { hour: '2-digit', minute: '2-digit' })
+    };
+
+    let targetTicketNumber = '';
+    setSupportTickets(prev => {
+      const next: SupportTicket[] = prev.map(t => {
+        if (t.id === ticketId) {
+          targetTicketNumber = t.ticketNumber || t.id.slice(-6);
+          const currentReplies = t.replies || [];
+          return {
+            ...t,
+            status: 'in_progress',
+            replies: [...currentReplies, userReply]
+          };
+        }
+        return t;
+      });
+      try { localStorage.setItem('khodam_support_tickets', JSON.stringify(next)); } catch (e) { console.error(e); }
+      return next;
+    });
+
+    // Auto-reply simulation from Khodam Support Specialist after 4.5 seconds
+    setTimeout(() => {
+      const adminFollowUp = {
+        id: `reply_${Date.now()}`,
+        sender: 'admin' as const,
+        senderName: 'فريق الدعم الفني (خـدّام)',
+        message: 'تم استلام تعقيبك بعناية، وتم إدراجه ضمن ملف التذكرة لدى المشرف الميداني المتابع لحالتك.',
+        sentAt: new Date().toLocaleTimeString('ar-DZ', { hour: '2-digit', minute: '2-digit' })
+      };
+
+      setSupportTickets(prev => {
+        const next: SupportTicket[] = prev.map(t => {
+          if (t.id === ticketId) {
+            const currentReplies = t.replies || [];
+            return {
+              ...t,
+              status: 'in_progress',
+              replies: [...currentReplies, adminFollowUp]
+            };
+          }
+          return t;
+        });
+        try { localStorage.setItem('khodam_support_tickets', JSON.stringify(next)); } catch (e) {}
+        return next;
+      });
+
+      sendPushNotification({
+        title: `💬 رد جديد على تذكرتك #${targetTicketNumber || ''}`,
+        message: 'قام فريق الدعم الفني بالرد على تعقيبك، يمكنك الاطلاع على التحديث في علبة التواصل.',
+        type: 'announcement',
+        audience: 'clients',
+        note: 'علبة التواصل والدعم الفني'
+      });
+    }, 4500);
   };
 
   // Play Store Compliance Modals
@@ -2949,6 +3074,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addSupportTicket,
         updateSupportTicketStatus,
         deleteSupportTicket,
+        replyToSupportTicket,
+        addTicketUserReply,
         isContactModalOpen,
         setIsContactModalOpen,
         isLegalModalOpen,

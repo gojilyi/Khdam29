@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Volume2, Sparkles } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Play, Pause, Volume2 } from 'lucide-react';
 import { generateSimulatedVoiceNoteWav } from '../utils/audioRecorder';
 
 interface VoiceNotePlayerProps {
@@ -9,7 +9,16 @@ interface VoiceNotePlayerProps {
   className?: string;
 }
 
-export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({
+// Single cached simulation WAV generated once lazily
+let globalSimulatedWav: string | null = null;
+const getLazySimulatedWav = () => {
+  if (!globalSimulatedWav) {
+    globalSimulatedWav = generateSimulatedVoiceNoteWav(2);
+  }
+  return globalSimulatedWav;
+};
+
+export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = React.memo(({
   audioUrl,
   duration = '0:16',
   isMe = false,
@@ -21,8 +30,10 @@ export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({
   const [playbackRate, setPlaybackRate] = useState<1 | 1.5 | 2>(1);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Fallback sound if audioUrl is missing or changes
-  const effectiveAudioUrl = audioUrl || generateSimulatedVoiceNoteWav(6);
+  // Fallback sound if audioUrl is missing: stable memoized reference
+  const effectiveAudioUrl = React.useMemo(() => {
+    return audioUrl || getLazySimulatedWav();
+  }, [audioUrl]);
 
   // Static bars heights for visual waveform
   const waveformBars = [
@@ -46,40 +57,47 @@ export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({
     };
   }, [effectiveAudioUrl, isPlaying]);
 
+  // Cleanup on unmount
   useEffect(() => {
-    let audio: HTMLAudioElement;
-    try {
-      audio = new Audio(effectiveAudioUrl);
-      audioRef.current = audio;
-      audio.playbackRate = playbackRate;
-
-      audio.ontimeupdate = () => {
-        if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
-          const prog = (audio.currentTime / audio.duration) * 100;
-          setPlaybackProgress(Math.min(100, Math.max(0, prog)));
-
-          const mins = Math.floor(audio.currentTime / 60);
-          const secs = Math.floor(audio.currentTime % 60);
-          setCurrentTimeStr(`${mins}:${secs < 10 ? '0' : ''}${secs}`);
-        }
-      };
-
-      audio.onended = () => {
-        setIsPlaying(false);
-        setPlaybackProgress(0);
-        setCurrentTimeStr('0:00');
-      };
-    } catch (e) {
-      console.warn('Audio init warning:', e);
-    }
-
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
-        audioRef.current.src = '';
+        audioRef.current = null;
       }
     };
-  }, [effectiveAudioUrl]);
+  }, []);
+
+  // Lazy initialize audio only when needed
+  const getOrCreateAudio = useCallback(() => {
+    if (!audioRef.current) {
+      try {
+        const audio = new Audio(effectiveAudioUrl);
+        audio.playbackRate = playbackRate;
+
+        audio.ontimeupdate = () => {
+          if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
+            const prog = (audio.currentTime / audio.duration) * 100;
+            setPlaybackProgress(Math.min(100, Math.max(0, prog)));
+
+            const mins = Math.floor(audio.currentTime / 60);
+            const secs = Math.floor(audio.currentTime % 60);
+            setCurrentTimeStr(`${mins}:${secs < 10 ? '0' : ''}${secs}`);
+          }
+        };
+
+        audio.onended = () => {
+          setIsPlaying(false);
+          setPlaybackProgress(0);
+          setCurrentTimeStr('0:00');
+        };
+
+        audioRef.current = audio;
+      } catch (e) {
+        console.warn('Audio lazy init warning:', e);
+      }
+    }
+    return audioRef.current;
+  }, [effectiveAudioUrl, playbackRate]);
 
   useEffect(() => {
     if (audioRef.current) {
@@ -88,19 +106,20 @@ export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({
   }, [playbackRate]);
 
   const togglePlay = () => {
-    if (!audioRef.current) return;
+    const audio = getOrCreateAudio();
+    if (!audio) return;
 
     if (isPlaying) {
-      audioRef.current.pause();
+      audio.pause();
       setIsPlaying(false);
     } else {
       // Notify other players to pause
       window.dispatchEvent(new CustomEvent('khodam_pause_other_audios', { detail: { url: effectiveAudioUrl } }));
 
-      audioRef.current.play().then(() => {
+      audio.play().then(() => {
         setIsPlaying(true);
       }).catch((e) => {
-        console.warn('Playback error or user interaction needed:', e);
+        console.warn('Playback error or interaction needed:', e);
         setIsPlaying(true);
       });
     }
@@ -109,6 +128,9 @@ export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({
   const cyclePlaybackRate = () => {
     const nextRate: 1 | 1.5 | 2 = playbackRate === 1 ? 1.5 : playbackRate === 1.5 ? 2 : 1;
     setPlaybackRate(nextRate);
+    if (audioRef.current) {
+      audioRef.current.playbackRate = nextRate;
+    }
   };
 
   return (
@@ -117,7 +139,7 @@ export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({
       <button
         type="button"
         onClick={togglePlay}
-        className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-transform active:scale-95 shadow-sm cursor-pointer ${
+        className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-transform active:scale-95 shadow-xs cursor-pointer ${
           isMe 
             ? 'bg-white text-amber-600 hover:bg-slate-100' 
             : 'bg-amber-500 text-slate-950 hover:bg-amber-400'
@@ -137,8 +159,9 @@ export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
             const clickPos = (e.clientX - rect.left) / rect.width;
-            if (audioRef.current && audioRef.current.duration) {
-              audioRef.current.currentTime = clickPos * audioRef.current.duration;
+            const audio = getOrCreateAudio();
+            if (audio && audio.duration) {
+              audio.currentTime = clickPos * audio.duration;
               setPlaybackProgress(clickPos * 100);
             }
           }}
@@ -180,7 +203,7 @@ export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({
       <button
         type="button"
         onClick={cyclePlaybackRate}
-        className={`px-1.5 py-0.5 rounded-md text-[10px] font-black font-mono tracking-tight shrink-0 transition-colors ${
+        className={`px-1.5 py-0.5 rounded-md text-[10px] font-black font-mono tracking-tight shrink-0 transition-colors cursor-pointer ${
           isMe
             ? 'bg-amber-600/40 hover:bg-amber-600 text-white border border-white/20'
             : 'bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700'
@@ -191,4 +214,4 @@ export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({
       </button>
     </div>
   );
-};
+});

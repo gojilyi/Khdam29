@@ -119,6 +119,7 @@ export const AdminPanel: React.FC = () => {
     supportTickets,
     updateSupportTicketStatus,
     deleteSupportTicket,
+    replyToSupportTicket,
     partnerPosts,
     deletePartnerPost,
     adminCustomTexts,
@@ -3596,6 +3597,9 @@ export const AdminPanel: React.FC = () => {
                         >
                           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2 mb-2">
                             <div className="flex items-center gap-2">
+                              <span className="font-mono text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800">
+                                #{ticket.ticketNumber || ticket.id.slice(-6)}
+                              </span>
                               <span className="text-xs font-black text-slate-900 dark:text-white">
                                 {ticket.name}
                               </span>
@@ -3625,13 +3629,22 @@ export const AdminPanel: React.FC = () => {
                             </span>
                           </div>
 
-                          <div className="space-y-1 mb-3">
+                          <div className="space-y-1.5 mb-3">
                             <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
                               {ticket.subject}
                             </div>
                             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
                               {ticket.message}
                             </p>
+                            {ticket.reply && (
+                              <div className="p-2.5 bg-blue-50 dark:bg-blue-950/40 rounded-xl border border-blue-200 dark:border-blue-800 text-[11px] text-blue-900 dark:text-blue-200 space-y-0.5">
+                                <span className="font-bold flex items-center gap-1 text-[10px] text-blue-700 dark:text-blue-300">
+                                  <CheckCircle2 className="w-3 h-3" />
+                                  <span>رد الإدارة المسجل ({ticket.repliedAt || 'مؤخراً'}):</span>
+                                </span>
+                                <p>{ticket.reply}</p>
+                              </div>
+                            )}
                           </div>
 
                           <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">

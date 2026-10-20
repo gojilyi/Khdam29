@@ -18,13 +18,10 @@ import {
   ArrowRight,
   ArrowLeft,
   Calendar,
-  ChevronLeft,
-  ChevronRight,
-  MoreVertical,
   Zap,
-  Info,
-  CheckCircle2,
-  Filter
+  ChevronDown,
+  ArrowDown,
+  ArrowUp
 } from 'lucide-react';
 import { ChatMessage } from '../types';
 import { VoiceNotePlayer } from './VoiceNotePlayer';
@@ -53,7 +50,6 @@ export const ChatInboxView: React.FC = () => {
     setRole,
     currentUser,
     artisans,
-    activeOrder,
     setIsBookingAppointmentModalOpen,
     setSelectedArtisanForAppointment,
     language 
@@ -70,7 +66,11 @@ export const ChatInboxView: React.FC = () => {
   const [showMobileChat, setShowMobileChat] = useState(false);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [filterMode, setFilterMode] = useState<'all' | 'unread'>('all');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [showScrollBottomBtn, setShowScrollBottomBtn] = useState(false);
+  const [showScrollTopBtn, setShowScrollTopBtn] = useState(false);
+
+  // Messages container reference for reliable, bug-free scrolling
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Audio recording state
@@ -121,10 +121,69 @@ export const ChatInboxView: React.FC = () => {
 
   const currentConv = conversations.find(c => c.id === activeConversationId) || conversations[0];
 
-  // Auto-scroll on new message
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  // Filter messages for active conversation
+  const conversationMessages = useMemo(() => {
+    return messages.filter(m => {
+      if (m.conversationId) {
+        return m.conversationId === activeConversationId;
+      }
+      return activeConversationId === 'conv_art_1';
+    });
   }, [messages, activeConversationId]);
+
+  // Apply search query
+  const displayedMessages = useMemo(() => {
+    if (!searchFilter.trim()) return conversationMessages;
+    const query = searchFilter.toLowerCase();
+    return conversationMessages.filter(m => 
+      m.text.toLowerCase().includes(query) ||
+      m.senderName.toLowerCase().includes(query)
+    );
+  }, [conversationMessages, searchFilter]);
+
+  // Bug-free container-level scrolling to bottom & top
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior
+    });
+  };
+
+  const scrollToTop = (behavior: ScrollBehavior = 'smooth') => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    container.scrollTo({
+      top: 0,
+      behavior
+    });
+  };
+
+  // Scroll to bottom when conversation changes or initially rendered
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      scrollToBottom('auto');
+    }, 40);
+    return () => clearTimeout(timer);
+  }, [activeConversationId, showMobileChat]);
+
+  // Scroll to bottom when new messages arrive
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      scrollToBottom('smooth');
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [displayedMessages.length]);
+
+  // Handle scroll events to show/hide "Scroll to bottom" and "Scroll to top" buttons
+  const handleScroll = () => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const distanceToBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    setShowScrollBottomBtn(distanceToBottom > 80);
+    setShowScrollTopBtn(container.scrollTop > 80);
+  };
 
   // Clean up recording timer on unmount
   useEffect(() => {
@@ -164,6 +223,7 @@ export const ChatInboxView: React.FC = () => {
     );
     setInputVal('');
     setAttachedImage(null);
+    setTimeout(() => scrollToBottom('smooth'), 50);
   };
 
   const handleStartRecording = async () => {
@@ -212,83 +272,61 @@ export const ChatInboxView: React.FC = () => {
     setIsRecording(false);
     setRecordingSeconds(0);
     recordingSessionRef.current = null;
+    setTimeout(() => scrollToBottom('smooth'), 50);
   };
-
-  // Filter messages for active conversation
-  const conversationMessages = useMemo(() => {
-    return messages.filter(m => {
-      // If conversationId is set, match exactly
-      if (m.conversationId) {
-        return m.conversationId === activeConversationId;
-      }
-      // Fallback for legacy messages: match default conversation
-      return activeConversationId === 'conv_art_1';
-    });
-  }, [messages, activeConversationId]);
-
-  // Apply search query
-  const displayedMessages = useMemo(() => {
-    if (!searchFilter.trim()) return conversationMessages;
-    const query = searchFilter.toLowerCase();
-    return conversationMessages.filter(m => 
-      m.text.toLowerCase().includes(query) ||
-      m.senderName.toLowerCase().includes(query)
-    );
-  }, [conversationMessages, searchFilter]);
 
   // Quick replies list
   const quickReplies = [
     'أنا في انتظارك أمام الباب',
     'هل أحتاج لشراء قطع غيار إضافية؟',
-    'وصلت إلى موقع التدخل وبدأت الفحص',
-    'مكان العمل جاهز ومفرغ بالكامل',
-    'شكراً جزيلاً، العمل ممتاز ومتقن'
+    'مكان العمل مفرغ وجاهز تماماً',
+    'وصلت إلى الموقع وسأبدأ الفحص',
+    'شكراً جزيلاً، العمل متقن وممتاز'
   ];
 
   return (
     <div className="space-y-3 max-w-6xl mx-auto pb-6">
       {/* Sleek Top Banner & Dual-Role Switcher */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-amber-950 text-white px-5 py-3.5 rounded-2xl border border-slate-700/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
-            <MessageSquare className="w-5 h-5" />
+      <div className="bg-slate-900 text-white px-4 py-3 rounded-2xl border border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0">
+            <MessageSquare className="w-4 h-4" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-base sm:text-lg font-black tracking-tight text-white">
+              <h2 className="text-sm sm:text-base font-bold text-white">
                 صندوق الرسائل والمحادثات المباشرة
               </h2>
               <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                 <Lock className="w-2.5 h-2.5" />
-                <span>تشفير تام E2E</span>
+                <span>مشفر وآمن</span>
               </span>
             </div>
-            <p className="text-xs text-slate-300 line-clamp-1">
-              تواصل آمن ومحمي بين العميل والحرفي مع الصور والتسجيلات الصوتية والمكالمات
+            <p className="text-[11px] text-slate-400 line-clamp-1">
+              محادثات مباشرة مشفرة بين العميل والحرفي مع المكالمات ومشاركة الصور والتسجيلات
             </p>
           </div>
         </div>
 
         {/* Role Switcher Pill */}
-        <div className="flex items-center gap-2 bg-white/10 dark:bg-slate-900/40 p-1.5 rounded-xl border border-white/15 shrink-0 self-start sm:self-auto">
-          <div className="text-[11px] px-2">
-            <span className="text-slate-400 block text-[9px]">أنت تراسل بصفتك:</span>
-            <span className="font-bold text-amber-300">
-              {role === 'client' ? 'العميل' : 'الحرفي'}
-            </span>
-          </div>
+        <div className="flex items-center gap-2 bg-slate-800/80 px-2.5 py-1 rounded-xl border border-slate-700/80 shrink-0 self-start sm:self-auto text-xs">
+          <span className="text-[10px] text-slate-400">الطرف:</span>
+          <span className="font-bold text-amber-300">
+            {role === 'client' ? 'العميل' : 'الحرفي'}
+          </span>
           <button
             onClick={() => setRole(role === 'client' ? 'artisan' : 'client')}
-            className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs transition-colors shadow-xs cursor-pointer"
-            title="تبديل الطرف لتجربة الرسائل من وجهة نظر العميل أو الحرفي"
+            className="px-2 py-0.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-[10px] transition-colors cursor-pointer"
+            title="تبديل الطرف لتجربة الرسائل من منظور العميل أو الحرفي"
           >
-            تبديل الدور
+            تبديل
           </button>
         </div>
       </div>
 
       {/* Main Messaging Window */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-12 min-h-[580px] h-[calc(100vh-220px)] max-h-[750px]">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-12 min-h-[560px] h-[calc(100vh-210px)] max-h-[720px]">
+        
         {/* ============================================================== */}
         {/* Left Column / Sidebar: Conversations List (Cols 1-4)            */}
         {/* ============================================================== */}
@@ -298,31 +336,27 @@ export const ChatInboxView: React.FC = () => {
           {/* Sidebar Header & Search */}
           <div className="p-3 border-b border-slate-200 dark:border-slate-800 space-y-2 bg-white dark:bg-slate-900">
             <div className="flex items-center justify-between">
-              <span className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
+              <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
                 <span>المحادثات النشطة</span>
-                <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-bold font-mono">
+                <span className="px-1.5 py-0.2 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-bold font-mono">
                   {conversations.length}
                 </span>
               </span>
 
               {/* Filter chips */}
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg text-[10px]">
                 <button
                   onClick={() => setFilterMode('all')}
-                  className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-colors cursor-pointer ${
-                    filterMode === 'all'
-                      ? 'bg-amber-500 text-slate-950'
-                      : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  className={`px-2 py-0.5 rounded font-bold transition-colors cursor-pointer ${
+                    filterMode === 'all' ? 'bg-amber-500 text-slate-950' : 'text-slate-500'
                   }`}
                 >
                   الكل
                 </button>
                 <button
                   onClick={() => setFilterMode('unread')}
-                  className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-colors cursor-pointer ${
-                    filterMode === 'unread'
-                      ? 'bg-amber-500 text-slate-950'
-                      : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  className={`px-2 py-0.5 rounded font-bold transition-colors cursor-pointer ${
+                    filterMode === 'unread' ? 'bg-amber-500 text-slate-950' : 'text-slate-500'
                   }`}
                 >
                   غير مقروء
@@ -335,15 +369,15 @@ export const ChatInboxView: React.FC = () => {
               <Search className="w-3.5 h-3.5 text-slate-400 absolute rtl:right-2.5 ltr:left-2.5 top-2.5" />
               <input
                 type="text"
-                placeholder="بحث في أسماء الحرفيين أو الرسائل..."
+                placeholder="بحث في أسماء الحرفيين..."
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
-                className="w-full bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl rtl:pr-8 ltr:pl-8 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-xl rtl:pr-8 ltr:pl-8 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-500"
               />
               {searchFilter && (
                 <button
                   onClick={() => setSearchFilter('')}
-                  className="absolute rtl:left-2.5 ltr:right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+                  className="absolute rtl:left-2.5 ltr:right-2.5 top-2 text-slate-400 hover:text-slate-600"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -351,15 +385,15 @@ export const ChatInboxView: React.FC = () => {
             </div>
           </div>
 
-          {/* Conversations Items List */}
-          <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/50">
+          {/* Conversations Scroll List */}
+          <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 p-1.5 space-y-1">
             {conversations
               .filter(c => filterMode === 'all' || (c.unreadCount && c.unreadCount > 0))
               .map((conv) => {
                 const isSelected = conv.id === activeConversationId;
-                // Get last message in this conversation
-                const convMsgs = messages.filter(m => m.conversationId === conv.id);
-                const lastMsg = convMsgs.length > 0 ? convMsgs[convMsgs.length - 1] : null;
+                const lastMsg = messages
+                  .filter(m => (m.conversationId === conv.id) || (!m.conversationId && conv.id === 'conv_art_1'))
+                  .slice(-1)[0];
 
                 return (
                   <button
@@ -368,53 +402,46 @@ export const ChatInboxView: React.FC = () => {
                       setActiveConversationId(conv.id);
                       setShowMobileChat(true);
                     }}
-                    className={`w-full p-3 text-start transition-all flex items-start gap-3 cursor-pointer ${
-                      isSelected 
-                        ? 'bg-amber-500/10 dark:bg-amber-500/15 rtl:border-r-3 ltr:border-l-3 border-amber-500 shadow-xs' 
-                        : 'hover:bg-slate-100/70 dark:hover:bg-slate-800/40'
+                    className={`w-full p-2.5 rounded-xl text-start transition-all flex items-start gap-2.5 cursor-pointer border ${
+                      isSelected
+                        ? 'bg-amber-500/10 border-amber-500/50 shadow-2xs'
+                        : 'bg-white dark:bg-slate-900/60 border-transparent hover:border-slate-200 dark:hover:border-slate-700'
                     }`}
                   >
-                    {/* Avatar with status indicator */}
                     <div className="relative shrink-0">
                       <img
                         src={conv.participantAvatar}
                         alt={conv.participantName}
-                        className="w-11 h-11 rounded-xl object-cover border border-amber-500/20"
-                        referrerPolicy="no-referrer"
+                        className="w-10 h-10 rounded-xl object-cover border border-amber-500/30"
                       />
-                      <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white dark:border-slate-900 ${
-                        conv.isOnline ? 'bg-emerald-500 ring-1 ring-emerald-500/40' : 'bg-slate-400'
-                      }`} />
+                      {conv.isOnline && (
+                        <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900" />
+                      )}
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-0.5">
-                        <div className="flex items-center gap-1 font-bold text-xs text-slate-900 dark:text-white truncate">
-                          <span>{conv.participantName}</span>
-                          <ShieldCheck className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                        </div>
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="font-bold text-xs text-slate-900 dark:text-white truncate">
+                          {conv.participantName}
+                        </span>
                         <span className="text-[10px] text-slate-400 font-mono shrink-0">
-                          {lastMsg ? lastMsg.timestamp : conv.lastActive}
+                          {lastMsg ? lastMsg.timestamp : '14:20'}
                         </span>
                       </div>
 
-                      <div className="text-[11px] font-medium text-amber-600 dark:text-amber-400 truncate">
+                      <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium block truncate">
                         {conv.participantTrade}
-                      </div>
+                      </span>
 
-                      <div className="flex items-center justify-between gap-1 mt-1">
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                          {lastMsg ? (
-                            lastMsg.isAudio ? '🎙️ تسجيل صوتي' : lastMsg.imageUrl ? '📷 صورة مرفقة' : lastMsg.text
-                          ) : (
-                            conv.orderSummary
-                          )}
+                      <div className="flex items-center justify-between gap-2 mt-0.5">
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate leading-snug">
+                          {lastMsg ? lastMsg.text : conv.orderSummary}
                         </p>
-                        {conv.unreadCount && conv.unreadCount > 0 ? (
-                          <span className="w-4 h-4 rounded-full bg-amber-500 text-slate-950 text-[9px] font-black flex items-center justify-center shrink-0">
+                        {conv.unreadCount && conv.unreadCount > 0 && (
+                          <span className="px-1.5 py-0.2 bg-amber-500 text-slate-950 font-black rounded-full text-[9px] shrink-0">
                             {conv.unreadCount}
                           </span>
-                        ) : null}
+                        )}
                       </div>
                     </div>
                   </button>
@@ -424,51 +451,48 @@ export const ChatInboxView: React.FC = () => {
         </div>
 
         {/* ============================================================== */}
-        {/* Right Column: Active Conversation (Cols 5-12)                   */}
+        {/* Right Column / Chat Area: (Cols 5-12)                          */}
         {/* ============================================================== */}
-        <div className={`md:col-span-8 flex flex-col h-full bg-slate-50/30 dark:bg-slate-900 ${
-          showMobileChat ? 'flex' : 'hidden md:flex'
+        <div className={`md:col-span-8 flex flex-col bg-white dark:bg-slate-900 h-full relative ${
+          !showMobileChat ? 'hidden md:flex' : 'flex'
         }`}>
-          {/* Chat Header */}
-          <div className="p-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0">
+          {/* Active Chat Header */}
+          <div className="p-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 bg-slate-50/50 dark:bg-slate-900 shrink-0">
             <div className="flex items-center gap-2.5 min-w-0">
-              {/* Mobile Back Button */}
               <button
                 onClick={() => setShowMobileChat(false)}
-                className="md:hidden p-1.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
-                title="رجوع للمحادثات"
+                className="md:hidden p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 cursor-pointer"
+                title="رجوع للقائمة"
               >
-                <BackIcon className="w-5 h-5" />
+                <BackIcon className="w-4 h-4" />
               </button>
 
               <div className="relative shrink-0">
                 <img
                   src={currentConv.participantAvatar}
                   alt={currentConv.participantName}
-                  className="w-10 h-10 rounded-xl object-cover border border-amber-500/25"
-                  referrerPolicy="no-referrer"
+                  className="w-9 h-9 rounded-xl object-cover border border-amber-500/40"
                 />
-                <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-900 ${
-                  currentConv.isOnline ? 'bg-emerald-500' : 'bg-slate-400'
-                }`} />
+                {currentConv.isOnline && (
+                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900" />
+                )}
               </div>
 
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <h3 className="font-black text-sm text-slate-900 dark:text-white truncate">
+                  <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate">
                     {currentConv.participantName}
                   </h3>
-                  <ShieldCheck className="w-4 h-4 text-amber-500 shrink-0" />
-                  <span className="hidden sm:inline-block px-1.5 py-0.2 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
-                    معتمد CAP
+                  <ShieldCheck className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                  <span className="hidden sm:inline-block px-1.5 py-0.2 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[9px] font-bold">
+                    معتمد
                   </span>
                 </div>
-                <div className="flex items-center gap-1.5 text-[11px] text-slate-500 truncate">
+                <div className="flex items-center gap-1.5 text-[10px] text-slate-500 truncate">
                   <span className="truncate">{currentConv.participantTrade}</span>
                   <span>·</span>
-                  <span className="text-emerald-600 dark:text-emerald-400 font-bold shrink-0 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>{currentConv.lastActive}</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-bold shrink-0">
+                    {currentConv.lastActive}
                   </span>
                 </div>
               </div>
@@ -476,79 +500,103 @@ export const ChatInboxView: React.FC = () => {
 
             {/* Header Action Buttons */}
             <div className="flex items-center gap-1.5 shrink-0">
-              {/* Book Appointment Button */}
+              {/* Quick Jump Buttons */}
+              <div className="hidden sm:flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => scrollToTop('smooth')}
+                  className="px-2 py-0.5 text-[10px] font-bold text-slate-700 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 flex items-center gap-0.5 transition-colors cursor-pointer"
+                  title="صعود لأعلى المحادثة"
+                >
+                  <ArrowUp className="w-3 h-3" />
+                  <span>الأعلى</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollToBottom('smooth')}
+                  className="px-2 py-0.5 text-[10px] font-bold text-slate-700 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 flex items-center gap-0.5 transition-colors cursor-pointer"
+                  title="النزول لآخر رسالة"
+                >
+                  <ArrowDown className="w-3 h-3" />
+                  <span>الأسفل</span>
+                </button>
+              </div>
+
               <button
                 onClick={() => {
                   const targetArtisan = artisans.find(a => a.id === currentConv.participantId) || artisans[0];
                   setSelectedArtisanForAppointment(targetArtisan);
                   setIsBookingAppointmentModalOpen(true);
                 }}
-                className="px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/25 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                title="تحديد موعد معاينة ميدانية في الروزنامة"
+                className="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                title="حجز موعد في الروزنامة"
               >
-                <Calendar className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                <span className="hidden sm:inline">حجز موعد 📅</span>
+                <Calendar className="w-3 h-3 text-amber-600" />
+                <span className="hidden sm:inline">حجز موعد</span>
               </button>
 
-              {/* Encrypted Call Button */}
               <button
                 onClick={() => startCall(currentConv.participantName, currentConv.participantTrade, currentConv.participantAvatar)}
-                className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-transform active:scale-95 cursor-pointer"
+                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold flex items-center gap-1 shadow-xs transition-transform active:scale-95 cursor-pointer"
                 title="بدء اتصال مشفر"
               >
-                <PhoneCall className="w-3.5 h-3.5" />
+                <PhoneCall className="w-3 h-3" />
                 <span className="hidden sm:inline">اتصال مشفر</span>
               </button>
             </div>
           </div>
 
-          {/* Active Order Context Strip */}
-          <div className="px-3.5 py-2 bg-amber-50/80 dark:bg-amber-950/20 border-b border-amber-200/50 dark:border-amber-900/40 flex items-center justify-between text-xs shrink-0">
-            <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 min-w-0">
-              <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+          {/* Context strip: Active task summary */}
+          <div className="px-3 py-1.5 bg-amber-50/70 dark:bg-amber-950/20 border-b border-amber-200/50 dark:border-amber-900/40 flex items-center justify-between text-[11px] shrink-0">
+            <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 min-w-0">
+              <Clock className="w-3 h-3 text-amber-600 shrink-0" />
               <span className="font-bold text-amber-900 dark:text-amber-200 truncate">
                 {currentConv.orderSummary}
               </span>
-              <span className="text-[10px] text-slate-400 hidden sm:inline shrink-0">· جاري التنفيذ</span>
             </div>
-            <span className="font-black font-mono text-emerald-600 dark:text-emerald-400 text-xs shrink-0">
+            <span className="font-bold font-mono text-emerald-600 dark:text-emerald-400 text-xs shrink-0">
               3,500 دج
             </span>
           </div>
 
-          {/* Messages Thread Scroll Area */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/50 dark:bg-slate-950/30">
-            {/* End-to-end encryption pill badge */}
+          {/* Messages Scroll Area: Reliable & Isolated from Parent Page */}
+          <div 
+            ref={messagesContainerRef}
+            onScroll={handleScroll}
+            className="flex-1 overflow-y-auto p-3.5 space-y-3 bg-slate-50/60 dark:bg-slate-950/40 overscroll-contain"
+            style={{ overscrollBehavior: 'contain' }}
+          >
+            {/* Encryption notice pill */}
             <div className="text-center my-1">
-              <span className="inline-flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xs px-3 py-1 rounded-full border border-slate-200/70 dark:border-slate-700/70 shadow-2xs">
-                <Lock className="w-3 h-3 text-amber-500" />
-                <span>محادثة مشفرة برمجياً لحماية خصوصية العميل والحرفي</span>
+              <span className="inline-flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-slate-200/70 dark:border-slate-700/70 shadow-2xs">
+                <Lock className="w-2.5 h-2.5 text-amber-500" />
+                <span>محادثة مشفرة وآمنة لحماية خصوصيتك ورقم هاتفك</span>
               </span>
             </div>
 
-            {/* Date divider pill */}
-            <div className="flex items-center justify-center my-2">
-              <span className="text-[10px] font-bold text-slate-400 bg-slate-200/60 dark:bg-slate-800/60 px-2.5 py-0.5 rounded-full">
+            {/* Date divider */}
+            <div className="flex items-center justify-center my-1.5">
+              <span className="text-[10px] font-bold text-slate-400 bg-slate-200/60 dark:bg-slate-800/60 px-2 py-0.5 rounded-full">
                 اليوم
               </span>
             </div>
 
-            {/* Empty state if no messages */}
+            {/* Empty state */}
             {displayedMessages.length === 0 && (
-              <div className="text-center py-12 space-y-2">
-                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
-                  <MessageSquare className="w-6 h-6" />
+              <div className="text-center py-10 space-y-1.5">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
+                  <MessageSquare className="w-5 h-5" />
                 </div>
-                <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">
                   لا توجد رسائل سابقة
                 </h4>
-                <p className="text-xs text-slate-400 max-w-xs mx-auto">
-                  ابدأ المحادثة مع المعلم لطرح استفساراتك أو إرسال صور العطل وتسجيل ملاحظاتك الصوتية.
+                <p className="text-[11px] text-slate-400 max-w-xs mx-auto">
+                  اكتب رسالتك أو شارك صورة العطل أو أرسل تسجيلاً صوتياً للبدء.
                 </p>
               </div>
             )}
 
-            {/* Message items */}
+            {/* Render Messages in Order */}
             {displayedMessages.map((msg) => {
               const isAdmin = msg.senderRole === 'admin';
               const isMe = msg.senderRole === role;
@@ -556,9 +604,9 @@ export const ChatInboxView: React.FC = () => {
               if (isAdmin) {
                 return (
                   <div key={msg.id} className="flex flex-col items-center my-2 w-full animate-fade-in">
-                    <div className="max-w-[85%] bg-amber-500/10 border border-amber-500/30 rounded-2xl p-2.5 text-center space-y-1">
-                      <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-300">
-                        <ShieldCheck className="w-4 h-4 text-amber-500" />
+                    <div className="max-w-[85%] bg-amber-500/10 border border-amber-500/30 rounded-xl p-2.5 text-center space-y-0.5">
+                      <div className="flex items-center justify-center gap-1 text-xs font-bold text-amber-700 dark:text-amber-300">
+                        <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
                         <span>{msg.senderName}</span>
                       </div>
                       <p className="text-xs text-slate-800 dark:text-slate-200">{msg.text}</p>
@@ -573,68 +621,105 @@ export const ChatInboxView: React.FC = () => {
                   key={msg.id}
                   className={`flex flex-col group ${isMe ? 'items-end' : 'items-start'}`}
                 >
-                  <div
-                    className={`max-w-[82%] sm:max-w-[70%] rounded-2xl p-3 text-xs leading-relaxed space-y-1.5 relative shadow-xs transition-shadow ${
-                      isMe
-                        ? 'bg-amber-500 text-slate-950 rtl:rounded-br-xs ltr:rounded-bl-xs font-medium'
-                        : 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200/80 dark:border-slate-700/80 rtl:rounded-bl-xs ltr:rounded-br-xs'
-                    }`}
-                  >
-                    {/* Header sender indicator */}
-                    <div className="text-[10px] font-bold opacity-80 flex items-center justify-between gap-3">
-                      <span>{isMe ? 'أنت' : msg.senderName}</span>
-                      <button
-                        onClick={() => deleteChatMessage(msg.id)}
-                        className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-400 hover:text-rose-500 transition-opacity"
-                        title="حذف الرسالة"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    </div>
-
-                    {/* Image Attachment in message */}
-                    {msg.imageUrl && (
-                      <div className="pt-0.5">
-                        <img
-                          src={msg.imageUrl}
-                          alt="صورة العطل"
-                          onClick={() => setLightboxImage(msg.imageUrl || null)}
-                          className="w-full max-h-56 rounded-xl object-cover border border-black/10 dark:border-white/10 cursor-pointer hover:opacity-95 shadow-xs transition-opacity"
-                        />
-                      </div>
+                  <div className={`flex items-end gap-1.5 max-w-[85%] sm:max-w-[72%] ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+                    {/* Participant Avatar beside artisan message */}
+                    {!isMe && (
+                      <img
+                        src={currentConv.participantAvatar}
+                        alt={msg.senderName}
+                        className="w-6 h-6 rounded-lg object-cover mb-1 border shrink-0"
+                      />
                     )}
 
-                    {/* Audio Note in message */}
-                    {msg.isAudio ? (
-                      <div className="py-0.5">
-                        <VoiceNotePlayer 
-                          audioUrl={msg.audioUrl} 
-                          duration={msg.audioDuration || '0:16'} 
-                          isMe={isMe} 
-                        />
+                    <div
+                      className={`p-3 rounded-2xl text-xs leading-relaxed space-y-1 shadow-2xs relative ${
+                        isMe
+                          ? 'bg-amber-500 text-slate-950 font-medium rounded-ee-sm'
+                          : 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200/90 dark:border-slate-700/80 rounded-es-sm'
+                      }`}
+                    >
+                      {/* Sender label and delete action */}
+                      <div className="text-[10px] font-bold opacity-75 flex items-center justify-between gap-3">
+                        <span>{isMe ? 'أنت' : msg.senderName}</span>
+                        <button
+                          onClick={() => deleteChatMessage(msg.id)}
+                          className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-400 hover:text-rose-500 transition-opacity cursor-pointer"
+                          title="حذف الرسالة"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
                       </div>
-                    ) : msg.text ? (
-                      <p className="whitespace-pre-wrap leading-relaxed text-[13px]">{msg.text}</p>
-                    ) : null}
 
-                    {/* Bottom Metadata: Timestamp & Status ticks */}
-                    <div className="flex items-center justify-end gap-1 text-[9px] font-mono opacity-70 pt-0.5">
-                      <span>{msg.timestamp}</span>
-                      {isMe && (
-                        <CheckCheck className="w-3.5 h-3.5 text-blue-700 dark:text-blue-400 inline" />
+                      {/* Image Attachment */}
+                      {msg.imageUrl && (
+                        <div className="pt-0.5">
+                          <img
+                            src={msg.imageUrl}
+                            alt="صورة العطل"
+                            onClick={() => setLightboxImage(msg.imageUrl || null)}
+                            className="w-full max-h-52 rounded-xl object-cover border border-black/10 dark:border-white/10 cursor-pointer hover:opacity-95 shadow-2xs transition-opacity"
+                          />
+                        </div>
                       )}
+
+                      {/* Audio Note Player */}
+                      {msg.isAudio ? (
+                        <div className="py-0.5">
+                          <VoiceNotePlayer 
+                            audioUrl={msg.audioUrl} 
+                            duration={msg.audioDuration || '0:16'} 
+                            isMe={isMe} 
+                          />
+                        </div>
+                      ) : msg.text ? (
+                        <p className="whitespace-pre-wrap leading-relaxed text-[12.5px]">{msg.text}</p>
+                      ) : null}
+
+                      {/* Timestamp & Status ticks */}
+                      <div className="flex items-center justify-end gap-1 text-[9px] font-mono opacity-70 pt-0.5">
+                        <span>{msg.timestamp}</span>
+                        {isMe && (
+                          <CheckCheck className="w-3 h-3 text-blue-700 dark:text-blue-400 inline" />
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
               );
             })}
-            <div ref={messagesEndRef} />
           </div>
 
-          {/* Collapsible Quick Replies Bar */}
+          {/* Floating Quick Scroll Controls (Top & Bottom) */}
+          <div className="absolute bottom-20 left-6 z-20 flex flex-col gap-1.5 pointer-events-auto">
+            {showScrollTopBtn && (
+              <button
+                type="button"
+                onClick={() => scrollToTop('smooth')}
+                className="px-3 py-1.5 bg-slate-900/95 hover:bg-slate-800 text-amber-400 font-bold rounded-xl shadow-lg border border-amber-500/30 transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 text-[11px] backdrop-blur-xs"
+                title="الصعود لأول المحادثة"
+              >
+                <ArrowUp className="w-3.5 h-3.5" />
+                <span>أعلى المحادثة</span>
+              </button>
+            )}
+
+            {showScrollBottomBtn && (
+              <button
+                type="button"
+                onClick={() => scrollToBottom('smooth')}
+                className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl shadow-lg border border-amber-300 transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 text-[11px]"
+                title="النزول لآخر رسالة"
+              >
+                <ArrowDown className="w-3.5 h-3.5" />
+                <span>أحدث الرسائل</span>
+              </button>
+            )}
+          </div>
+
+          {/* Quick Replies Carousel */}
           {showQuickReplies && (
-            <div className="px-3 py-2 bg-slate-100 dark:bg-slate-800/90 border-t border-slate-200 dark:border-slate-700/80 flex items-center gap-1.5 overflow-x-auto no-scrollbar animate-fade-in">
-              <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 shrink-0 flex items-center gap-1">
+            <div className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800/90 border-t border-slate-200 dark:border-slate-700/80 flex items-center gap-1 overflow-x-auto scrollbar-none shrink-0">
+              <span className="text-[10px] font-bold text-amber-600 shrink-0 flex items-center gap-0.5">
                 <Zap className="w-3 h-3" />
                 <span>رد سريع:</span>
               </span>
@@ -656,8 +741,9 @@ export const ChatInboxView: React.FC = () => {
                       }
                     );
                     setShowQuickReplies(false);
+                    setTimeout(() => scrollToBottom('smooth'), 50);
                   }}
-                  className="px-2.5 py-1 text-[11px] font-medium bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-600 rounded-lg hover:border-amber-400 hover:text-amber-600 dark:hover:text-amber-300 whitespace-nowrap transition-colors shrink-0 cursor-pointer shadow-2xs"
+                  className="px-2 py-0.5 text-[10px] font-medium bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 rounded-md hover:border-amber-400 whitespace-nowrap transition-colors shrink-0 cursor-pointer"
                 >
                   {preset}
                 </button>
@@ -665,106 +751,80 @@ export const ChatInboxView: React.FC = () => {
             </div>
           )}
 
-          {/* Attached image preview bar */}
+          {/* Attached image preview */}
           {attachedImage && (
-            <div className="px-3.5 py-2 bg-amber-500/10 border-t border-amber-500/25 flex items-center justify-between animate-fade-in shrink-0">
-              <div className="flex items-center gap-2.5">
+            <div className="px-3 py-1.5 bg-amber-50 dark:bg-amber-950/40 border-t border-amber-200 dark:border-amber-800 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
                 <img
                   src={attachedImage}
-                  alt="مرفق صورة العطل"
-                  className="w-10 h-10 object-cover rounded-xl border border-amber-500 shadow-2xs"
+                  alt="معاينة"
+                  className="w-8 h-8 object-cover rounded-lg border border-amber-500"
                 />
-                <div>
-                  <span className="text-xs font-bold text-amber-900 dark:text-amber-200 block">
-                    صورة العطل مرفقة وجاهزة للإرسال
-                  </span>
-                  <span className="text-[10px] text-slate-500">اضغط إرسال أو اكتب تعليقاً توضيحياً</span>
-                </div>
+                <span className="text-[11px] font-bold text-amber-900 dark:text-amber-200">
+                  صورة جاهزة للإرسال
+                </span>
               </div>
               <button
                 onClick={() => setAttachedImage(null)}
-                className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg transition-colors cursor-pointer"
-                title="إلغاء المرفق"
+                className="p-1 text-slate-400 hover:text-rose-500 rounded-lg cursor-pointer"
+                title="إلغاء الصورة"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
           )}
 
-          {/* Input Composer Bar OR Live Audio Recording Bar */}
+          {/* Input Bar or Live Recording Bar */}
           {isRecording ? (
-            <div className="p-3 bg-red-500/10 dark:bg-red-950/30 border-t border-red-500/30 flex items-center justify-between gap-3 animate-fade-in shrink-0">
-              <div className="flex items-center gap-3">
-                <span className="w-3.5 h-3.5 rounded-full bg-red-600 animate-ping inline-block" />
-                <div>
-                  <span className="text-xs font-bold text-red-700 dark:text-red-400 block">
-                    جاري تسجيل صوتك الآن... 🎙️
-                  </span>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="font-mono text-xs font-black text-red-600 dark:text-red-300">
-                      0:{recordingSeconds < 10 ? `0${recordingSeconds}` : recordingSeconds}
-                    </span>
-                    {/* Dynamic wave bars */}
-                    <div className="flex items-center gap-0.5 h-3">
-                      {[30, 70, 100, 50, 85, 40, 95, 60, 80].map((h, idx) => (
-                        <div
-                          key={idx}
-                          className="w-1 bg-red-500 rounded-full animate-pulse"
-                          style={{
-                            height: `${Math.min(100, Math.max(20, (h * ((recordingSeconds % 3) + 1)) / 3))}%`,
-                            animationDuration: `${0.4 + (idx % 3) * 0.2}s`
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </div>
+            <div className="p-2.5 bg-red-500/10 dark:bg-red-950/30 border-t border-red-500/30 flex items-center justify-between gap-2 shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-ping inline-block" />
+                <span className="text-xs font-bold text-red-700 dark:text-red-400">
+                  تسجيل صوتي جاري... 🎙️
+                </span>
+                <span className="font-mono text-xs font-black text-red-600 dark:text-red-300">
+                  0:{recordingSeconds < 10 ? `0${recordingSeconds}` : recordingSeconds}
+                </span>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={handleCancelRecording}
-                  className="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-slate-700 dark:text-slate-200 hover:text-rose-600 rounded-xl text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
-                  title="إلغاء التسجيل"
+                  className="px-2 py-1 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold cursor-pointer"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>إلغاء</span>
+                  إلغاء
                 </button>
-
                 <button
                   type="button"
                   onClick={handleFinishAndSendRecording}
-                  className="px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-xs transition-transform active:scale-95 cursor-pointer"
-                  title="إرسال التسجيل الصوتي"
+                  className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg text-xs flex items-center gap-1 cursor-pointer"
                 >
-                  <Send className="w-3.5 h-3.5 rtl:rotate-180" />
+                  <Send className="w-3 h-3 rtl:rotate-180" />
                   <span>إرسال</span>
                 </button>
               </div>
             </div>
           ) : (
-            <div className="p-2.5 sm:p-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center gap-1.5 sm:gap-2 shrink-0">
-              {/* Quick Replies Toggle */}
+            <div className="p-2.5 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center gap-1.5 shrink-0">
               <button
                 type="button"
                 onClick={() => setShowQuickReplies(prev => !prev)}
-                className={`p-2 rounded-xl transition-colors cursor-pointer ${
+                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                   showQuickReplies 
-                    ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' 
-                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    ? 'bg-amber-500/20 text-amber-600' 
+                    : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`}
-                title="الردود السريعة الجاهزة"
+                title="ردود سريعة"
               >
                 <Zap className="w-4 h-4" />
               </button>
 
-              {/* Image upload button */}
               <label
-                className="p-2 text-slate-500 hover:text-amber-500 dark:text-slate-400 cursor-pointer rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                title="إرفاق صورة للعطل"
+                className="p-1.5 text-slate-500 hover:text-amber-500 cursor-pointer rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                title="إرفاق صورة"
               >
-                <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                <ImageIcon className="w-4 h-4" />
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -774,55 +834,51 @@ export const ChatInboxView: React.FC = () => {
                 />
               </label>
 
-              {/* Voice record button */}
               <button
                 type="button"
                 onClick={handleStartRecording}
-                className="p-2 text-slate-500 hover:text-red-500 dark:text-slate-400 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
-                title="بدء تسجيل رسالة صوتية للحرفي"
+                className="p-1.5 text-slate-500 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 cursor-pointer"
+                title="تسجيل صوتي"
               >
-                <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
+                <Mic className="w-4 h-4" />
               </button>
 
-              {/* Text input */}
               <input
                 type="text"
                 value={inputVal}
                 onChange={(e) => setInputVal(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                placeholder={attachedImage ? 'أضف شرحاً للصورة (اختياري)...' : 'اكتب رسالتك للحرفي هنا...'}
-                className="flex-1 bg-slate-100 dark:bg-slate-800 border-none rounded-xl px-3.5 py-2 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                placeholder={attachedImage ? 'أضف تعليقاً على الصورة...' : 'اكتب رسالتك هنا...'}
+                className="flex-1 bg-slate-100 dark:bg-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-500"
               />
 
-              {/* Send button */}
               <button
                 onClick={handleSend}
                 disabled={!inputVal.trim() && !attachedImage}
-                className="w-9 h-9 sm:w-10 sm:h-10 bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-slate-950 rounded-xl flex items-center justify-center transition-all shadow-xs shrink-0 cursor-pointer active:scale-95"
-                title="إرسال"
+                className="w-8 h-8 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-slate-950 rounded-xl flex items-center justify-center transition-all shrink-0 cursor-pointer"
               >
-                <Send className="w-4 h-4 rtl:rotate-180" />
+                <Send className="w-3.5 h-3.5 rtl:rotate-180" />
               </button>
             </div>
           )}
         </div>
       </div>
 
-      {/* Lightbox Modal for Full Image View */}
+      {/* Lightbox Modal for Full View Images */}
       {lightboxImage && (
         <div
           className="fixed inset-0 z-60 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in"
           onClick={() => setLightboxImage(null)}
         >
-          <div className="relative max-w-2xl max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+          <div className="relative max-w-2xl max-h-[90vh]">
             <img
               src={lightboxImage}
-              alt="عرض صورة العطل"
-              className="max-w-full max-h-[85vh] rounded-2xl object-contain shadow-2xl border border-white/10"
+              alt="عرض كبير"
+              className="max-w-full max-h-[85vh] rounded-2xl object-contain shadow-2xl"
             />
             <button
               onClick={() => setLightboxImage(null)}
-              className="absolute top-3 left-3 p-2 bg-slate-900/80 text-white rounded-full hover:bg-slate-950 transition-colors cursor-pointer"
+              className="absolute top-3 left-3 p-2 bg-slate-900/80 text-white rounded-full hover:bg-slate-950"
             >
               <X className="w-5 h-5" />
             </button>

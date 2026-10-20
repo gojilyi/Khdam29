@@ -183,9 +183,6 @@ const MainContent: React.FC = () => {
           <div>
             {activeTab === 'home' && (
               <div className="space-y-8">
-                {/* Hero Billboard (Controlled by Admin: Images / Video / Custom Text) */}
-                <BillboardHero />
-
                 {/* Hero Section with Warm Master Craftsman Visual */}
                 <div className="relative rounded-3xl bg-gradient-to-r from-amber-950 via-slate-900 to-amber-900 text-white p-6 sm:p-9 overflow-hidden shadow-xl border border-amber-900/40">
                   {/* Background craftsman photography with ambient blend */}
@@ -554,15 +551,8 @@ const MainContent: React.FC = () => {
 
             {activeTab === 'radar' && <RadarMap />}
             {activeTab === 'orders' && <ActiveOrderTracker />}
-            {activeTab === 'quotes' && <QuotesManager />}
             {activeTab === 'artisans' && <ArtisanDirectory />}
-            {activeTab === 'works' && <WorksPortfolio />}
-            {activeTab === 'chat' && <ChatInboxView />}
-            {activeTab === 'jobs' && <WorkerJobMarketplace />}
             {activeTab === 'profile' && <ProfileView />}
-            {activeTab === 'pricing' && <BenchmarkPricingGuide />}
-            {activeTab === 'qna' && <ArtisanQnAForum />}
-            {(activeTab === 'appointments' || activeTab === 'calendar') && <AppointmentsCalendarView />}
           </div>
         )}
       </main>

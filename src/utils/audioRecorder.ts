@@ -4,9 +4,9 @@
  */
 
 // Helper to generate a realistic beep/voice note WAV data URL when mic is blocked or not available
-export const generateSimulatedVoiceNoteWav = (durationSeconds = 6): string => {
+export const generateSimulatedVoiceNoteWav = (durationSeconds = 2): string => {
   try {
-    const sampleRate = 22050;
+    const sampleRate = 11025;
     const numSamples = Math.floor(sampleRate * durationSeconds);
     const buffer = new ArrayBuffer(44 + numSamples * 2);
     const view = new DataView(buffer);
@@ -32,26 +32,23 @@ export const generateSimulatedVoiceNoteWav = (durationSeconds = 6): string => {
     writeString(36, 'data');
     view.setUint32(40, numSamples * 2, true);
 
-    // Generate warm human-like formant cadence (simulating speech cadence)
+    // Generate warm human-like formant cadence
     for (let i = 0; i < numSamples; i++) {
       const t = i / sampleRate;
-      // Speech pitch contour (~140Hz modulated with speech rhythm)
-      const pitch = 140 + Math.sin(t * 3.5) * 25 + Math.sin(t * 7.2) * 15;
-      const speechEnvelope = Math.sin(t * 4 * Math.PI) > 0 ? (0.6 + 0.4 * Math.sin(t * 12)) : 0.05;
-      const sample = Math.sin(2 * Math.PI * pitch * t) * 0.4 * speechEnvelope;
+      const pitch = 140 + Math.sin(t * 3.5) * 20;
+      const speechEnvelope = Math.sin(t * 4 * Math.PI) > 0 ? 0.4 : 0.05;
+      const sample = Math.sin(2 * Math.PI * pitch * t) * 0.3 * speechEnvelope;
       const clamped = Math.max(-1, Math.min(1, sample));
       view.setInt16(44 + i * 2, clamped < 0 ? clamped * 0x8000 : clamped * 0x7fff, true);
     }
 
-    // Convert to base64 Data URL so it persists in localStorage without breaking on reload
     let binary = '';
     const bytes = new Uint8Array(buffer);
     const len = bytes.byteLength;
     for (let i = 0; i < len; i++) {
       binary += String.fromCharCode(bytes[i]);
     }
-    const base64 = btoa(binary);
-    return `data:audio/wav;base64,${base64}`;
+    return `data:audio/wav;base64,${btoa(binary)}`;
   } catch (e) {
     console.error('Failed to generate audio WAV:', e);
     return '';
