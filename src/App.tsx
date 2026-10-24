@@ -25,12 +25,15 @@ import { ProfessionalCardModal } from './components/ProfessionalCardModal';
 import { ArtisanFacebookProfile } from './components/ArtisanFacebookProfile';
 import { WorksPortfolio } from './components/WorksPortfolio';
 import { AdminPanel } from './components/AdminPanel';
+import { ArtisanProfileModal } from './components/ArtisanProfileModal';
 
 import { BillboardHero } from './components/BillboardHero';
 import { SquareSpotlight } from './components/SquareSpotlight';
 import { NotificationToast } from './components/NotificationToast';
 import { NotificationsModal } from './components/NotificationsModal';
 import { AIDiagnosticModal } from './components/AIDiagnosticModal';
+import { DiagnosisSheet } from './components/DiagnosisSheet';
+import { SmartHomeSearchBar } from './components/SmartHomeSearchBar';
 import { BenchmarkPricingGuide } from './components/BenchmarkPricingGuide';
 import { ArtisanQnAForum } from './components/ArtisanQnAForum';
 import { ChatInboxView } from './components/ChatInboxView';
@@ -89,14 +92,17 @@ const MainContent: React.FC = () => {
     setIsBookingAppointmentModalOpen,
     homePanelsConfig,
     isAdminAuthenticated,
-    setIsAdminAuthenticated
+    setIsAdminAuthenticated,
+    isDiagnosisSheetOpen,
+    setIsDiagnosisSheetOpen,
+    diagnosisInitialText
   } = useApp();
 
   const isRtl = language === 'ar';
   const ArrowIcon = isRtl ? ArrowLeft : ArrowRight;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200">
+    <div className="min-h-screen min-h-[100dvh] w-full max-w-full overflow-x-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200">
       {/* Offline Status & Connectivity Banner */}
       <OfflineIndicator />
 
@@ -104,21 +110,21 @@ const MainContent: React.FC = () => {
 
       {/* Sticky Admin Floating Status Banner when browsing the application as Admin */}
       {isAdminAuthenticated && activeTab !== 'admin' && (
-        <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-amber-950 text-white border-b-2 border-amber-500 px-4 py-2.5 z-30 shadow-lg sticky top-16 transition-all">
-          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-              <div className="flex items-center gap-1.5">
-                <span className="font-black text-amber-400">
+        <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-amber-950 text-white border-b-2 border-amber-500 px-3 sm:px-4 py-2.5 z-30 shadow-lg sticky top-16 transition-all w-full max-w-full overflow-hidden">
+          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2.5 text-xs">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping shrink-0" />
+              <div className="flex items-center gap-1.5 truncate">
+                <span className="font-black text-amber-400 shrink-0">
                   وضع المشرف مفعّل:
                 </span>
-                <span className="text-slate-300 hidden sm:inline">
+                <span className="text-slate-300 hidden sm:inline truncate">
                   أنت تتصفح المنصة بصلاحيات الأدمن الكاملة — انقر مرتين على أي نص أو كارت لتعديله فوراً!
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={() => setActiveTab('admin')}
                 className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-transform active:scale-95 cursor-pointer"
@@ -152,7 +158,7 @@ const MainContent: React.FC = () => {
         </div>
       )}
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-12">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-6 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px)+16px)] md:pb-12 min-w-0">
         {/* If Admin view is active */}
         {activeTab === 'admin' ? (
           <AdminPanel />
@@ -183,365 +189,134 @@ const MainContent: React.FC = () => {
           <div>
             {activeTab === 'home' && (
               <div className="space-y-8">
-                {/* Hero Section with Warm Master Craftsman Visual */}
-                <div className="relative rounded-3xl bg-gradient-to-r from-amber-950 via-slate-900 to-amber-900 text-white p-6 sm:p-9 overflow-hidden shadow-xl border border-amber-900/40">
-                  {/* Background craftsman photography with ambient blend */}
-                  <div 
-                    className="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-luminosity pointer-events-none"
-                    style={{ backgroundImage: `url('/src/assets/images/khodam_hero_craftsman_1791156490478.jpg')` }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-slate-950 via-slate-950/80 to-transparent" />
-
-                  <div className="relative z-10 max-w-2xl space-y-4">
-                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-xs font-bold text-amber-300 backdrop-blur-md">
-                      <ShieldCheck className="w-4 h-4 text-amber-400" />
-                      <span>{t.appTagline}</span>
-                    </div>
-
-                    <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight">
-                      {language === 'ar' 
-                        ? 'حرفيون معتمدون وأيادٍ أمينة تصل إلى بابك في دقائق' 
-                        : 'Certified artisans and trusted hands at your door in minutes'}
-                    </h1>
-
-                    <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-xl">
-                      {language === 'ar'
-                        ? 'منصة خدمية تجمع بين إتقان العمل وأمانة التعامل، بربط جغرافي فوري، ومكالمات مشفرة بدون كشف رقم هاتفك، وبطاقة ميثاق إسلامي وأخلاقي لكل مهنة.'
-                        : 'A platform combining true craftsmanship, instant proximity matching, and encrypted private calls.'}
-                    </p>
-
-                    <div className="flex flex-wrap items-center gap-3 pt-2">
-                      <button
-                        onClick={() => setActiveTab('radar')}
-                        className="h-11 px-5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-transform active:scale-95"
-                      >
-                        <Compass className="w-4 h-4 text-white" />
-                        <span>{language === 'ar' ? 'تشغيل رادار البحث الجغرافي الحي' : 'Live Proximity Radar'}</span>
-                        <ArrowIcon className="w-4 h-4" />
-                      </button>
-
-                      <button
-                        onClick={() => setIsAIDiagnosticModalOpen(true)}
-                        className="h-11 px-4 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black rounded-xl text-xs sm:text-sm flex items-center gap-2 shadow-md transition-transform active:scale-95"
-                      >
-                        <Sparkles className="w-4 h-4 text-slate-950" />
-                        <span>تشخيص العطل بالصورة (AI)</span>
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          setSelectedCraftForCharter(serviceCategories[0]);
-                          setIsCraftCharterOpen(true);
-                        }}
-                        className="h-11 px-4 bg-white/10 hover:bg-white/20 backdrop-blur-md text-amber-200 border border-amber-400/30 font-bold rounded-xl text-xs sm:text-sm flex items-center gap-2 transition-colors"
-                      >
-                        <BookOpen className="w-4 h-4 text-amber-400" />
-                        <span>{language === 'ar' ? 'ميثاق الحرفة والآية القرآنية' : 'Craft Charter & Ethic'}</span>
-                      </button>
-
-                      <button
-                        onClick={() => setIsReviewModalOpen(true)}
-                        className="h-11 px-4 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white font-bold rounded-xl text-xs sm:text-sm flex items-center gap-1.5 transition-colors"
-                      >
-                        <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                        <span>{language === 'ar' ? 'تقييم وتعليق' : 'Write Review'}</span>
-                      </button>
-
-                      <button
-                        onClick={() => setActiveTab('works')}
-                        className="h-11 px-4 bg-white/10 hover:bg-white/20 backdrop-blur-md text-amber-200 border border-amber-400/30 font-bold rounded-xl text-xs sm:text-sm flex items-center gap-2 transition-colors"
-                      >
-                        <Sparkles className="w-4 h-4 text-amber-400" />
-                        <span>{language === 'ar' ? 'معرض الأعمال والمشاريع' : 'Works Showcase'}</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* AI Breakdown Diagnostics Banner Card (التشخيص المبدئي بالذكاء الاصطناعي مع التشفير) */}
-                <div className="relative rounded-3xl bg-gradient-to-r from-amber-600 via-amber-500 to-amber-700 text-white p-5 sm:p-7 shadow-xl overflow-hidden border border-amber-400/40">
-                  <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-                  <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
-                    <div className="flex items-start gap-4 max-w-2xl">
-                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/30 shadow-inner">
-                        <Sparkles className="w-7 h-7 text-white animate-pulse" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-black uppercase tracking-wider bg-white/20 px-2.5 py-0.5 rounded-full border border-white/30 backdrop-blur-xs flex items-center gap-1">
-                            <Lock className="w-2.5 h-2.5" />
-                            <span>تشفير 256-bit وحماية ضد الاختراق</span>
-                          </span>
-                        </div>
-                        <h2 className="text-lg sm:text-2xl font-black mt-1">
-                          التشخيص المبدئي بالذكاء الاصطناعي للأعطال المنزلية
-                        </h2>
-                        <p className="text-xs sm:text-sm text-amber-100/90 leading-relaxed mt-1">
-                          ارفع صورة العطل (ماسورة مكسورة، جهاز كهربائي مفتوح، تسريب مياه، قاطع كهربائي متضرر) وسيقوم التطبيق بتحليل العطل فوراً واقتراح نوع الحرفي المطلوب تلقائياً مع إرشادات السلامة العاجلة.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={() => setIsAIDiagnosticModalOpen(true)}
-                        className="px-5 py-3.5 bg-white text-slate-950 hover:bg-amber-50 font-black rounded-2xl text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-black/15 transition-transform active:scale-95"
-                      >
-                        <Sparkles className="w-4 h-4 text-amber-600" />
-                        <span>تشخيص العطل بالصورة الآن</span>
-                        <ArrowIcon className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Work Partner & Business Partnerships Finder Banner Card */}
-                <div className="relative rounded-3xl bg-gradient-to-r from-slate-900 via-slate-800 to-amber-950 text-white p-5 sm:p-7 shadow-xl overflow-hidden border border-amber-500/30">
-                  <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-                  <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
-                    <div className="flex items-start gap-4 max-w-2xl">
-                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/30 font-black">
-                        <Users className="w-7 h-7" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-400/30 flex items-center gap-1">
-                            <span>جديد • شبكة الشراكات المهنية</span>
-                          </span>
-                        </div>
-                        <h2 className="text-lg sm:text-2xl font-black mt-1">
-                          البحث عن شريك للعمل والورشات والمشاريع 🤝
-                        </h2>
-                        <p className="text-xs sm:text-sm text-slate-300 leading-relaxed mt-1">
-                          هل تبحث عن شريك لفتح ورشة، تقاسم تكاليف الإيجار والمعدات، أو تنفيذ مقاولة كبرى؟ 
-                          تصفح عروض الشراكة في ولايتك، انشر طلبك بالصور، وتفاعل بالقلوب والتعليقات المفتوحة!
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={() => setActiveTab('partners')}
-                        className="px-5 py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black rounded-2xl text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-amber-500/25 transition-transform active:scale-95 cursor-pointer"
-                      >
-                        <Users className="w-4 h-4" />
-                        <span>دخول قسم الشراكات الآن</span>
-                        <ArrowIcon className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Calendar & Appointment Booking Banner Card (نظام حجز وتأكيد المواعيد عبر الروزنامة) */}
-                <div className="relative rounded-3xl bg-gradient-to-r from-emerald-950 via-slate-900 to-teal-950 text-white p-5 sm:p-7 shadow-xl overflow-hidden border border-emerald-500/30">
-                  <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-                  <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
-                    <div className="flex items-start gap-4 max-w-2xl">
-                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/25 font-black">
-                        <Calendar className="w-7 h-7 text-slate-950" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-400/30 flex items-center gap-1">
-                            <Clock className="w-3 h-3 text-emerald-400" />
-                            <span>جديد • حجز مؤكد وموثق</span>
-                          </span>
-                        </div>
-                        <h2 className="text-lg sm:text-2xl font-black mt-1">
-                          نظام حجز وتأكيد المواعيد عبر الروزنامة 📅
-                        </h2>
-                        <p className="text-xs sm:text-sm text-slate-300 leading-relaxed mt-1">
-                          احجز موعداً محدداً (باليوم والساعة) لمعاينة العطل أو تنفيذ الأشغال في منزلك. يستلم الحرفي إشعاراً فورياً لتأكيد الزيارة وتثبيتها في الأجندة بدون تأخير أو انتظار.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-                      <button
-                        onClick={() => setIsBookingAppointmentModalOpen(true)}
-                        className="px-5 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black rounded-2xl text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-emerald-500/25 transition-transform active:scale-95 cursor-pointer"
-                      >
-                        <Calendar className="w-4 h-4" />
-                        <span>حجز موعد جديد الآن</span>
-                      </button>
-
-                      <button
-                        onClick={() => setActiveTab('appointments')}
-                        className="px-4 py-3.5 bg-white/10 hover:bg-white/20 text-emerald-200 border border-emerald-400/30 font-bold rounded-2xl text-xs sm:text-sm flex items-center gap-2 transition-colors cursor-pointer"
-                      >
-                        <span>عرض جدول الروزنامة</span>
-                        <ArrowIcon className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Noble Quranic Work Ethic Banner Card */}
-                <div className="p-5 sm:p-6 bg-gradient-to-r from-amber-50 via-amber-100/60 to-amber-50 dark:from-amber-950/30 dark:via-slate-900 dark:to-amber-950/20 border border-amber-200 dark:border-amber-900/60 rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs">
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-amber-500/20">
-                      <BookOpen className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 text-xs font-bold text-amber-800 dark:text-amber-300">
-                        <span>ميثاق شرف العمل وإتقان الصنعة في خدام</span>
-                      </div>
-                      <p className="text-base sm:text-lg font-serif font-bold text-slate-900 dark:text-white mt-1">
-                        ﴿ وَقُلِ اعْمَلُوا فَسَيَرَى اللَّهُ عَمَلَكُمْ وَرَسُولُهُ وَالْمُؤْمِنُونَ ﴾
-                      </p>
-                      <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-                        «إِنَّ اللَّهَ تَعَالَى يُحِبُّ إِذَا عَمِلَ أَحَدُكُمْ عَمَلًا أَنْ يُتْقِنَهُ» — نلزم كافة الحرفيين بالأمانة وحرمة المنازل وإتقان العمل.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      onClick={() => {
-                        setSelectedCraftForCharter(serviceCategories[0]);
-                        setIsCraftCharterOpen(true);
-                      }}
-                      className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-transform active:scale-95"
-                    >
-                      <span>عرض بطاقة الميثاق الكاملة</span>
-                      <ArrowIcon className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Active Orders Banner alert */}
+                {/* Active Orders Banner alert (Clean, subtle styling) */}
                 {activeOrders.length > 0 && (
-                  <div className="p-4 bg-gradient-to-r from-amber-500/10 via-amber-400/10 to-transparent border border-amber-300 dark:border-amber-700/60 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                  <div className="p-4 bg-[#EEF6F1] border border-[#DDE3DF] rounded-[12px] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[0_1px_2px_rgba(28,36,33,0.05)]">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0">
-                        <Clock className="w-5 h-5 animate-spin-slow" />
+                      <div className="w-10 h-10 rounded-[8px] bg-[#0F6B3F] text-white flex items-center justify-center shrink-0">
+                        <Clock className="w-5 h-5" strokeWidth={1.75} />
                       </div>
                       <div>
-                        <div className="text-[11px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wide flex items-center gap-2">
-                          <span>طلباتك النشطة ({activeOrders.length})</span>
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping inline-block" />
+                        <div className="text-[12px] font-bold text-[#0F6B3F] flex items-center gap-2">
+                          <span>لديك طلبات قيد المتابعة ({activeOrders.length})</span>
+                          <span className="w-2 h-2 rounded-full bg-[#1E9B5C]" />
                         </div>
-                        <div className="text-sm font-bold text-slate-900 dark:text-white">
-                          {activeOrder ? `${activeOrder.subServiceName} — ${activeOrder.artisanName || 'جاري التعيين'}` : 'لديك طلبات قيد المتابعة والتنفيذ'}
+                        <div className="text-[14px] font-semibold text-[#1C2421]">
+                          {activeOrder ? `${activeOrder.subServiceName} — ${activeOrder.artisanName || 'جاري التعيين'}` : 'يمكنك متابعة حالة الحرفي الآن'}
                         </div>
                       </div>
                     </div>
 
                     <button
                       onClick={() => setActiveTab('orders')}
-                      className="self-start sm:self-auto px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-transform active:scale-95"
+                      className="self-start sm:self-auto h-10 px-4 bg-[#0F6B3F] hover:bg-[#0A4D2E] text-white rounded-[8px] text-[13px] font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
-                      <span>{language === 'ar' ? `متابعة الطلبات (${activeOrders.length})` : 'Track Active Jobs'}</span>
-                      <ArrowIcon className="w-3.5 h-3.5" />
+                      <span>متابعة الطلب</span>
+                      <ArrowIcon className="w-4 h-4" strokeWidth={1.75} />
                     </button>
                   </div>
                 )}
 
-                {/* 5cm x 5cm Video or Image Spotlight (Controlled by Admin) */}
-                <SquareSpotlight />
-
-                {/* Services Catalog with Real Photography */}
+                {/* Main Services, Trades and Nearby Artisans */}
                 <ServicesGrid />
 
                 {/* 2-Column Discovery: Benchmark Pricing & Q&A Forum */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Card 1: Benchmark Pricing Catalog (قائمة أسعار استرشادية) */}
-                  <div className="p-6 bg-gradient-to-br from-amber-500/10 via-amber-400/5 to-transparent border border-amber-300 dark:border-amber-700/60 rounded-3xl space-y-3 relative overflow-hidden group">
+                  {/* Card 1: Benchmark Pricing Catalog */}
+                  <div className="p-5 bg-white border border-[#DDE3DF] rounded-[12px] space-y-3 shadow-[0_1px_2px_rgba(28,36,33,0.05)]">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shrink-0 shadow-md shadow-amber-500/20">
-                        <DollarSign className="w-6 h-6" />
+                      <div className="w-10 h-10 rounded-[8px] bg-[#EEF6F1] text-[#0A4D2E] flex items-center justify-center shrink-0">
+                        <DollarSign className="w-5 h-5" strokeWidth={1.75} />
                       </div>
                       <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 block">
-                          شفافية الأسعار ومنع المساومة
+                        <span className="text-[11px] font-bold text-[#0F6B3F] block">
+                          شفافية الأسعار
                         </span>
-                        <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
-                          قائمة أسعار استرشادية للخدمات الشائعة
+                        <h3 className="text-[16px] font-bold text-[#1C2421]">
+                          دليل الأسعار الاسترشادية
                         </h3>
                       </div>
                     </div>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                      تسعيرة تقريبية وثابتة مدروسة للخدمات البسيطة والشائعة (تركيب وصيانة مكيف، تغيير قفل باب، تسليك بالوعات، تركيب سخان) لتجنب المبالغة وضمان حق الطرفين.
+                    <p className="text-[13px] text-[#5B6660] leading-relaxed">
+                      تسعيرة واضحة بالدينار الجزائري (دج) لأشهر المهام والأعطال (تسربات المياه، المكيفات، الأبواب، الكهرباء) لضمان حقك وحق الحرفي.
                     </p>
                     <button
                       onClick={() => setActiveTab('pricing')}
-                      className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-sm transition-transform active:scale-95"
+                      className="h-10 px-4 bg-[#EEF6F1] hover:bg-[#DDE3DF] text-[#0A4D2E] font-semibold rounded-[8px] text-[13px] flex items-center gap-2 transition-colors cursor-pointer"
                     >
-                      <DollarSign className="w-4 h-4" />
                       <span>تصفح دليل الأسعار المعتمدة</span>
-                      <ArrowIcon className="w-3.5 h-3.5" />
+                      <ArrowIcon className="w-3.5 h-3.5" strokeWidth={1.75} />
                     </button>
                   </div>
 
-                  {/* Card 2: Ask an Artisan Q&A Forum (قسم استشر حرفياً) */}
-                  <div className="p-6 bg-gradient-to-br from-blue-500/10 via-indigo-400/5 to-transparent border border-blue-200 dark:border-blue-800/60 rounded-3xl space-y-3 relative overflow-hidden group">
+                  {/* Card 2: Ask an Artisan Q&A Forum */}
+                  <div className="p-5 bg-white border border-[#DDE3DF] rounded-[12px] space-y-3 shadow-[0_1px_2px_rgba(28,36,33,0.05)]">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black shrink-0 shadow-md shadow-blue-500/20">
-                        <HelpCircle className="w-6 h-6" />
+                      <div className="w-10 h-10 rounded-[8px] bg-[#EEF6F1] text-[#0A4D2E] flex items-center justify-center shrink-0">
+                        <HelpCircle className="w-5 h-5" strokeWidth={1.75} />
                       </div>
                       <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400 block">
-                          استشارات مهنية مجانية وموثوقة
+                        <span className="text-[11px] font-bold text-[#0F6B3F] block">
+                          استشارات مجانية
                         </span>
-                        <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
-                          منتدى "استشر حرفياً" (Q&A)
+                        <h3 className="text-[16px] font-bold text-[#1C2421]">
+                          استشر حرفياً
                         </h3>
                       </div>
                     </div>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                      اطرح مشكلتك واستفسارك البسيط (مثلاً: كيف أتعامل مع تسرب مؤقت؟ ما سبب صدور صوت من المكيف؟) ويجيبك الحرفيون المتخصصون مجاناً لبناء الثقة وتسهيل توظيفهم.
+                    <p className="text-[13px] text-[#5B6660] leading-relaxed">
+                      اطرح سؤالك أو مشكلتك المنزلية وسيجيبك حرفيون متخصصون في ولايتك بإرشادات فورية ونصائح موثوقة.
                     </p>
                     <button
                       onClick={() => setActiveTab('qna')}
-                      className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-sm transition-transform active:scale-95"
+                      className="h-10 px-4 bg-[#EEF6F1] hover:bg-[#DDE3DF] text-[#0A4D2E] font-semibold rounded-[8px] text-[13px] flex items-center gap-2 transition-colors cursor-pointer"
                     >
-                      <MessageSquarePlus className="w-4 h-4" />
-                      <span>دخول منتدى الاستشارات وطرح سؤال</span>
-                      <ArrowIcon className="w-3.5 h-3.5" />
+                      <span>طرح استشارة مجانية</span>
+                      <ArrowIcon className="w-3.5 h-3.5" strokeWidth={1.75} />
                     </button>
                   </div>
                 </div>
 
-                {/* Platform Guarantees Section */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-slate-200 dark:border-slate-800">
-                  <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                      <ShieldCheck className="w-5 h-5" />
+                {/* Platform Guarantees Section: 3 Columns */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                  <div className="p-4 bg-white rounded-[12px] border border-[#DDE3DF] flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-[8px] bg-[#EEF6F1] text-[#0F6B3F] flex items-center justify-center shrink-0">
+                      <ShieldCheck className="w-5 h-5" strokeWidth={1.75} />
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-slate-900 dark:text-white">
-                        {language === 'ar' ? 'شارات توثيق معتمدة' : 'Verified Credentials'}
+                      <h4 className="text-[14px] font-bold text-[#1C2421]">
+                        هويات معتمدة
                       </h4>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                        {language === 'ar' ? 'فحص بطاقات الهوية والشهادات المهنية لجميع الحرفيين' : 'ID and vocational certificate verification'}
+                      <p className="text-[12px] text-[#5B6660] mt-0.5">
+                        فحص بطاقات الهوية الوطنية والشهادات المهنية لجميع الحرفيين
                       </p>
                     </div>
                   </div>
 
-                  <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-                      <Lock className="w-5 h-5" />
+                  <div className="p-4 bg-white rounded-[12px] border border-[#DDE3DF] flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-[8px] bg-[#EEF6F1] text-[#0F6B3F] flex items-center justify-center shrink-0">
+                      <Lock className="w-5 h-5" strokeWidth={1.75} />
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-slate-900 dark:text-white">
-                        {language === 'ar' ? 'اتصال آمن بدون كشف الرقم' : 'Private Masked Calls'}
+                      <h4 className="text-[14px] font-bold text-[#1C2421]">
+                        اتصال ومراسلة آمنة
                       </h4>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                        {language === 'ar' ? 'تواصل صوتي ومراسلة فورية مشفرة لحماية خصوصيتك' : 'VoIP in-app audio calls with private numbers'}
+                      <p className="text-[12px] text-[#5B6660] mt-0.5">
+                        تواصل صوتي ومراسلة فورية لحماية خصوصيتك ومعلوماتك
                       </p>
                     </div>
                   </div>
 
-                  <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-                      <CheckCircle2 className="w-5 h-5" />
+                  <div className="p-4 bg-white rounded-[12px] border border-[#DDE3DF] flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-[8px] bg-[#EEF6F1] text-[#0F6B3F] flex items-center justify-center shrink-0">
+                      <CheckCircle2 className="w-5 h-5" strokeWidth={1.75} />
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-slate-900 dark:text-white">
-                        {t.singleOrderPolicyTitle}
+                      <h4 className="text-[14px] font-bold text-[#1C2421]">
+                        تقييمات حقيقية
                       </h4>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                        {language === 'ar' ? 'التركيز على إتمام كل خدمة بأعلى جودة ورضا' : 'Quality-first single task flow'}
+                      <p className="text-[12px] text-[#5B6660] mt-0.5">
+                        تقييمات موثقة من زبائن حقيقيين بعد كل عملية إنجاز
                       </p>
                     </div>
                   </div>
@@ -558,7 +333,7 @@ const MainContent: React.FC = () => {
       </main>
 
       {/* Google Play Store Compliance Footer (روابط سياسة الخصوصية والدعم المعتمدة لمتجر قوقل بلاي) */}
-      <footer className="mt-8 mb-20 md:mb-6 border-t border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xs py-5 px-4">
+      <footer className="mt-8 mb-[calc(4.5rem+env(safe-area-inset-bottom,0px)+16px)] md:mb-6 border-t border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xs py-5 px-4 w-full max-w-full">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
@@ -608,8 +383,18 @@ const MainContent: React.FC = () => {
         </div>
       </footer>
 
-      {/* Mobile Bottom Navigation */}
+      {/* Floating Smart Search Bar above BottomNav on Home */}
+      <SmartHomeSearchBar />
+
+      {/* Mobile Bottom Navigation with center diagnosis button */}
       <BottomNav />
+
+      {/* Smart AI Diagnosis Bottom Sheet */}
+      <DiagnosisSheet 
+        isOpen={isDiagnosisSheetOpen} 
+        onClose={() => setIsDiagnosisSheetOpen(false)} 
+        initialText={diagnosisInitialText} 
+      />
 
       {/* Global Interactive Modals */}
       <AuthModal />
@@ -618,6 +403,7 @@ const MainContent: React.FC = () => {
       <ChatModal />
       <OrderFlowModal />
       <ReviewModal />
+      <ArtisanProfileModal />
       <ProfessionalCardModal />
       <ArtisanFacebookProfile 
         isOpen={isFacebookProfileOpen}

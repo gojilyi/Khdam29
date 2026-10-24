@@ -1,31 +1,22 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
+  Send, 
   CheckCircle2, 
-  Clock, 
-  MapPin, 
-  PhoneCall, 
-  MessageSquare, 
-  ShieldCheck, 
   Truck, 
-  Wrench, 
-  Star, 
   Check, 
-  XCircle, 
-  ArrowRight, 
-  Info,
-  Plus,
-  Layers,
-  Phone,
-  User,
-  Calendar,
-  Zap,
-  Globe,
-  Award,
-  Bell,
-  Volume2
+  Phone, 
+  MessageSquare, 
+  MapPin, 
+  Clock, 
+  Star,
+  ChevronLeft,
+  XCircle,
+  Plus
 } from 'lucide-react';
 import { OrderStatus, Order } from '../types';
+import { formatDZD } from '../data/algeriaData';
+import { Card, Button, Badge, Rating, Avatar } from './ui';
 
 export const ActiveOrderTracker: React.FC = () => {
   const { 
@@ -39,444 +30,293 @@ export const ActiveOrderTracker: React.FC = () => {
     startCall, 
     setIsChatOpen, 
     setIsReviewModalOpen,
-    setBookingModalService,
     setActiveTab,
-    openArtisanFacebookProfile,
     artisans,
-    t, 
-    language,
-    orderHistory
+    setBookingModalService
   } = useApp();
 
   const [confirmCancel, setConfirmCancel] = useState(false);
 
-  const stages: { key: OrderStatus; labelAr: string; labelEn: string; icon: any }[] = [
-    { key: 'searching', labelAr: 'البحث عن حرفي', labelEn: 'Searching', icon: Clock },
-    { key: 'artisan_assigned', labelAr: 'قبول الطلب', labelEn: 'Assigned', icon: CheckCircle2 },
-    { key: 'on_the_way', labelAr: 'في الطريق', labelEn: 'On The Way', icon: Truck },
-    { key: 'in_progress', labelAr: 'تنفيذ الخدمة', labelEn: 'In Progress', icon: Wrench },
-    { key: 'awaiting_confirmation', labelAr: 'تأكيد الإنجاز', labelEn: 'Confirmation', icon: ShieldCheck },
-    { key: 'completed', labelAr: 'مكتمل', labelEn: 'Completed', icon: Check },
+  // The 4 authentic status steps requested by user:
+  // أُرسل ← قُبل ← في الطريق ← مكتمل
+  const pipelineSteps: { key: OrderStatus; label: string; icon: any }[] = [
+    { key: 'searching', label: 'أُرسل', icon: Send },
+    { key: 'artisan_assigned', label: 'قُبل', icon: CheckCircle2 },
+    { key: 'on_the_way', label: 'في الطريق', icon: Truck },
+    { key: 'completed', label: 'مكتمل', icon: Check },
   ];
 
-  const getStageIndex = (status: OrderStatus) => {
-    return stages.findIndex(s => s.key === status);
+  const getStepIndex = (status: OrderStatus) => {
+    switch (status) {
+      case 'searching': return 0;
+      case 'artisan_assigned': return 1;
+      case 'on_the_way': return 2;
+      case 'in_progress': return 2;
+      case 'awaiting_confirmation': return 2;
+      case 'completed': return 3;
+      default: return 0;
+    }
   };
 
-  const currentStageIndex = activeOrder ? getStageIndex(activeOrder.status) : -1;
-
-  // Matched artisan object if available
-  const currentArtisanObj = activeOrder?.artisanId ? artisans.find(a => a.id === activeOrder.artisanId) : null;
+  const currentStepIdx = activeOrder ? getStepIndex(activeOrder.status) : 0;
+  const currentArtisan = activeOrder?.artisanId ? artisans.find(a => a.id === activeOrder.artisanId) : null;
 
   return (
     <div className="space-y-6">
-      {/* 1. Multi-Order Header & System Notice */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-              <Layers className="w-4 h-4" />
-              <span>نظام متابعة الطلبات المتعددة (Multi-Orders)</span>
-            </div>
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1">
-              طلباتي النشطة ({activeOrders.length})
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              يمكنك نشر ومتابعة عدة طلبات لمهام ومهن مختلفة في نفس الوقت بكل استقلالية وأمان.
-            </p>
-          </div>
-
-          {/* New Request Button */}
-          <button
-            onClick={() => setActiveTab('home')}
-            className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-amber-500/20 transition-transform active:scale-95 shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            <span>نشر طلب خدمة جديد +</span>
-          </button>
+      {/* 1. Header & Orders Count */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-[28px] font-bold text-[#0A4D2E]">
+            متابعة الطلبات
+          </h1>
+          <p className="text-[14px] text-[#5B6660] mt-0.5">
+            تابع مسار طلباتك مع الحرفيين خطوة بخطوة من الإرسال حتى اكتمال العمل.
+          </p>
         </div>
 
-        {/* Multi-Order Tabs / Selector Bar */}
-        {activeOrders.length > 0 && (
-          <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
-            <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-2">
-              اختر الطلب لعرض تفاصيله ومساره المباشر:
-            </div>
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-              {activeOrders.map((order, idx) => {
-                const isSelected = order.id === (activeOrder?.id || selectedActiveOrderId);
-                return (
-                  <button
-                    key={order.id}
-                    onClick={() => setSelectedActiveOrderId(order.id)}
-                    className={`p-3 rounded-2xl border text-start transition-all shrink-0 min-w-[210px] ${
-                      isSelected
-                        ? 'bg-amber-50/80 dark:bg-amber-950/40 border-amber-500 dark:border-amber-500 ring-2 ring-amber-500/20 shadow-xs'
-                        : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:border-slate-300'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className="text-[10px] font-mono font-bold text-amber-700 dark:text-amber-400">
-                        طلب #{idx + 1}
-                      </span>
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
-                        order.status === 'on_the_way'
-                          ? 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300'
-                          : order.status === 'in_progress'
-                            ? 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200'
-                            : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300'
-                      }`}>
-                        {order.status === 'searching' && 'جاري البحث'}
-                        {order.status === 'artisan_assigned' && 'تم القبول'}
-                        {order.status === 'on_the_way' && 'في الطريق'}
-                        {order.status === 'in_progress' && 'قيد التنفيذ'}
-                        {order.status === 'awaiting_confirmation' && 'تأكيد الإنجاز'}
-                        {order.status === 'completed' && 'مكتمل'}
-                      </span>
-                    </div>
-
-                    <div className="font-black text-xs text-slate-900 dark:text-white truncate">
-                      {order.subServiceName}
-                    </div>
-
-                    <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 flex items-center justify-between">
-                      <span>{order.artisanName || 'جاري التعيين...'}</span>
-                      <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                        {order.estimatedCost} دج
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        <Button
+          variant="primary"
+          leftIcon={<Plus className="w-4 h-4" strokeWidth={1.75} />}
+          onClick={() => setBookingModalService({ categoryId: 'home_repair', subServiceId: 'plumbing' })}
+          className="shrink-0"
+        >
+          طلب خدمة جديدة
+        </Button>
       </div>
 
-      {activeOrder ? (
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-          {/* Header Status Bar */}
-          <div className="p-5 bg-gradient-to-r from-amber-500/10 via-amber-400/5 to-transparent border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
-                <span>الطلب المعروض حالياً</span>
-                <span className="font-mono text-slate-400">#{activeOrder.id}</span>
-              </div>
-              <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white mt-1">
-                {activeOrder.subServiceName}
-              </h2>
-            </div>
-
-            <div className="text-end">
-              <span className="text-xs text-slate-500 dark:text-slate-400 block">
-                {language === 'ar' ? 'التكلفة المقدرة' : 'Estimated Cost'}
-              </span>
-              <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
-                {activeOrder.estimatedCost} {t.currency}
-              </span>
-            </div>
+      {activeOrders.length === 0 ? (
+        /* Empty State */
+        <Card variant="white" className="p-8 text-center space-y-3">
+          <div className="w-12 h-12 rounded-[8px] bg-[#EEF6F1] text-[#0A4D2E] mx-auto flex items-center justify-center">
+            <Clock className="w-6 h-6" strokeWidth={1.75} />
           </div>
+          <h3 className="text-[18px] font-bold text-[#0A4D2E]">
+            لا توجد طلبات نشطة حالياً
+          </h3>
+          <p className="text-[14px] text-[#5B6660] max-w-sm mx-auto">
+            يمكنك تصفح دليل المهن وطلب سباك أو كهربائي أو أي حرفي في ولايتك بكل سهولة.
+          </p>
+          <Button 
+            variant="primary" 
+            onClick={() => setActiveTab('home')}
+            className="mt-2"
+          >
+            تصفح خدمات خدّام
+          </Button>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {/* Order Selector Tabs if multiple */}
+          {activeOrders.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {activeOrders.map((ord, idx) => (
+                <button
+                  key={ord.id}
+                  onClick={() => setSelectedActiveOrderId(ord.id)}
+                  className={`
+                    px-3.5 py-2 rounded-[8px] text-[13px] font-semibold whitespace-nowrap border transition-colors cursor-pointer
+                    ${selectedActiveOrderId === ord.id 
+                      ? 'bg-[#0F6B3F] text-white border-[#0F6B3F]' 
+                      : 'bg-white text-[#5B6660] border-[#DDE3DF] hover:bg-[#EEF6F1]'}
+                  `}
+                >
+                  طلب #{idx + 1}: {ord.subServiceName}
+                </button>
+              ))}
+            </div>
+          )}
 
-          <div className="p-5 sm:p-6 space-y-6">
-            {/* Step Progress Bar */}
-            <div className="space-y-3">
-              <div className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                {language === 'ar' ? 'مسار تقدم هذا الطلب المباشر:' : 'Live Order Stages:'}
+          {activeOrder && (
+            <Card variant="white" className="p-5 sm:p-6 space-y-6">
+              {/* Order Info & Status Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#DDE3DF]">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[12px] font-bold text-[#0F6B3F] bg-[#EEF6F1] px-2 py-0.5 rounded-[8px]">
+                      طلب #{activeOrder.id.slice(-5)}
+                    </span>
+                    <span className="text-[12px] text-[#5B6660]">
+                      {activeOrder.createdAt ? new Date(activeOrder.createdAt).toLocaleTimeString('ar-DZ', { hour: '2-digit', minute: '2-digit' }) : 'اليوم'}
+                    </span>
+                  </div>
+                  <h2 className="text-[20px] font-bold text-[#1C2421] mt-1">
+                    {activeOrder.subServiceName}
+                  </h2>
+                </div>
+
+                <div className="text-left sm:text-right">
+                  <span className="text-[12px] text-[#5B6660] block">التكلفة التقديرية</span>
+                  <span className="text-[18px] font-bold text-[#0A4D2E] tabular-nums">
+                    {formatDZD(activeOrder.estimatedCost || 1800)}
+                  </span>
+                </div>
               </div>
 
-              <div className="relative">
-                {/* Connecting track */}
-                <div className="absolute top-4 left-4 right-4 h-0.5 bg-slate-200 dark:bg-slate-800 -z-0" />
-                
-                {/* Active progress fill */}
-                <div 
-                  className="absolute top-4 rtl:right-4 ltr:left-4 h-0.5 bg-amber-500 transition-all duration-500 -z-0"
-                  style={{
-                    width: `${Math.max(0, (currentStageIndex / (stages.length - 1)) * 100)}%`
-                  }}
-                />
+              {/* Status Bar Pipeline: أُرسل ← قُبل ← في الطريق ← مكتمل */}
+              <div className="py-2">
+                <div className="grid grid-cols-4 relative min-w-0">
+                  {/* Connecting Line */}
+                  <div className="absolute top-5 right-[12%] left-[12%] h-1 bg-[#DDE3DF] -z-0" />
+                  <div 
+                    className="absolute top-5 right-[12%] h-1 bg-[#0F6B3F] -z-0 transition-all duration-300"
+                    style={{ 
+                      width: `${(currentStepIdx / (pipelineSteps.length - 1)) * 76}%` 
+                    }}
+                  />
 
-                <div className="grid grid-cols-6 gap-1 relative z-10">
-                  {stages.map((stage, idx) => {
-                    const isDone = idx < currentStageIndex;
-                    const isCurrent = idx === currentStageIndex;
-                    const StageIcon = stage.icon;
-
+                  {pipelineSteps.map((step, idx) => {
+                    const StepIcon = step.icon;
+                    const isPassed = idx <= currentStepIdx;
+                    const isCurrent = idx === currentStepIdx;
                     return (
-                      <div key={stage.key} className="flex flex-col items-center text-center">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                          isDone 
-                            ? 'bg-amber-500 text-white' 
-                            : isCurrent 
-                              ? 'bg-amber-500 text-white ring-4 ring-amber-500/20 shadow-md scale-110' 
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700'
-                        }`}>
-                          <StageIcon className="w-4 h-4" />
+                      <div key={step.key} className="flex flex-col items-center text-center relative z-10 min-w-0 px-0.5">
+                        <div 
+                          className={`
+                            w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors shrink-0
+                            ${isPassed 
+                              ? 'bg-[#0F6B3F] text-white border-2 border-[#0F6B3F]' 
+                              : 'bg-white text-[#5B6660] border-2 border-[#DDE3DF]'}
+                          `}
+                        >
+                          <StepIcon className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={1.75} />
                         </div>
-                        <span className={`text-[10px] mt-2 font-medium hidden sm:block ${
-                          isCurrent 
-                            ? 'text-amber-600 dark:text-amber-400 font-bold' 
-                            : isDone 
-                              ? 'text-slate-700 dark:text-slate-300' 
-                              : 'text-slate-400'
-                        }`}>
-                          {language === 'ar' ? stage.labelAr : stage.labelEn}
+                        <span 
+                          className={`text-[10px] sm:text-[12px] mt-1.5 sm:mt-2 font-medium truncate max-w-full ${
+                            isCurrent ? 'text-[#0A4D2E] font-bold' : isPassed ? 'text-[#1C2421]' : 'text-[#5B6660]'
+                          }`}
+                        >
+                          {step.label}
                         </span>
                       </div>
                     );
                   })}
                 </div>
               </div>
-            </div>
 
-            {/* Assigned Artisan Details & Action Channels */}
-            {activeOrder.artisanName && (
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <img 
-                      src={activeOrder.artisanAvatar} 
-                      alt={activeOrder.artisanName} 
-                      className="w-14 h-14 rounded-2xl object-cover border border-amber-500/30"
-                      referrerPolicy="no-referrer"
+              {/* Status Description Message */}
+              <div className="p-3.5 bg-[#EEF6F1] border border-[#DDE3DF] rounded-[8px] text-[13px] text-[#0A4D2E]">
+                {currentStepIdx === 0 && (
+                  <p>تم إرسال طلبك، جاري إشعار الحرفيين المتوفرين في محيطك لتأكيد استلام المهمة.</p>
+                )}
+                {currentStepIdx === 1 && (
+                  <p>قَبِل الحرفي طلبك بنجاح، جاري تنسيق الوصول وتجهيز المعدات المطلوبة.</p>
+                )}
+                {currentStepIdx === 2 && (
+                  <p>الحرفي في الطريق إليك الآن، يُرجى التأكد من الرد على المكالمات لتسهيل الوصول.</p>
+                )}
+                {currentStepIdx === 3 && (
+                  <p>تم إنجاز الخدمة بنجاح! نرجو تقييم الحرفي لمساعدتنا في الحفاظ على أعلى معايير الجودة.</p>
+                )}
+              </div>
+
+              {/* Artisan Profile Info if Assigned */}
+              {activeOrder.artisanName && (
+                <div className="p-4 bg-white border border-[#DDE3DF] rounded-[12px] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <Avatar
+                      src={currentArtisan?.avatar}
+                      alt={activeOrder.artisanName}
+                      size="md"
                     />
-                    <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-800 flex items-center justify-center text-[8px] text-white">
-                      ✓
-                    </span>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-bold text-sm text-slate-900 dark:text-white">
+                    <div>
+                      <h4 className="text-[15px] font-bold text-[#1C2421]">
                         {activeOrder.artisanName}
-                      </span>
-                      <ShieldCheck className="w-4 h-4 text-amber-500" />
+                      </h4>
+                      <p className="text-[12px] text-[#5B6660]">
+                        حرفي معتمد · {activeOrder.city || 'الجزائر'}
+                      </p>
                     </div>
-                    <span className="text-xs text-slate-500 dark:text-slate-400 block mt-0.5">
-                      هاتف الحرفي: <span className="font-mono text-slate-700 dark:text-slate-300">{activeOrder.artisanPhoneMasked || '+213 •• •• •• 89'}</span>
-                    </span>
+                  </div>
 
-                    {/* View Facebook Profile Button */}
-                    {currentArtisanObj && (
-                      <button
-                        onClick={() => openArtisanFacebookProfile(currentArtisanObj)}
-                        className="mt-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
-                      >
-                        <Globe className="w-3 h-3" />
-                        <span>عرض بروفايل فيسبوك الحرفي وإنجازاته</span>
-                      </button>
-                    )}
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      leftIcon={<Phone className="w-4 h-4 text-[#0F6B3F]" strokeWidth={1.75} />}
+                      onClick={() => startCall(activeOrder.artisanId || 'art_1', activeOrder.artisanName || 'الحرفي', '0550 12 34 56')}
+                    >
+                      اتصال
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      leftIcon={<MessageSquare className="w-4 h-4 text-[#0F6B3F]" strokeWidth={1.75} />}
+                      onClick={() => setIsChatOpen(true)}
+                    >
+                      مراسلة
+                    </Button>
                   </div>
                 </div>
+              )}
 
-                {/* Direct Calling & Encrypted Chat Actions */}
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => startCall(activeOrder.artisanName || 'الحرفي', 'مقدم خدمة معتمد', activeOrder.artisanAvatar || '')}
-                    className="flex-1 sm:flex-initial h-10 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-transform active:scale-95"
+              {/* Progress & Completion Actions */}
+              <div className="pt-3 border-t border-[#DDE3DF] flex flex-wrap items-center justify-between gap-3">
+                {activeOrder.status !== 'completed' ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => advanceOrderStatus(activeOrder.id)}
+                    >
+                      تحديث الحالة للمرحلة التالية
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => completeCurrentOrder()}
+                    >
+                      تأكيد اكتمال العمل
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    leftIcon={<Star className="w-4 h-4 fill-white" strokeWidth={1.75} />}
+                    onClick={() => setIsReviewModalOpen(true)}
                   >
-                    <PhoneCall className="w-4 h-4" />
-                    <span>اتصال بالحرفي</span>
-                  </button>
-
-                  <button
-                    onClick={() => setIsChatOpen(true)}
-                    className="flex-1 sm:flex-initial h-10 px-4 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-transform active:scale-95"
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    <span>{t.chatArtisan}</span>
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Client Personal Contact Info Attached To This Order (إمكانية وضع رقمه ومعلوماته الشخصية) */}
-            <div className="p-4 bg-amber-50/50 dark:bg-amber-950/20 rounded-2xl border border-amber-200 dark:border-amber-800/50 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
-                  <User className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                  <span>معلومات العميل ورقم الهاتف المرفق بهذا الطلب:</span>
-                </span>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                  activeOrder.clientPhoneVisible
-                    ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300'
-                    : 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300'
-                }`}>
-                  {activeOrder.clientPhoneVisible ? 'الرقم متاح مباشرة للحرفي' : 'مكالمات مشفرة'}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                <div className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-                  <span className="text-[10px] text-slate-400 block mb-0.5">اسم صاحب الطلب:</span>
-                  <span className="font-bold text-slate-900 dark:text-white">
-                    {activeOrder.clientName || 'هشام بن علي'}
-                  </span>
-                </div>
-
-                <div className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-                  <span className="text-[10px] text-slate-400 block mb-0.5">رقم الهاتف للتواصل:</span>
-                  <span className="font-bold font-mono text-emerald-600 dark:text-emerald-400 dir-ltr inline-block">
-                    {activeOrder.clientPhone || '+213 550 12 34 56'}
-                  </span>
-                </div>
-
-                <div className="p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-                  <span className="text-[10px] text-slate-400 block mb-0.5">طريقة التواصل المفضلة:</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">
-                    {activeOrder.preferredContact === 'whatsapp' && 'واتساب WhatsApp'}
-                    {activeOrder.preferredContact === 'masked_call' && 'مكالمة مشفرة عبر التطبيق'}
-                    {(!activeOrder.preferredContact || activeOrder.preferredContact === 'direct_call') && 'اتصال هاتفي مباشر'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Order Location & Notes */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
-                <span className="text-slate-400 block font-medium mb-1">
-                  {language === 'ar' ? 'عنوان التدخل والموقع:' : 'Service Location:'}
-                </span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200">
-                  {activeOrder.city} - {activeOrder.address}
-                </span>
-              </div>
-
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
-                <span className="text-slate-400 block font-medium mb-1">
-                  {language === 'ar' ? 'ملاحظات وتفاصيل العمل المطلوبة:' : 'Job Notes:'}
-                </span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200 line-clamp-2">
-                  {activeOrder.notes || (language === 'ar' ? 'لا توجد ملاحظات إضافية' : 'No extra notes')}
-                </span>
-              </div>
-            </div>
-
-            {/* Interactive Simulation Controls to Test Complete Lifecycle */}
-            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold border border-emerald-200 dark:border-emerald-800">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping inline-block" />
-                  <span>تنبيهات الطلب المباشرة مفعلة 🔔</span>
-                </span>
-
-                {activeOrder.status !== 'completed' && (
-                  <button
-                    onClick={() => advanceOrderStatus(activeOrder.id)}
-                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
-                    title="تقديم المرحلة وإرسال إشعار فوري صوتي"
-                  >
-                    <Volume2 className="w-3.5 h-3.5 text-amber-500" />
-                    <span>{language === 'ar' ? 'محاكاة تقديم المرحلة (إشعار صوتي)' : 'Advance Stage'}</span>
-                    <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
-                  </button>
+                    تقييم أداء الحرفي
+                  </Button>
                 )}
 
-                <button
-                  onClick={() => setIsReviewModalOpen(true)}
-                  className="px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors"
-                >
-                  <Star className="w-3.5 h-3.5 fill-white" />
-                  <span>{t.completeAndRate}</span>
-                </button>
-              </div>
-
-              {/* Cancellation */}
-              {confirmCancel ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-rose-600 font-semibold">
-                    {language === 'ar' ? 'هل أنت متأكد من إلغاء هذا الطلب؟' : 'Confirm cancellation?'}
-                  </span>
-                  <button
-                    onClick={() => {
-                      cancelCurrentOrder(activeOrder.id);
-                      setConfirmCancel(false);
-                    }}
-                    className="px-3 py-1 bg-rose-600 text-white text-xs font-bold rounded-lg hover:bg-rose-700"
-                  >
-                    نعم، إلغاء
-                  </button>
-                  <button
-                    onClick={() => setConfirmCancel(false)}
-                    className="px-3 py-1 bg-slate-200 dark:bg-slate-700 text-xs font-semibold rounded-lg"
-                  >
-                    تراجع
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setConfirmCancel(true)}
-                  className="text-xs text-slate-500 hover:text-rose-600 font-medium transition-colors"
-                >
-                  {t.cancelOrder}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      ) : (
-        /* Empty active order state */
-        <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-4">
-          <div className="w-14 h-14 bg-amber-50 dark:bg-amber-950/40 text-amber-500 rounded-2xl flex items-center justify-center mx-auto">
-            <CheckCircle2 className="w-7 h-7" />
-          </div>
-          <h3 className="font-bold text-base text-slate-900 dark:text-white">
-            {language === 'ar' ? 'لا توجد طلبات جارية حالياً' : 'No Active Orders'}
-          </h3>
-          <p className="text-xs text-slate-500 max-w-md mx-auto">
-            {language === 'ar' 
-              ? 'يمكنك الآن نشر طلب خدمة فوري أو مجدول من دليل الخدمات، ويمكنك نشر أكثر من طلب ومتابعتها معاً.' 
-              : 'You can now dispatch an artisan or schedule multiple bookings concurrently.'}
-          </p>
-          <button
-            onClick={() => setActiveTab('home')}
-            className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs inline-flex items-center gap-1.5 shadow-sm transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            <span>نشر أول طلب خدمة الآن</span>
-          </button>
-        </div>
-      )}
-
-      {/* Completed Orders History */}
-      {orderHistory.length > 0 && (
-        <div className="space-y-3 pt-2">
-          <h3 className="font-bold text-sm text-slate-900 dark:text-white">
-            {language === 'ar' ? 'سجل الطلبات السابقة المنجزة' : 'Past Orders History'}
-          </h3>
-
-          <div className="space-y-2">
-            {orderHistory.map(ord => (
-              <div 
-                key={ord.id}
-                className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4 text-xs"
-              >
-                <div>
-                  <div className="font-bold text-slate-900 dark:text-white text-sm">
-                    {ord.subServiceName}
+                {activeOrder.status !== 'completed' && (
+                  <div>
+                    {!confirmCancel ? (
+                      <button
+                        onClick={() => setConfirmCancel(true)}
+                        className="text-[13px] text-[#C62828] hover:underline cursor-pointer"
+                      >
+                        إلغاء هذا الطلب
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="text-[12px] text-[#C62828]">هل أنت متأكد؟</span>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => {
+                            cancelCurrentOrder();
+                            setConfirmCancel(false);
+                          }}
+                        >
+                          نعم، إلغاء
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setConfirmCancel(false)}
+                        >
+                          تراجع
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                  <div className="text-slate-500 dark:text-slate-400 mt-0.5">
-                    {ord.artisanName} · {ord.createdAt}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <span className="font-bold text-slate-700 dark:text-slate-300 tabular-nums">
-                    {ord.estimatedCost} {t.currency}
-                  </span>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                    ord.status === 'completed' 
-                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400' 
-                      : 'bg-rose-50 text-rose-700'
-                  }`}>
-                    {ord.status === 'completed' ? (language === 'ar' ? 'مكتمل وموثق' : 'Completed') : (language === 'ar' ? 'ملغي' : 'Cancelled')}
-                  </span>
-                </div>
+                )}
               </div>
-            ))}
-          </div>
+            </Card>
+          )}
         </div>
       )}
     </div>

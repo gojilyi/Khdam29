@@ -159,8 +159,8 @@ interface AppContextType {
   setSelectedArtisanForAppointment: (artisan: Artisan | null) => void;
   
   // Modals & Booking selection
-  bookingModalService: { categoryId: string; subServiceId?: string } | null;
-  setBookingModalService: (data: { categoryId: string; subServiceId?: string } | null) => void;
+  bookingModalService: { categoryId: string; subServiceId?: string; artisanId?: string; prefilledTrade?: string; prefilledDescription?: string; prefilledImage?: string } | null;
+  setBookingModalService: (data: { categoryId: string; subServiceId?: string; artisanId?: string; prefilledTrade?: string; prefilledDescription?: string; prefilledImage?: string } | null) => void;
   
   // Artisan workspace state
   artisanOnline: boolean;
@@ -294,9 +294,14 @@ interface AppContextType {
   toggleFavoriteArtisan: (artisanId: string) => void;
   isArtisanFavorite: (artisanId: string) => boolean;
 
-  // AI Initial Diagnostic Modal (التشخيص المبدئي بالذكاء الاصطناعي)
+  // AI Initial Diagnostic Modal & Smart Diagnosis Sheet (التشخيص المبدئي بالذكاء الاصطناعي)
   isAIDiagnosticModalOpen: boolean;
   setIsAIDiagnosticModalOpen: (open: boolean) => void;
+  isDiagnosisSheetOpen: boolean;
+  setIsDiagnosisSheetOpen: (open: boolean) => void;
+  diagnosisInitialText: string;
+  setDiagnosisInitialText: (text: string) => void;
+  openSmartDiagnosis: (initialPrompt?: string) => void;
 
   // Artisan Schedule Management (إدارة الجدول الزمني ومواعيد العمل)
   artisanSchedule: ArtisanSchedule;
@@ -1158,12 +1163,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [artisans, setArtisans] = useState<Artisan[]>(() => {
     try {
       const saved = localStorage.getItem('khodam_artisans');
+      const uniqueMap = new Map<string, Artisan>();
+      mockArtisans.forEach(a => uniqueMap.set(a.id, a));
       if (saved) {
         const parsed: Artisan[] = JSON.parse(saved);
-        const missing = mockArtisans.filter(ma => !parsed.some(p => p.id === ma.id));
-        return missing.length > 0 ? [...parsed, ...missing] : parsed;
+        if (Array.isArray(parsed)) {
+          parsed.forEach(p => {
+            if (p && p.id && !uniqueMap.has(p.id)) {
+              uniqueMap.set(p.id, p);
+            }
+          });
+        }
       }
-      return mockArtisans;
+      return Array.from(uniqueMap.values());
     } catch {
       return mockArtisans;
     }
@@ -1199,8 +1211,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return favoriteArtisanIds.includes(artisanId);
   };
 
-  // AI Initial Diagnostic Modal (التشخيص المبدئي بالذكاء الاصطناعي)
+  // AI Initial Diagnostic Modal & Smart Diagnosis Sheet (التشخيص المبدئي بالذكاء الاصطناعي)
   const [isAIDiagnosticModalOpen, setIsAIDiagnosticModalOpen] = useState(false);
+  const [isDiagnosisSheetOpen, setIsDiagnosisSheetOpen] = useState(false);
+  const [diagnosisInitialText, setDiagnosisInitialText] = useState('');
+
+  const openSmartDiagnosis = (initialPrompt = '') => {
+    setDiagnosisInitialText(initialPrompt);
+    setIsDiagnosisSheetOpen(true);
+  };
   
   // Quotes (عروض الأسعار والمناقصات مع الحفظ دون اتصال)
   const [quotes, setQuotes] = useState<ProjectQuoteRequest[]>(() => {
@@ -1272,7 +1291,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [selectedArtisanForAppointment, setSelectedArtisanForAppointment] = useState<Artisan | null>(null);
 
   // Booking modal
-  const [bookingModalService, setBookingModalService] = useState<{ categoryId: string; subServiceId?: string } | null>(null);
+  const [bookingModalService, setBookingModalService] = useState<{ categoryId: string; subServiceId?: string; artisanId?: string; prefilledTrade?: string; prefilledDescription?: string; prefilledImage?: string } | null>(null);
   
   // Artisan portal state
   const [artisanOnline, setArtisanOnline] = useState<boolean>(true);
@@ -3032,6 +3051,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isArtisanFavorite,
         isAIDiagnosticModalOpen,
         setIsAIDiagnosticModalOpen,
+        isDiagnosisSheetOpen,
+        setIsDiagnosisSheetOpen,
+        diagnosisInitialText,
+        setDiagnosisInitialText,
+        openSmartDiagnosis,
         artisanSchedule,
         updateArtisanSchedule,
         geoAlertRadiusKm,

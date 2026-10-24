@@ -1,485 +1,224 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
-  ShieldCheck, 
-  Moon, 
-  Sun, 
-  Globe, 
-  UserCheck, 
   Briefcase, 
-  Compass, 
-  FileText, 
+  Search,
+  ClipboardList, 
   MessageSquare, 
-  Users,
-  Star,
-  Sparkles,
-  Key,
-  Lock,
-  Headphones,
-  Calendar,
-  Bell
+  User, 
+  Bell, 
+  MapPin, 
+  ChevronDown,
+  ShieldCheck,
+  Plus
 } from 'lucide-react';
-import { serviceCategories } from '../data/mockData';
-import { PWAInstallButton } from './PWAInstallButton';
-import { AppIconRenderer } from './AppIconRenderer';
+import { ALGERIA_WILAYAS } from '../data/algeriaData';
+import { Logo } from './ui/Logo';
 
 export const Header: React.FC = () => {
   const { 
     role, 
     setRole, 
-    language, 
-    setLanguage, 
-    t, 
-    isDarkMode, 
-    toggleDarkMode, 
     activeTab, 
     setActiveTab, 
     activeOrders,
-    activeOrder,
-    appointments,
     currentUser,
     setIsAuthModalOpen,
-    setIsReviewModalOpen,
-    setIsCraftCharterOpen,
-    setSelectedCraftForCharter,
-    handleBrandSecretClick,
-    isAdminAuthenticated,
-    setIsAdminAuthModalOpen,
-    setIsChatDiagnosticsOpen,
-    setIsMediaManagerModalOpen,
-    setIsAIDiagnosticModalOpen,
-    setIsContactModalOpen,
-    getAdminCustomIcon,
-    setAdminEditModalTarget,
+    selectedCity,
+    setSelectedCity,
+    setBookingModalService,
     setIsNotificationsModalOpen,
-    unreadNotificationsCount
+    unreadNotificationsCount,
+    isAdminAuthenticated,
+    setIsAdminAuthModalOpen
   } = useApp();
 
-  const appLogo = getAdminCustomIcon ? getAdminCustomIcon('app_logo', '/icon.svg') : '/icon.svg';
+  const [isWilayaDropdownOpen, setIsWilayaDropdownOpen] = useState(false);
+
+  const mainNavItems = [
+    { id: 'home', label: 'الرئيسية' },
+    { id: 'artisans', label: 'دليل الحرفيين' },
+    { id: 'orders', label: 'طلباتي', badge: activeOrders.length },
+    { id: 'chat', label: 'الرسائل' },
+    { id: 'pricing', label: 'دليل الأسعار' },
+  ];
 
   return (
-    <header className="sticky top-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-        {/* Zone 1: Single text element wordmark with Secret 7-tap trigger */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2.5">
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                handleBrandSecretClick();
-              }}
-              onDoubleClick={(e) => {
-                e.stopPropagation();
-                if (isAdminAuthenticated || role === 'admin') {
-                  setAdminEditModalTarget({
-                    type: 'icon',
-                    id: 'app_logo',
-                    title: 'شعار وأيقونة تطبيق خدّام الرئيسية',
-                    currentValue: appLogo
-                  });
-                } else {
-                  setIsAdminAuthModalOpen(true);
-                }
-              }}
-              className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-400 flex items-center justify-center text-white shadow-sm shadow-amber-500/20 hover:scale-105 active:scale-95 transition-transform shrink-0 cursor-pointer overflow-hidden p-1 relative group"
-              title={isAdminAuthenticated || role === 'admin' ? "الرئيسية (انقر مرتين لتعديل أيقونة وشعار التطبيق)" : "الرئيسية (انقر مرتين لتسجيل دخول المشرف)"}
-            >
-              <AppIconRenderer icon={appLogo} className="w-8 h-8 object-contain rounded-lg" fallbackIcon="ShieldCheck" />
-              {(isAdminAuthenticated || role === 'admin') && (
-                <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
-                  <span className="text-[9px] font-black text-amber-300">تعديل</span>
-                </div>
-              )}
-            </button>
-            <div className="flex flex-col relative select-none">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleBrandSecretClick();
-                  }}
-                  onDoubleClick={(e) => {
-                    e.stopPropagation();
-                    if (isAdminAuthenticated || role === 'admin') {
-                      setAdminEditModalTarget({
-                        type: 'text',
-                        id: 'app_name',
-                        title: 'تعديل اسم المنصة الرسمي',
-                        currentValue: t.appName
-                      });
-                    } else {
-                      setIsAdminAuthModalOpen(true);
-                    }
-                  }}
-                  className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white font-sans hover:text-amber-600 dark:hover:text-amber-400 transition-colors cursor-pointer"
-                  title={isAdminAuthenticated || role === 'admin' ? "انقر مرتين لتعديل اسم التطبيق" : "خـدّام"}
-                >
-                  {t.appName}
-                </button>
-
-                {(isAdminAuthenticated || role === 'admin') && (
-                  <div className="flex items-center gap-1.5">
-                    {activeTab === 'admin' ? (
-                      <button
-                        onClick={() => setActiveTab('home')}
-                        className="px-2.5 py-0.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-black tracking-wider flex items-center gap-1 cursor-pointer shadow-sm"
-                        title="الخروج لتصفح التطبيق مع بقاء صلاحيات المشرف"
-                      >
-                        <span>تصفح التطبيق 🌐</span>
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => setActiveTab('admin')}
-                        className="px-2.5 py-0.5 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-wider animate-pulse cursor-pointer shadow-sm"
-                        title="فتح لوحة المشرف الشاملة"
-                      >
-                        لوحة الأدمن ⚙️
-                      </button>
-                    )}
-                    <button
-                      onClick={() => setIsChatDiagnosticsOpen(true)}
-                      className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-200 text-[10px] font-bold hover:bg-slate-700 flex items-center gap-1 cursor-pointer border border-slate-700"
-                      title="فاحص ومراقب الدردشة والاتصال"
-                    >
-                      <MessageSquare className="w-3 h-3" />
-                      <span className="hidden sm:inline">فاحص الدردشة</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold tracking-wide hidden sm:inline">
-                {language === 'ar' ? 'منصة الحرفيين والخدمات' : 'Smart Artisans Platform'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Zone 2: Clean 4-6 text navigation links */}
-        <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
+    <header className="sticky top-0 z-40 bg-[#0A4D2E] text-white border-b border-[#0A4D2E] shadow-sm select-none header-safe-padding w-full max-w-full">
+      <div className="max-w-7xl mx-auto px-2.5 sm:px-6 h-16 flex items-center justify-between gap-2 sm:gap-4 min-w-0 w-full">
+        
+        {/* Zone 1: Clean Brand Wordmark & Logo */}
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => setActiveTab('home')}
-            className={`transition-colors relative py-1 text-sm ${
-              activeTab === 'home'
-                ? 'text-amber-600 dark:text-amber-400 font-bold'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            {t.navHome}
-            {activeTab === 'home' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500 rounded-full" />
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('radar')}
-            className={`flex items-center gap-1.5 transition-colors relative py-1 text-sm ${
-              activeTab === 'radar'
-                ? 'text-amber-600 dark:text-amber-400 font-bold'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <Compass className="w-4 h-4" />
-            <span>{language === 'ar' ? 'الرادار والربط الحي' : 'Live Radar'}</span>
-            {activeTab === 'radar' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500 rounded-full" />
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('orders')}
-            className={`flex items-center gap-1.5 transition-colors relative py-1 text-sm ${
-              activeTab === 'orders'
-                ? 'text-amber-600 dark:text-amber-400 font-bold'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <span>{t.navOrders}</span>
-            {activeOrders.length > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-bold">
-                {activeOrders.length}
-              </span>
-            )}
-            {activeTab === 'orders' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500 rounded-full" />
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('quotes')}
-            className={`flex items-center gap-1.5 transition-colors relative py-1 text-sm ${
-              activeTab === 'quotes'
-                ? 'text-amber-600 dark:text-amber-400 font-bold'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <FileText className="w-4 h-4" />
-            <span>{t.navQuotes}</span>
-            {activeTab === 'quotes' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500 rounded-full" />
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('chat')}
-            className={`flex items-center gap-1.5 transition-colors relative py-1 text-sm ${
-              activeTab === 'chat'
-                ? 'text-amber-600 dark:text-amber-400 font-bold'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <MessageSquare className="w-4 h-4" />
-            <span>{t.navMessages}</span>
-            {activeTab === 'chat' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500 rounded-full" />
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('appointments')}
-            className={`flex items-center gap-1.5 transition-colors relative py-1 text-sm ${
-              activeTab === 'appointments' || activeTab === 'calendar'
-                ? 'text-amber-600 dark:text-amber-400 font-bold'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-            }`}
-            title="جدول المواعيد والروزنامة"
-          >
-            <Calendar className="w-4 h-4 text-emerald-500" />
-            <span>{language === 'ar' ? 'المواعيد' : 'Calendar'}</span>
-            {appointments.length > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-bold">
-                {appointments.length}
-              </span>
-            )}
-            {(activeTab === 'appointments' || activeTab === 'calendar') && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500 rounded-full" />
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('artisans')}
-            className={`flex items-center gap-1.5 transition-colors relative py-1 text-sm ${
-              activeTab === 'artisans'
-                ? 'text-amber-600 dark:text-amber-400 font-bold'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span>{t.navArtisans}</span>
-            {activeTab === 'artisans' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500 rounded-full" />
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('jobs')}
-            className={`flex items-center gap-1.5 transition-colors relative py-1 text-sm ${
-              activeTab === 'jobs'
-                ? 'text-amber-600 dark:text-amber-400 font-bold'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-            }`}
-            title="سوق العمل والتشغيل - البحث عن عمل والبحث عن عامل"
-          >
-            <Briefcase className="w-4 h-4 text-amber-500" />
-            <span>{language === 'ar' ? 'سوق العمل' : 'Job Market'}</span>
-            {activeTab === 'jobs' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500 rounded-full" />
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('partners')}
-            className={`flex items-center gap-1.5 transition-colors relative py-1 text-sm ${
-              activeTab === 'partners'
-                ? 'text-amber-600 dark:text-amber-400 font-bold'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-            }`}
-            title="البحث عن شريك للعمل والورشات والمشاريع"
-          >
-            <Users className="w-4 h-4 text-amber-500" />
-            <span>{language === 'ar' ? 'شريك عمل 🤝' : 'Work Partner'}</span>
-            {activeTab === 'partners' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500 rounded-full" />
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('works')}
-            className={`flex items-center gap-1.5 transition-colors relative py-1 text-sm ${
-              activeTab === 'works'
-                ? 'text-amber-600 dark:text-amber-400 font-bold'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <Sparkles className="w-4 h-4 text-amber-500" />
-            <span>{t.navWorks}</span>
-            {activeTab === 'works' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500 rounded-full" />
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('pricing')}
-            className={`flex items-center gap-1.5 transition-colors relative py-1 text-sm ${
-              activeTab === 'pricing'
-                ? 'text-amber-600 dark:text-amber-400 font-bold'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-            }`}
-            title="قائمة أسعار استرشادية للخدمات الشائعة"
-          >
-            <span>{language === 'ar' ? 'دليل الأسعار' : 'Price Guide'}</span>
-            {activeTab === 'pricing' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500 rounded-full" />
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('qna')}
-            className={`flex items-center gap-1.5 transition-colors relative py-1 text-sm ${
-              activeTab === 'qna'
-                ? 'text-amber-600 dark:text-amber-400 font-bold'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-            }`}
-            title="منتدى استشر حرفياً"
-          >
-            <span>{language === 'ar' ? 'استشر حرفياً' : 'Artisan Q&A'}</span>
-            {activeTab === 'qna' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500 rounded-full" />
-            )}
-          </button>
-
-          {/* Noble Craft Charter Nav Link */}
-          <button
-            onClick={() => {
-              setSelectedCraftForCharter(serviceCategories[0]);
-              setIsCraftCharterOpen(true);
+            onDoubleClick={() => {
+              if (!isAdminAuthenticated) {
+                setIsAdminAuthModalOpen(true);
+              } else {
+                setActiveTab('admin');
+              }
             }}
-            className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-300 text-sm font-semibold transition-colors py-1"
-            title="ميثاق شرف الحرفة وأخلاقيات العمل"
+            className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded-[8px] p-1 cursor-pointer"
+            title="خدام - حرفيك قريب منك"
           >
-            <ShieldCheck className="w-4 h-4 text-amber-500" />
-            <span>{language === 'ar' ? 'ميثاق الحرفة' : 'Craft Charter'}</span>
-          </button>
-        </nav>
-
-        {/* Zone 3: Actions (Rate & Review, Auth Login, Role Switcher, Language, Theme) */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* AI Initial Diagnostics Quick CTA */}
-          <button
-            onClick={() => setIsAIDiagnosticModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 shadow-sm transition-transform active:scale-95"
-            title="تشخيص العطل المبدئي بالذكاء الاصطناعي مع التشفير"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-slate-950" />
-            <span className="hidden sm:inline">تشخيص AI للأعطال</span>
-            <span className="sm:hidden">تشخيص AI</span>
-          </button>
-
-          {/* Notification Center Bell Button */}
-          <button
-            onClick={() => setIsNotificationsModalOpen(true)}
-            className="relative p-2 rounded-xl text-slate-700 hover:text-amber-600 dark:text-slate-300 dark:hover:text-amber-400 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-            title="مركز التنبيهات المباشرة (تحديثات الطلبات وردود الاستشارات)"
-            aria-label="Notifications"
-          >
-            <Bell className="w-4 h-4" />
-            {unreadNotificationsCount > 0 && (
-              <span className="absolute -top-1 -right-1 px-1.5 min-w-[18px] h-4.5 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white dark:border-slate-900 animate-pulse">
-                {unreadNotificationsCount > 9 ? '+9' : unreadNotificationsCount}
-              </span>
-            )}
-          </button>
-
-          {/* Contact Us Support Button */}
-          <button
-            onClick={() => setIsContactModalOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-            title="تواصل معنا والدعم الفني"
-          >
-            <Headphones className="w-3.5 h-3.5 text-amber-500" />
-            <span className="hidden xl:inline">{language === 'ar' ? 'تواصل معنا' : 'Contact Us'}</span>
-          </button>
-
-          {/* Direct Rating & Comment CTA Button */}
-          <button
-            onClick={() => setIsReviewModalOpen(true)}
-            className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/60 border border-amber-200 dark:border-amber-800 transition-colors"
-            title="تقييم الحرفي وإضافة تعليق"
-          >
-            <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-            <span>{language === 'ar' ? 'تقييم وتعليق' : 'Leave Review'}</span>
-          </button>
-
-          {/* Auth State Button */}
-          {currentUser && currentUser.isLoggedIn ? (
-            <button
-              onClick={() => setIsAuthModalOpen(true)}
-              className="flex items-center gap-1.5 p-1 sm:px-2.5 sm:py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold transition-colors"
-              title="إدارة الحساب"
+            {/* SVG Mark */}
+            <svg 
+              width="30" 
+              height="30" 
+              viewBox="0 0 44 44" 
+              fill="none" 
+              xmlns="http://www.w3.org/2000/svg"
+              className="shrink-0"
+              aria-hidden="true"
             >
-              <img
-                src={currentUser.avatar}
-                alt={currentUser.name}
-                className="w-6 h-6 rounded-full object-cover border border-amber-500/50"
-                referrerPolicy="no-referrer"
+              <path 
+                d="M6 2H30L40 12V38C40 40.2 38.2 42 36 42H6C3.8 42 2 40.2 2 38V6C2 3.8 3.8 2 6 2Z" 
+                fill="#0F6B3F" 
+                stroke="#1E9B5C" 
+                strokeWidth="2"
               />
-              <span className="hidden sm:inline max-w-[80px] truncate">{currentUser.name.split(' ')[0]}</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => setIsAuthModalOpen(true)}
-              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white transition-colors shadow-xs"
-            >
-              {language === 'ar' ? 'دخول / تسجيل' : 'Sign In'}
-            </button>
-          )}
+              <path 
+                d="M11 22L18 29L33 14L36 17L18 35L8 25L11 22Z" 
+                fill="#FFFFFF" 
+              />
+              <circle cx="31" cy="16" r="2" fill="#0F6B3F" />
+            </svg>
 
-          {/* In-App PWA Install Prompt for Android/iOS/Desktop */}
-          <PWAInstallButton variant="header" />
-
-          {/* Persona / Role Switcher */}
-          <button
-            onClick={() => setRole(role === 'client' ? 'artisan' : 'client')}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all duration-150 whitespace-nowrap bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-200 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800/60"
-            title={t.switchRole}
-          >
-            {role === 'client' ? (
-              <>
-                <Briefcase className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                <span className="hidden sm:inline">{language === 'ar' ? 'حساب الحرفي' : 'Artisan'}</span>
-              </>
-            ) : (
-              <>
-                <UserCheck className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                <span className="hidden sm:inline">{language === 'ar' ? 'حساب العميل' : 'Client'}</span>
-              </>
-            )}
-          </button>
-
-          {/* Language Selector */}
-          <div className="relative flex items-center">
-            <button
-              onClick={() => {
-                const nextLang = language === 'ar' ? 'fr' : language === 'fr' ? 'en' : 'ar';
-                setLanguage(nextLang);
-              }}
-              className="p-1.5 sm:p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800 transition-colors flex items-center gap-1 text-xs font-semibold"
-              title="Change Language"
-            >
-              <Globe className="w-3.5 h-3.5" />
-              <span className="uppercase text-[11px] font-mono">{language}</span>
-            </button>
-          </div>
-
-          {/* Dark Mode Toggle */}
-          <button
-            onClick={toggleDarkMode}
-            className="p-1.5 sm:p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800 transition-colors"
-            title={isDarkMode ? t.lightMode : t.darkMode}
-            aria-label="Toggle Theme"
-          >
-            {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
+            <div className="flex flex-col text-right leading-none">
+              <span className="text-[18px] sm:text-[22px] font-bold tracking-tight text-white">
+                خـدّام
+              </span>
+              <span className="text-[10px] sm:text-[11px] text-[#EEF6F1] opacity-80 hidden md:inline">
+                حرفيك قريب منك
+              </span>
+            </div>
           </button>
         </div>
+
+        {/* Zone 2: Clean Navigation Links on Tablet/Desktop */}
+        <nav className="hidden md:flex items-center gap-6 text-[14px] font-medium" aria-label="التنقل الرئيسي">
+          {mainNavItems.map(item => {
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`
+                  relative py-2 transition-colors duration-150 whitespace-nowrap cursor-pointer flex items-center gap-1.5
+                  ${isActive ? 'text-white font-bold' : 'text-[#EEF6F1]/80 hover:text-white'}
+                `}
+              >
+                <span>{item.label}</span>
+                {item.badge && item.badge > 0 ? (
+                  <span className="h-5 px-1.5 text-[11px] font-bold rounded-[8px] bg-[#1E9B5C] text-white flex items-center justify-center">
+                    {item.badge}
+                  </span>
+                ) : null}
+                {isActive && (
+                  <span className="absolute bottom-0 right-0 left-0 h-0.5 bg-[#1E9B5C]" />
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Zone 3: Wilaya Dropdown + Notifications + Auth + Primary Action */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 min-w-0">
+          
+          {/* Quick Wilaya Selector (All 58 Wilayas) */}
+          <div className="relative">
+            <button
+              onClick={() => setIsWilayaDropdownOpen(!isWilayaDropdownOpen)}
+              className="h-9 sm:h-10 px-2 sm:px-3 rounded-[8px] bg-[#0F6B3F] hover:bg-[#1E9B5C]/30 text-white text-[11px] sm:text-[13px] font-medium flex items-center gap-1 sm:gap-1.5 border border-[#1E9B5C]/40 transition-colors cursor-pointer"
+              aria-label="اختيار الولاية"
+              aria-expanded={isWilayaDropdownOpen}
+            >
+              <MapPin className="w-3.5 h-3.5 text-[#1E9B5C] shrink-0" strokeWidth={1.75} />
+              <span className="max-w-[60px] sm:max-w-[110px] truncate">
+                {selectedCity || 'الجزائر العاصمة'}
+              </span>
+              <ChevronDown className="w-3 h-3 text-[#EEF6F1]/70 shrink-0 hidden sm:inline" strokeWidth={1.75} />
+            </button>
+
+            {isWilayaDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setIsWilayaDropdownOpen(false)} 
+                />
+                <div className="absolute left-0 mt-2 w-56 max-h-72 overflow-y-auto bg-white text-[#1C2421] border border-[#DDE3DF] rounded-[12px] shadow-[0_4px_12px_rgba(28,36,33,0.12)] z-50 p-1.5">
+                  <div className="px-3 py-2 text-[12px] font-bold text-[#0A4D2E] border-b border-[#DDE3DF]">
+                    اختر الولاية (58 ولاية)
+                  </div>
+                  {ALGERIA_WILAYAS.map(w => (
+                    <button
+                      key={w.code}
+                      onClick={() => {
+                        setSelectedCity(w.name);
+                        setIsWilayaDropdownOpen(false);
+                      }}
+                      className={`
+                        w-full text-right px-3 py-2 text-[13px] rounded-[8px] transition-colors flex items-center justify-between
+                        ${selectedCity === w.name 
+                          ? 'bg-[#EEF6F1] text-[#0A4D2E] font-bold' 
+                          : 'hover:bg-[#EEF6F1] text-[#1C2421]'}
+                      `}
+                    >
+                      <span>{w.name}</span>
+                      <span className="text-[11px] text-[#5B6660] font-mono">{w.code}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Notifications Button (hidden on narrow screens to prevent wrap; accessible via profile/orders) */}
+          <button
+            onClick={() => setIsNotificationsModalOpen(true)}
+            className="hidden sm:flex w-9 sm:w-10 h-9 sm:h-10 rounded-[8px] items-center justify-center text-white hover:bg-[#0F6B3F] transition-colors relative cursor-pointer"
+            aria-label="التنبيهات"
+          >
+            <Bell className="w-4 h-4" strokeWidth={1.75} />
+            {unreadNotificationsCount > 0 && (
+              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#E8A317]" />
+            )}
+          </button>
+
+          {/* User Auth Profile Trigger (hidden on mobile, handled by bottom nav) */}
+          <button
+            onClick={() => setIsAuthModalOpen(true)}
+            className="hidden md:flex h-10 px-3 rounded-[8px] items-center gap-1.5 text-white hover:bg-[#0F6B3F] text-[13px] font-medium transition-colors cursor-pointer"
+            aria-label="الحساب الشخصي"
+          >
+            <User className="w-4 h-4" strokeWidth={1.75} />
+            <span className="hidden lg:inline">
+              {currentUser?.isLoggedIn ? currentUser.name.split(' ')[0] : 'حسابي'}
+            </span>
+          </button>
+
+          {/* Role Switcher (Client / Artisan) on tablet/desktop */}
+          <button
+            onClick={() => setRole(role === 'client' ? 'artisan' : 'client')}
+            className="hidden lg:flex h-10 px-3 rounded-[8px] bg-white text-[#0A4D2E] text-[13px] font-bold items-center gap-1.5 hover:bg-[#EEF6F1] transition-colors cursor-pointer"
+            title="التبديل بين وضع العميل ووضع الحرفي"
+          >
+            <Briefcase className="w-4 h-4 text-[#0F6B3F]" strokeWidth={1.75} />
+            <span>{role === 'client' ? 'أنا حرفي' : 'أنا زبون'}</span>
+          </button>
+
+          {/* Primary CTA: طلب خدمة */}
+          <button
+            onClick={() => {
+              setBookingModalService({ categoryId: 'home_repair', subServiceId: 'plumbing' });
+            }}
+            className="h-9 sm:h-10 px-2.5 sm:px-4 rounded-[8px] bg-[#1E9B5C] hover:bg-[#0F6B3F] text-white text-[12px] sm:text-[14px] font-bold flex items-center gap-1 sm:gap-1.5 transition-colors cursor-pointer shrink-0"
+          >
+            <Plus className="w-4 h-4" strokeWidth={2} />
+            <span>اطلب خدمة</span>
+          </button>
+        </div>
+
       </div>
     </header>
   );
