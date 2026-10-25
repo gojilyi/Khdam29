@@ -3,8 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { Header } from './components/Header';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { BottomNav } from './components/BottomNav';
@@ -95,8 +97,27 @@ const MainContent: React.FC = () => {
     setIsAdminAuthenticated,
     isDiagnosisSheetOpen,
     setIsDiagnosisSheetOpen,
-    diagnosisInitialText
+    diagnosisInitialText,
+    setRole,
+    updateUserProfile
   } = useApp();
+
+  const { role: authRole, profile } = useAuth();
+
+  useEffect(() => {
+    if (authRole) {
+      setRole(authRole === 'craftsman' ? 'artisan' : 'client');
+      if (profile) {
+        updateUserProfile({
+          name: profile.displayName,
+          email: profile.email,
+          phone: profile.phone,
+          avatar: profile.avatar,
+          role: authRole === 'craftsman' ? 'artisan' : 'client'
+        });
+      }
+    }
+  }, [authRole, profile]);
 
   const isRtl = language === 'ar';
   const ArrowIcon = isRtl ? ArrowLeft : ArrowRight;
@@ -165,7 +186,9 @@ const MainContent: React.FC = () => {
         ) : activeTab === 'partners' ? (
           <WorkPartnerFinder />
         ) : activeTab === 'chat' ? (
-          <ChatInboxView />
+          <ProtectedRoute targetTabName="chat" fallbackPrompt="المراسلة والتواصل المباشر مع الحرفيين تتطلب تسجيل الدخول لحماية المحادثات وخصوصيتك.">
+            <ChatInboxView />
+          </ProtectedRoute>
         ) : activeTab === 'jobs' ? (
           <WorkerJobMarketplace />
         ) : activeTab === 'pricing' ? (
@@ -383,8 +406,8 @@ const MainContent: React.FC = () => {
         </div>
       </footer>
 
-      {/* Floating Smart Search Bar above BottomNav on Home */}
-      <SmartHomeSearchBar />
+      {/* Floating Smart Search Bar above BottomNav on Home (Only for Client) */}
+      {role !== 'artisan' && <SmartHomeSearchBar />}
 
       {/* Mobile Bottom Navigation with center diagnosis button */}
       <BottomNav />
@@ -429,8 +452,11 @@ const MainContent: React.FC = () => {
 
 export default function App() {
   return (
-    <AppProvider>
-      <MainContent />
-    </AppProvider>
+    <AuthProvider>
+      <AppProvider>
+        <MainContent />
+      </AppProvider>
+    </AuthProvider>
   );
 }
+

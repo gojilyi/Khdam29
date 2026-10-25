@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { ALGERIA_WILAYAS, formatDZD, validateAlgerianPhone } from '../data/algeriaData';
 import { Button, Input, Card } from './ui';
+import { useAuth } from '../context/AuthContext';
 
 export const OrderFlowModal: React.FC = () => {
   const { 
@@ -24,8 +25,11 @@ export const OrderFlowModal: React.FC = () => {
     createOrder, 
     currentUser,
     selectedCity,
-    artisans
+    artisans,
+    setIsAuthModalOpen
   } = useApp();
+
+  const { isLoggedIn, profile, openAuthModalWithRedirect } = useAuth();
 
   // 4 Steps: 1: نوع الخدمة | 2: وصف وصور | 3: العنوان والموعد | 4: تأكيد
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
@@ -57,6 +61,47 @@ export const OrderFlowModal: React.FC = () => {
   }, [bookingModalService]);
 
   if (!bookingModalService) return null;
+
+  if (!isLoggedIn) {
+    return (
+      <div 
+        className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#1C2421]/60"
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="w-full max-w-[calc(100%-32px)] sm:max-w-md bg-white border border-[#DDE3DF] rounded-[16px] p-6 shadow-xl relative text-center space-y-4">
+          <button 
+            onClick={() => setBookingModalService(null)} 
+            className="absolute left-3 top-3 p-2 text-[#5B6660] hover:text-[#1C2421] rounded-[8px] cursor-pointer"
+            aria-label="إغلاق"
+          >
+            <X className="w-5 h-5" strokeWidth={1.75} />
+          </button>
+          
+          <div className="w-12 h-12 rounded-full bg-[#EEF6F1] text-[#0F6B3F] flex items-center justify-center mx-auto">
+            <CheckCircle2 className="w-6 h-6" strokeWidth={1.75} />
+          </div>
+
+          <div className="space-y-1.5">
+            <h3 className="text-[18px] font-bold text-[#1C2421]">تسجيل الدخول مطلوب لطلب الخدمة</h3>
+            <p className="text-[13px] text-[#5B6660] leading-relaxed">
+              لتتمكن من تتبع حالة الحرفي وضمان حقوقك والاتصال الآمن، يرجى تسجيل الدخول أو إنشاء حساب طالب خدمة.
+            </p>
+          </div>
+
+          <button
+            onClick={() => {
+              openAuthModalWithRedirect('orders');
+              setIsAuthModalOpen(true);
+            }}
+            className="w-full h-11 bg-[#0F6B3F] hover:bg-[#0A4D2E] text-white font-bold rounded-[8px] text-[14px] flex items-center justify-center gap-2 cursor-pointer transition-colors"
+          >
+            <span>تسجيل الدخول أو فتح حساب جديد</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Selected matched artisan if passed
   const targetArtisan = bookingModalService.artisanId 

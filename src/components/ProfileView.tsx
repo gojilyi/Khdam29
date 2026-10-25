@@ -30,9 +30,12 @@ import {
   Check,
   Zap,
   Mail,
-  Trash2
+  Trash2,
+  LogOut,
+  Power
 } from 'lucide-react';
 import { Language, VerificationLevel } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 export const ProfileView: React.FC = () => {
   const { 
@@ -65,8 +68,13 @@ export const ProfileView: React.FC = () => {
     setIsLegalModalOpen,
     setLegalModalTab,
     isAdminAuthenticated,
-    setIsAdminAuthModalOpen
+    setIsAdminAuthModalOpen,
+    logout: appLogout,
+    artisanOnline,
+    toggleArtisanOnline
   } = useApp();
+
+  const { isLoggedIn, profile, role: authRole, logout: authLogout, toggleAvailability } = useAuth();
 
   const isRtl = language === 'ar';
   const ChevronIcon = isRtl ? ChevronLeft : ChevronRight;
@@ -171,64 +179,108 @@ export const ProfileView: React.FC = () => {
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       {/* 1. Profile Identity Header */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-5 shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <img
-              src={currentUser.avatar}
-              alt={currentUser.name}
-              className="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-amber-500 shadow-md"
-              referrerPolicy="no-referrer"
-            />
-            <div className="absolute -bottom-1 -right-1 p-1 rounded-full bg-slate-900 text-amber-400 border border-amber-400 shadow-xs">
-              {userLevel === 2 ? <Award className="w-4 h-4 text-emerald-400" /> : <ShieldCheck className="w-4 h-4 text-blue-400" />}
+      <div className="bg-white border border-[#DDE3DF] rounded-[16px] p-5 sm:p-6 shadow-[0_1px_2px_rgba(28,36,33,0.05)] space-y-4">
+        {!isLoggedIn ? (
+          /* Guest Banner */
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-[#EEF6F1] rounded-[12px] border border-[#DDE3DF]">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-[#0F6B3F] text-white flex items-center justify-center shrink-0">
+                <User className="w-6 h-6" strokeWidth={1.75} />
+              </div>
+              <div>
+                <h3 className="text-[16px] font-bold text-[#1C2421]">تتصفح المنصة كزائر</h3>
+                <p className="text-[12px] text-[#5B6660]">سجّل الدخول لمتابعة طلباتك أو إدارة خدماتك المهنية</p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="h-10 px-5 bg-[#0F6B3F] hover:bg-[#0A4D2E] text-white rounded-[8px] text-[13px] font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+            >
+              <UserCheck className="w-4 h-4" strokeWidth={1.75} />
+              <span>تسجيل الدخول / إنشاء حساب</span>
+            </button>
+          </div>
+        ) : (
+          /* Logged In User Identity */
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <img
+                  src={profile?.avatar || currentUser.avatar}
+                  alt={profile?.displayName || currentUser.name}
+                  className="w-16 h-16 sm:w-18 sm:h-18 rounded-[12px] object-cover border-2 border-[#0F6B3F] shadow-sm"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute -bottom-1 -left-1 w-5 h-5 rounded-full bg-[#0F6B3F] text-white flex items-center justify-center shadow-xs">
+                  <ShieldCheck className="w-3.5 h-3.5" strokeWidth={2} />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-[18px] sm:text-[20px] font-bold text-[#1C2421]">
+                    {profile?.displayName || currentUser.name}
+                  </h2>
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#EEF6F1] text-[#0A4D2E] border border-[#DDE3DF] inline-flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3 text-[#0F6B3F]" strokeWidth={2} />
+                    <span>
+                      {profile?.role === 'craftsman' 
+                        ? (profile.verification_status === 'verified' ? 'حرفي معتمد (موثق)' : 'حرفي (قيد المراجعة)')
+                        : 'طالب خدمة معتمد'}
+                    </span>
+                  </span>
+                </div>
+
+                <p className="text-[12px] text-[#5B6660]">
+                  {profile?.role === 'craftsman' 
+                    ? `${profile.trade || 'حرفي مهني'} · ${profile.wilaya || 'الجزائر العاصمة'}` 
+                    : `طالب خدمة · ${profile?.wilaya || currentUser.city || 'الجزائر العاصمة'}`}
+                </p>
+
+                <div className="flex items-center gap-2 text-[11px] text-[#5B6660] font-mono dir-ltr">
+                  <span>{profile?.phone || currentUser.phone}</span>
+                  {profile?.email && <span>· {profile.email}</span>}
+                </div>
+              </div>
+            </div>
+
+            {/* Actions: Craftsman Availability Toggle & Sign out */}
+            <div className="flex flex-wrap sm:flex-col gap-2 shrink-0">
+              {profile?.role === 'craftsman' && (
+                <button
+                  onClick={async () => {
+                    const next = !artisanOnline;
+                    toggleArtisanOnline();
+                    try {
+                      await toggleAvailability(next);
+                    } catch {}
+                  }}
+                  className={`h-9 px-3 rounded-[8px] text-[12px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer border ${
+                    artisanOnline
+                      ? 'bg-[#EEF6F1] text-[#0A4D2E] border-[#0F6B3F]'
+                      : 'bg-slate-100 text-slate-600 border-slate-300'
+                  }`}
+                >
+                  <Power className="w-3.5 h-3.5" strokeWidth={2} />
+                  <span>{artisanOnline ? 'متاح لاستقبال الطلبات' : 'غير متاح حالياً'}</span>
+                </button>
+              )}
+
+              <button
+                onClick={async () => {
+                  await authLogout();
+                  appLogout();
+                }}
+                className="h-9 px-3 bg-red-50 hover:bg-red-100 text-[#C62828] border border-red-200 rounded-[8px] text-[12px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                title="تسجيل الخروج من الحساب"
+              >
+                <LogOut className="w-3.5 h-3.5" strokeWidth={1.75} />
+                <span>تسجيل الخروج</span>
+              </button>
             </div>
           </div>
-
-          <div className="space-y-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-xl font-black text-slate-900 dark:text-white">
-                {currentUser.name}
-              </h2>
-              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold inline-flex items-center gap-1 ${
-                userLevel === 2 
-                  ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
-                  : 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-800'
-              }`}>
-                {userLevel === 2 ? <Award className="w-3.5 h-3.5" /> : <ShieldCheck className="w-3.5 h-3.5" />}
-                <span>{userLevel === 2 ? 'موثق المستوى 2 (دبلوم معتمد)' : 'موثق المستوى 1 (هوية وطنية)'}</span>
-              </span>
-            </div>
-
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {role === 'artisan' ? userTrade : (language === 'ar' ? 'حساب عميل موثق · الجزائر العاصمة' : 'Verified Client Account')}
-            </p>
-
-            <div className="flex items-center gap-3 text-[11px] text-slate-400 pt-0.5">
-              <span>طريقة الدخول: <span className="font-semibold text-slate-700 dark:text-slate-200 capitalize">{currentUser.method}</span></span>
-              <span>·</span>
-              <span className="font-mono text-amber-600 dark:text-amber-400">KD-DZ-2026-8842</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Action Buttons: Persona Switch & Auth */}
-        <div className="flex flex-wrap sm:flex-col gap-2">
-          <button
-            onClick={() => setRole(role === 'client' ? 'artisan' : 'client')}
-            className="flex-1 sm:flex-none px-4 py-2.5 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-800/80 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-colors"
-          >
-            {role === 'client' ? <Briefcase className="w-4 h-4 text-amber-600 dark:text-amber-400" /> : <UserCheck className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
-            <span>{t.switchRole}</span>
-          </button>
-
-          <button
-            onClick={() => setIsAuthModalOpen(true)}
-            className="flex-1 sm:flex-none px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold text-center transition-colors"
-          >
-            تبديل وسيلة الدخول
-          </button>
-        </div>
+        )}
       </div>
 
       {/* 2. Personal Information & Contact Details Card (إمكانية وضع رقمه ومعلوماته الشخصية) */}

@@ -1,0 +1,83 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User account document containing private identity and role information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "role": { "type": "string", "enum": ["client", "craftsman"] },
+        "displayName": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 120 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "wilaya": { "type": "string", "maxLength": 50 },
+        "commune": { "type": "string", "maxLength": 50 },
+        "avatar": { "type": "string", "maxLength": 500 },
+        "verification_status": { "type": "string", "enum": ["pending", "verified"] },
+        "isProfileComplete": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "role", "displayName", "createdAt"]
+    },
+    "CraftsmanPublic": {
+      "title": "CraftsmanPublic",
+      "description": "Public profile of an artisan, visible in directory and search without private PII",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "trade": { "type": "string", "maxLength": 60 },
+        "experienceYears": { "type": "number" },
+        "wilayas": { "type": "array" },
+        "bio": { "type": "string", "maxLength": 1000 },
+        "approximatePriceDzd": { "type": "number" },
+        "avatar": { "type": "string", "maxLength": 500 },
+        "portfolioImages": { "type": "array" },
+        "rating": { "type": "number" },
+        "reviewCount": { "type": "number" },
+        "isAvailableNow": { "type": "boolean" },
+        "verification_status": { "type": "string", "enum": ["pending", "verified"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "trade", "verification_status"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer service request or artisan contract",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "clientId": { "type": "string", "maxLength": 128 },
+        "clientName": { "type": "string", "maxLength": 100 },
+        "artisanId": { "type": "string", "maxLength": 128 },
+        "artisanName": { "type": "string", "maxLength": 100 },
+        "trade": { "type": "string", "maxLength": 60 },
+        "status": { "type": "string", "enum": ["pending", "accepted", "rejected", "in_progress", "completed", "cancelled"] },
+        "wilaya": { "type": "string", "maxLength": 50 },
+        "commune": { "type": "string", "maxLength": 50 },
+        "address": { "type": "string", "maxLength": 200 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "priceEstimatedDzd": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "clientId", "status", "trade"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Private user account profile, read/write restricted to owner"
+    },
+    "/craftsmen_public/{artisanId}": {
+      "schema": "CraftsmanPublic",
+      "description": "Public craftsman directory profile, readable by all, editable by craftsman owner"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Service orders visible and manageable by the client and the artisan"
+    }
+  }
+}

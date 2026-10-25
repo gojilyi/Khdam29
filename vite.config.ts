@@ -17,8 +17,8 @@ export default defineConfig(() => {
           name: 'خدام | منصة الخدمات والحرفيين',
           short_name: 'خـدّام',
           description: 'منصة رقمية خدمية متكاملة لربط طالبي الخدمات بالحرفيين والمهنيين المؤهلين بالقرب منك مع حجز فوري ومراسلة آمنة.',
-          theme_color: '#f59e0b',
-          background_color: '#0f172a',
+          theme_color: '#0F6B3F',
+          background_color: '#FFFFFF',
           display: 'standalone',
           start_url: '/',
           scope: '/',
@@ -46,6 +46,7 @@ export default defineConfig(() => {
           ],
         },
         workbox: {
+          maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
           runtimeCaching: [
             {
