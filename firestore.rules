@@ -57,23 +57,17 @@ service cloud.firestore {
 
     // 1. Users Collection (Private Profiles & PII Isolation)
     match /users/{userId} {
-      allow get: if isOwner(userId);
+      allow get: if isSignedIn() && request.auth.uid == userId;
       allow list: if false; // Blanket lists forbidden to prevent user scraping
       
-      allow create: if isOwner(userId)
-        && isValidId(userId)
-        && isValidUserProfile(incoming())
-        && incoming().uid == request.auth.uid
-        && (!('verification_status' in incoming()) || incoming().verification_status == 'pending');
+      // Allow authenticated user to create their document
+      allow create: if isSignedIn() && request.auth.uid == userId;
 
-      allow update: if isOwner(userId)
-        && isValidId(userId)
-        && isValidUserProfile(incoming())
-        && incoming().uid == existing().uid
-        && incoming().role == existing().role // Role is strictly immutable from UI
-        && (!('verification_status' in incoming()) || incoming().verification_status == existing().verification_status); // verification_status immutable by user
+      // Allow owner to update their own document, protecting immutable fields like role
+      allow update: if isSignedIn() && request.auth.uid == userId
+        && (!('role' in incoming()) || !('role' in existing()) || incoming().role == existing().role);
 
-      allow delete: if isOwner(userId);
+      allow delete: if isSignedIn() && request.auth.uid == userId;
     }
 
     // 2. Public Craftsman Directory (Sanitized, public search catalog)

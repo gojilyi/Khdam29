@@ -18,7 +18,20 @@ import {
   LayoutGrid,
   Box,
   CheckCircle2,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Utensils,
+  HeartPulse,
+  Gamepad2,
+  Tv,
+  CreditCard,
+  Scissors,
+  Sparkles,
+  Users,
+  Truck,
+  Car,
+  Sprout,
+  Smartphone,
+  Key
 } from 'lucide-react';
 import { ALGERIAN_TRADES, formatDZD } from '../data/algeriaData';
 import { Card, Button, Badge, Rating, Avatar } from './ui';
@@ -38,7 +51,36 @@ export const ServicesGrid: React.FC = () => {
     setIsBookingAppointmentModalOpen
   } = useApp();
 
-  const [selectedTradeId, setSelectedTradeId] = useState<string>('all');
+  type CategoryKey = 'all' | 'transport_depannage' | 'farmer_nature' | 'women' | 'digital' | 'maintenance';
+  const [categoryFilter, setCategoryFilter] = useState<CategoryKey>('all');
+
+  const filteredTrades = ALGERIAN_TRADES.filter((trade) => {
+    if (categoryFilter === 'transport_depannage') {
+      return ['transport_mover', 'towing_depannage', 'mechanic', 'car_wash_mobile'].includes(trade.id);
+    }
+    if (categoryFilter === 'farmer_nature') {
+      return ['farmer_gardener'].includes(trade.id);
+    }
+    if (categoryFilter === 'women') {
+      return ['cook_pastry', 'home_nurse', 'tailor_fashion', 'beauty_henna', 'babysitter_nounou', 'home_cleaning'].includes(trade.id);
+    }
+    if (categoryFilter === 'digital') {
+      return ['gaming_recharge', 'channels_iptv', 'digital_balance_flexy', 'phone_pc_repair', 'camera_surveillance'].includes(trade.id);
+    }
+    if (categoryFilter === 'maintenance') {
+      return ['plumber', 'electrician', 'carpenter', 'painter', 'ac_technician', 'mason', 'blacksmith', 'tiler', 'aluminum_technician', 'locksmith_doors'].includes(trade.id);
+    }
+    return true;
+  });
+
+  const categoryCounts = {
+    all: ALGERIAN_TRADES.length,
+    transport_depannage: 4,
+    farmer_nature: 1,
+    women: 6,
+    digital: 5,
+    maintenance: 10
+  };
 
   // Map icon names to Lucide icons
   const getTradeIcon = (iconName: string) => {
@@ -54,12 +96,26 @@ export const ServicesGrid: React.FC = () => {
       case 'Wrench': return <Wrench {...props} />;
       case 'LayoutGrid': return <LayoutGrid {...props} />;
       case 'Box': return <Box {...props} />;
+      case 'Utensils': return <Utensils {...props} />;
+      case 'HeartPulse': return <HeartPulse {...props} />;
+      case 'Gamepad2': return <Gamepad2 {...props} />;
+      case 'Tv': return <Tv {...props} />;
+      case 'CreditCard': return <CreditCard {...props} />;
+      case 'Scissors': return <Scissors {...props} />;
+      case 'Sparkles': return <Sparkles {...props} />;
+      case 'Users': return <Users {...props} />;
+      case 'Truck': return <Truck {...props} />;
+      case 'Car': return <Car {...props} />;
+      case 'Sprout': return <Sprout {...props} />;
+      case 'Smartphone': return <Smartphone {...props} />;
+      case 'ShieldCheck': return <ShieldCheck {...props} />;
+      case 'Key': return <Key {...props} />;
+      case 'SprayCan': return <Sparkles {...props} />;
       default: return <Wrench {...props} />;
     }
   };
 
-  const handleTradeClick = (tradeName: string, tradeId: string) => {
-    setSelectedTradeId(tradeId);
+  const handleTradeClick = (tradeName: string) => {
     setSelectedTradeFilter(tradeName);
     setActiveTab('artisans');
   };
@@ -124,14 +180,91 @@ export const ServicesGrid: React.FC = () => {
           </button>
         </div>
 
+        {/* Category Filter Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+          <button
+            onClick={() => setCategoryFilter('all')}
+            className={`h-9 px-3.5 rounded-full text-[13px] font-bold whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1.5 ${
+              categoryFilter === 'all'
+                ? 'bg-[#0F6B3F] text-white shadow-xs'
+                : 'bg-white border border-[#DDE3DF] text-[#5B6660] hover:text-[#1C2421]'
+            }`}
+          >
+            <span>جميع المهن</span>
+            <span className="text-[11px] opacity-80">({categoryCounts.all})</span>
+          </button>
+
+          <button
+            onClick={() => setCategoryFilter('transport_depannage')}
+            className={`h-9 px-3.5 rounded-full text-[13px] font-bold whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1.5 ${
+              categoryFilter === 'transport_depannage'
+                ? 'bg-[#0F6B3F] text-white shadow-xs'
+                : 'bg-white border border-[#DDE3DF] text-[#5B6660] hover:text-[#1C2421]'
+            }`}
+          >
+            <Truck className="w-3.5 h-3.5" />
+            <span>نقل وديباناج وسيارات</span>
+            <span className="text-[11px] opacity-80">({categoryCounts.transport_depannage})</span>
+          </button>
+
+          <button
+            onClick={() => setCategoryFilter('farmer_nature')}
+            className={`h-9 px-3.5 rounded-full text-[13px] font-bold whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1.5 ${
+              categoryFilter === 'farmer_nature'
+                ? 'bg-[#0F6B3F] text-white shadow-xs'
+                : 'bg-white border border-[#DDE3DF] text-[#5B6660] hover:text-[#1C2421]'
+            }`}
+          >
+            <Sprout className="w-3.5 h-3.5" />
+            <span>فلاحة وبستنة</span>
+            <span className="text-[11px] opacity-80">({categoryCounts.farmer_nature})</span>
+          </button>
+
+          <button
+            onClick={() => setCategoryFilter('women')}
+            className={`h-9 px-3.5 rounded-full text-[13px] font-bold whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1.5 ${
+              categoryFilter === 'women'
+                ? 'bg-[#0F6B3F] text-white shadow-xs'
+                : 'bg-white border border-[#DDE3DF] text-[#5B6660] hover:text-[#1C2421]'
+            }`}
+          >
+            <span>مهن المرأة والطبخ والتمريض</span>
+            <span className="text-[11px] opacity-80">({categoryCounts.women})</span>
+          </button>
+
+          <button
+            onClick={() => setCategoryFilter('digital')}
+            className={`h-9 px-3.5 rounded-full text-[13px] font-bold whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1.5 ${
+              categoryFilter === 'digital'
+                ? 'bg-[#0F6B3F] text-white shadow-xs'
+                : 'bg-white border border-[#DDE3DF] text-[#5B6660] hover:text-[#1C2421]'
+            }`}
+          >
+            <span>شحن ألعاب وتقنية</span>
+            <span className="text-[11px] opacity-80">({categoryCounts.digital})</span>
+          </button>
+
+          <button
+            onClick={() => setCategoryFilter('maintenance')}
+            className={`h-9 px-3.5 rounded-full text-[13px] font-bold whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1.5 ${
+              categoryFilter === 'maintenance'
+                ? 'bg-[#0F6B3F] text-white shadow-xs'
+                : 'bg-white border border-[#DDE3DF] text-[#5B6660] hover:text-[#1C2421]'
+            }`}
+          >
+            <span>صيانة وتصليح وبناء</span>
+            <span className="text-[11px] opacity-80">({categoryCounts.maintenance})</span>
+          </button>
+        </div>
+
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-          {ALGERIAN_TRADES.map((trade) => {
+          {filteredTrades.map((trade) => {
             return (
               <Card
                 key={trade.id}
                 variant="white"
                 isInteractive
-                onClick={() => handleTradeClick(trade.name, trade.id)}
+                onClick={() => handleTradeClick(trade.name)}
                 className="flex flex-col items-center text-center p-4 h-full justify-between"
               >
                 <div className="w-12 h-12 rounded-[8px] bg-[#EEF6F1] flex items-center justify-center mb-3">

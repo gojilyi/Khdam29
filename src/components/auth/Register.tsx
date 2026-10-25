@@ -6,9 +6,7 @@ import {
   Eye, 
   EyeOff, 
   Smartphone, 
-  MapPin, 
   Wrench, 
-  Image as ImageIcon, 
   Plus, 
   X, 
   CheckCircle2, 
@@ -17,10 +15,11 @@ import {
   ArrowRight,
   ShieldCheck,
   DollarSign,
-  Clock
+  Clock,
+  Loader2
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { normalizeAlgerianPhone, translateFirebaseError, UserRole } from '../../services/authService';
+import { normalizeAlgerianPhone, mapAuthError, AuthErrorInfo, UserRole } from '../../services/authService';
 
 interface RegisterProps {
   role: UserRole;
@@ -38,7 +37,23 @@ const TRADES = [
   'حدّاد',
   'ميكانيكي',
   'تبليط',
-  'فني ألمنيوم'
+  'فني ألمنيوم',
+  'طباخة وحلويات منزلية',
+  'تمريض ورعاية صحية منزلية',
+  'شحن ألعاب وبطاقات رقمية',
+  'اشتراكات قنوات وIPTV',
+  'أرصدة إلكترونية وفليكسي',
+  'خياطة وتفصيل أزياء',
+  'تجميل وحلاقة نسائية ونقش حناء',
+  'رعاية أطفال ومربيات (Nounou)',
+  'نقل البضائع والعفش (ديمينجمون)',
+  'ديباناج وسحب سيارات 24/7',
+  'فلاح وبستاني (أشغال فلاحية)',
+  'تنظيف منزلي وغسيل سجاد',
+  'تصليح هواتف وكمبيوتر',
+  'كاميرات مراقبة وأنظمة إنذار',
+  'غسيل وتلميع سيارات متنقل',
+  'أقفال وتصليح أبواب ومفاتيح'
 ];
 
 const WILAYAS = [
@@ -59,7 +74,7 @@ const WILAYAS = [
 ];
 
 export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuccess }) => {
-  const { registerWithEmail } = useAuth();
+  const { registerWithEmail, loginWithGoogle, loginWithFacebook, loginAsGuest, completeInitialProfile } = useAuth();
 
   // Wizard step for craftsman (1, 2, 3)
   const [step, setStep] = useState<number>(1);
@@ -72,7 +87,7 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [avatar, setAvatar] = useState('https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80');
+  const [avatar] = useState('https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80');
 
   // Craftsman specific
   const [trade, setTrade] = useState('سبّاك');
@@ -91,8 +106,9 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
 
   // Validation errors
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [generalError, setGeneralError] = useState<string | null>(null);
+  const [generalError, setGeneralError] = useState<AuthErrorInfo | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingType, setLoadingType] = useState<string | null>(null);
 
   const toggleWilaya = (w: string) => {
     if (selectedWilayas.includes(w)) {
@@ -131,8 +147,8 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
       errs.email = 'يرجى إدخال بريد إلكتروني صحيح';
     }
 
-    if (!password || password.length < 6) {
-      errs.password = 'كلمة المرور يجب أن لا تقل عن 6 أحرف';
+    if (!password || password.length < 8) {
+      errs.password = 'كلمة المرور ضعيفة (8 أحرف على الأقل)';
     }
 
     setErrors(errs);
@@ -191,6 +207,7 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
     }
 
     setLoading(true);
+    setLoadingType('email');
     try {
       const phoneNorm = normalizeAlgerianPhone(phone).normalized;
       await registerWithEmail(email.trim(), password, {
@@ -210,14 +227,66 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
       });
       onSuccess();
     } catch (err: any) {
-      setGeneralError(translateFirebaseError(err.code || err.message));
+      setGeneralError(mapAuthError(err));
     } finally {
       setLoading(false);
+      setLoadingType(null);
+    }
+  };
+
+  const handleGoogleRegister = async () => {
+    setLoading(true);
+    setLoadingType('google');
+    setGeneralError(null);
+    try {
+      const res = await loginWithGoogle();
+      if (!res.profile) {
+        await completeInitialProfile(role, fullName.trim() || undefined);
+      }
+      onSuccess();
+    } catch (err: any) {
+      setGeneralError(mapAuthError(err));
+    } finally {
+      setLoading(false);
+      setLoadingType(null);
+    }
+  };
+
+  const handleFacebookRegister = async () => {
+    setLoading(true);
+    setLoadingType('facebook');
+    setGeneralError(null);
+    try {
+      const res = await loginWithFacebook();
+      if (!res.profile) {
+        await completeInitialProfile(role, fullName.trim() || undefined);
+      }
+      onSuccess();
+    } catch (err: any) {
+      setGeneralError(mapAuthError(err));
+    } finally {
+      setLoading(false);
+      setLoadingType(null);
+    }
+  };
+
+  const handleGuestRegister = async () => {
+    setLoading(true);
+    setLoadingType('guest');
+    setGeneralError(null);
+    try {
+      await loginAsGuest();
+      onSuccess();
+    } catch (err: any) {
+      setGeneralError(mapAuthError(err));
+    } finally {
+      setLoading(false);
+      setLoadingType(null);
     }
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" dir="rtl">
       {/* Role Banner */}
       <div className="p-3 bg-[#EEF6F1] border border-[#DDE3DF] rounded-[8px] flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -232,6 +301,53 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
           </div>
         </div>
       </div>
+
+      {/* Social Register Buttons on Step 1 */}
+      {step === 1 && (
+        <div className="space-y-2">
+          {/* 1. Google */}
+          <button
+            type="button"
+            onClick={handleGoogleRegister}
+            disabled={loading}
+            className="w-full h-11 min-h-[44px] px-4 bg-white hover:bg-[#F8FAF9] active:bg-[#EEF6F1] border border-[#DDE3DF] text-[#1C2421] font-bold rounded-[8px] text-[13px] flex items-center justify-center gap-3 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_1px_2px_rgba(28,36,33,0.05)]"
+          >
+            {loadingType === 'google' ? (
+              <Loader2 className="w-4 h-4 animate-spin text-[#0F6B3F]" />
+            ) : (
+              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+              </svg>
+            )}
+            <span>التسجيل السريع عبر Google</span>
+          </button>
+
+          {/* 2. Facebook */}
+          <button
+            type="button"
+            onClick={handleFacebookRegister}
+            disabled={loading}
+            className="w-full h-11 min-h-[44px] px-4 bg-[#1877F2] hover:bg-[#166FE5] text-white font-bold rounded-[8px] text-[13px] flex items-center justify-center gap-3 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_1px_2px_rgba(24,119,242,0.2)]"
+          >
+            {loadingType === 'facebook' ? (
+              <Loader2 className="w-4 h-4 animate-spin text-white" />
+            ) : (
+              <svg className="w-4 h-4 shrink-0 fill-current" viewBox="0 0 24 24">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+              </svg>
+            )}
+            <span>التسجيل السريع عبر Facebook</span>
+          </button>
+
+          <div className="relative my-2 flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-[#DDE3DF]" /></div>
+            <span className="relative bg-white px-3 text-[11px] text-[#5B6660]">أو التسجيل بالبيانات الكاملة</span>
+          </div>
+        </div>
+      )}
 
       {/* Craftsman 3-Step Progress Bar */}
       {role === 'craftsman' && (
@@ -250,10 +366,20 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
         </div>
       )}
 
+      {/* General Error Banner with Error Code */}
       {generalError && (
-        <div className="p-3 bg-red-50 border border-red-200 text-[#C62828] text-[12px] rounded-[8px] flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0" strokeWidth={1.75} />
-          <span>{generalError}</span>
+        <div className="p-3 bg-red-50 border border-red-200 text-[#C62828] text-[12px] rounded-[8px] flex items-start gap-2.5">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={1.75} />
+          <div className="flex-1 space-y-1">
+            <p className="font-medium leading-relaxed">{generalError.message}</p>
+            {generalError.code && (
+              <div className="pt-0.5">
+                <span className="inline-block text-[10px] font-mono px-1.5 py-0.5 bg-red-100 text-red-900 rounded border border-red-200" dir="ltr">
+                  code: {generalError.code}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -272,7 +398,7 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
                 value={fullName}
                 onChange={(e) => { setFullName(e.target.value); setErrors(p => ({ ...p, fullName: '' })); }}
                 placeholder="مثال: يوسف العربي"
-                className="w-full h-11 bg-white border border-[#DDE3DF] rounded-[8px] px-3 pr-10 text-[13px] text-[#1C2421] focus:outline-none focus:border-[#0F6B3F] focus:ring-1 focus:ring-[#0F6B3F]"
+                className="w-full h-11 min-h-[44px] bg-white border border-[#DDE3DF] rounded-[8px] px-3 pr-10 text-[13px] text-[#1C2421] focus:outline-none focus:border-[#0F6B3F] focus:ring-1 focus:ring-[#0F6B3F]"
               />
               <User className="w-4 h-4 text-[#5B6660] absolute right-3 top-1/2 -translate-y-1/2" strokeWidth={1.75} />
             </div>
@@ -297,7 +423,7 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
                   setErrors(p => ({ ...p, phone: '' }));
                 }}
                 placeholder="0550 12 34 56"
-                className="w-full h-11 bg-white border border-[#DDE3DF] rounded-[8px] px-3 pr-10 text-[13px] font-mono text-[#1C2421] focus:outline-none focus:border-[#0F6B3F] focus:ring-1 focus:ring-[#0F6B3F]"
+                className="w-full h-11 min-h-[44px] bg-white border border-[#DDE3DF] rounded-[8px] px-3 pr-10 text-[13px] font-mono text-[#1C2421] focus:outline-none focus:border-[#0F6B3F] focus:ring-1 focus:ring-[#0F6B3F]"
               />
               <Smartphone className="w-4 h-4 text-[#5B6660] absolute right-3 top-1/2 -translate-y-1/2" strokeWidth={1.75} />
             </div>
@@ -311,7 +437,7 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
               <select
                 value={wilaya}
                 onChange={(e) => setWilaya(e.target.value)}
-                className="w-full h-11 bg-white border border-[#DDE3DF] rounded-[8px] px-2 text-[12px] text-[#1C2421] focus:outline-none focus:border-[#0F6B3F]"
+                className="w-full h-11 min-h-[44px] bg-white border border-[#DDE3DF] rounded-[8px] px-2 text-[12px] text-[#1C2421] focus:outline-none focus:border-[#0F6B3F]"
               >
                 {WILAYAS.map(w => (
                   <option key={w} value={w}>{w}</option>
@@ -325,7 +451,7 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
                 value={commune}
                 onChange={(e) => setCommune(e.target.value)}
                 placeholder="مثال: باب الوادي"
-                className="w-full h-11 bg-white border border-[#DDE3DF] rounded-[8px] px-3 text-[12px] text-[#1C2421] focus:outline-none focus:border-[#0F6B3F]"
+                className="w-full h-11 min-h-[44px] bg-white border border-[#DDE3DF] rounded-[8px] px-3 text-[12px] text-[#1C2421] focus:outline-none focus:border-[#0F6B3F]"
               />
             </div>
           </div>
@@ -343,17 +469,17 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setErrors(p => ({ ...p, email: '' })); }}
                 placeholder="name@example.dz"
-                className="w-full h-11 bg-white border border-[#DDE3DF] rounded-[8px] px-3 pr-10 text-[13px] text-[#1C2421] focus:outline-none focus:border-[#0F6B3F] focus:ring-1 focus:ring-[#0F6B3F]"
+                className="w-full h-11 min-h-[44px] bg-white border border-[#DDE3DF] rounded-[8px] px-3 pr-10 text-[13px] text-[#1C2421] focus:outline-none focus:border-[#0F6B3F] focus:ring-1 focus:ring-[#0F6B3F]"
               />
               <Mail className="w-4 h-4 text-[#5B6660] absolute right-3 top-1/2 -translate-y-1/2" strokeWidth={1.75} />
             </div>
             {errors.email && <p className="text-[11px] text-[#C62828] mt-1">{errors.email}</p>}
           </div>
 
-          {/* Password */}
+          {/* Password (8 characters) */}
           <div>
             <label className="block text-[12px] font-bold text-[#1C2421] mb-1">
-              كلمة المرور (6 أحرف أو أكثر) <span className="text-[#C62828]">*</span>
+              كلمة المرور (8 أحرف أو أكثر) <span className="text-[#C62828]">*</span>
             </label>
             <div className="relative">
               <input
@@ -362,7 +488,7 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setErrors(p => ({ ...p, password: '' })); }}
                 placeholder="••••••••"
-                className="w-full h-11 bg-white border border-[#DDE3DF] rounded-[8px] px-3 pr-10 pl-10 text-[13px] text-[#1C2421] focus:outline-none focus:border-[#0F6B3F] focus:ring-1 focus:ring-[#0F6B3F]"
+                className="w-full h-11 min-h-[44px] bg-white border border-[#DDE3DF] rounded-[8px] px-3 pr-10 pl-10 text-[13px] text-[#1C2421] focus:outline-none focus:border-[#0F6B3F] focus:ring-1 focus:ring-[#0F6B3F]"
               />
               <Lock className="w-4 h-4 text-[#5B6660] absolute right-3 top-1/2 -translate-y-1/2" strokeWidth={1.75} />
               <button
@@ -381,16 +507,16 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-11 bg-[#0F6B3F] hover:bg-[#0A4D2E] disabled:opacity-50 text-white font-bold rounded-[8px] text-[14px] flex items-center justify-center gap-2 transition-colors cursor-pointer mt-3"
+              className="w-full h-11 min-h-[44px] bg-[#0F6B3F] hover:bg-[#0A4D2E] disabled:opacity-50 text-white font-bold rounded-[8px] text-[14px] flex items-center justify-center gap-2 transition-colors cursor-pointer mt-3"
             >
-              <span>{loading ? 'جاري إنشاء الحساب...' : 'إنشاء حساب طالب خدمة'}</span>
-              <CheckCircle2 className="w-4 h-4" strokeWidth={1.75} />
+              {loadingType === 'email' ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" strokeWidth={1.75} />}
+              <span>{loadingType === 'email' ? 'جاري إنشاء الحساب...' : 'إنشاء حساب طالب خدمة'}</span>
             </button>
           ) : (
             <button
               type="button"
               onClick={handleNextStep}
-              className="w-full h-11 bg-[#0F6B3F] hover:bg-[#0A4D2E] text-white font-bold rounded-[8px] text-[14px] flex items-center justify-center gap-2 transition-colors cursor-pointer mt-3"
+              className="w-full h-11 min-h-[44px] bg-[#0F6B3F] hover:bg-[#0A4D2E] text-white font-bold rounded-[8px] text-[14px] flex items-center justify-center gap-2 transition-colors cursor-pointer mt-3"
             >
               <span>المتابعة إلى بيانات المهنة (الخطوة 2)</span>
               <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
@@ -410,7 +536,7 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
             <select
               value={trade}
               onChange={(e) => setTrade(e.target.value)}
-              className="w-full h-11 bg-white border border-[#DDE3DF] rounded-[8px] px-3 text-[13px] text-[#1C2421] font-bold focus:outline-none focus:border-[#0F6B3F]"
+              className="w-full h-11 min-h-[44px] bg-white border border-[#DDE3DF] rounded-[8px] px-3 text-[13px] text-[#1C2421] font-bold focus:outline-none focus:border-[#0F6B3F]"
             >
               {TRADES.map(t => (
                 <option key={t} value={t}>{t}</option>
@@ -430,7 +556,7 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
                   max={50}
                   value={experienceYears}
                   onChange={(e) => setExperienceYears(parseInt(e.target.value) || 0)}
-                  className="w-full h-11 bg-white border border-[#DDE3DF] rounded-[8px] px-3 pr-8 text-[13px] text-[#1C2421] focus:outline-none focus:border-[#0F6B3F]"
+                  className="w-full h-11 min-h-[44px] bg-white border border-[#DDE3DF] rounded-[8px] px-3 pr-8 text-[13px] text-[#1C2421] focus:outline-none focus:border-[#0F6B3F]"
                 />
                 <Clock className="w-4 h-4 text-[#5B6660] absolute right-2.5 top-1/2 -translate-y-1/2" strokeWidth={1.75} />
               </div>
@@ -445,7 +571,7 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
                   min={500}
                   value={approxPrice}
                   onChange={(e) => setApproxPrice(parseInt(e.target.value) || 2500)}
-                  className="w-full h-11 bg-white border border-[#DDE3DF] rounded-[8px] px-3 pr-8 text-[13px] text-[#1C2421] focus:outline-none focus:border-[#0F6B3F]"
+                  className="w-full h-11 min-h-[44px] bg-white border border-[#DDE3DF] rounded-[8px] px-3 pr-8 text-[13px] text-[#1C2421] focus:outline-none focus:border-[#0F6B3F]"
                 />
                 <DollarSign className="w-4 h-4 text-[#5B6660] absolute right-2.5 top-1/2 -translate-y-1/2" strokeWidth={1.75} />
               </div>
@@ -498,7 +624,7 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
             <button
               type="button"
               onClick={() => setStep(1)}
-              className="h-11 bg-white hover:bg-[#EEF6F1] border border-[#DDE3DF] text-[#1C2421] font-bold rounded-[8px] text-[13px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              className="h-11 min-h-[44px] bg-white hover:bg-[#EEF6F1] border border-[#DDE3DF] text-[#1C2421] font-bold rounded-[8px] text-[13px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
               <ArrowRight className="w-4 h-4" strokeWidth={1.75} />
               <span>الرجوع</span>
@@ -507,7 +633,7 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
             <button
               type="button"
               onClick={handleNextStep}
-              className="h-11 bg-[#0F6B3F] hover:bg-[#0A4D2E] text-white font-bold rounded-[8px] text-[13px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              className="h-11 min-h-[44px] bg-[#0F6B3F] hover:bg-[#0A4D2E] text-white font-bold rounded-[8px] text-[13px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
               <span>معرض الأعمال (الخطوة 3)</span>
               <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
@@ -553,7 +679,7 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
               value={newImageInput}
               onChange={(e) => setNewImageInput(e.target.value)}
               placeholder="https://example.com/work.jpg"
-              className="flex-1 h-10 bg-white border border-[#DDE3DF] rounded-[8px] px-3 text-[12px] text-[#1C2421] focus:outline-none focus:border-[#0F6B3F]"
+              className="flex-1 h-10 min-h-[40px] bg-white border border-[#DDE3DF] rounded-[8px] px-3 text-[12px] text-[#1C2421] focus:outline-none focus:border-[#0F6B3F]"
             />
             <button
               type="button"
@@ -577,7 +703,7 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
             <button
               type="button"
               onClick={() => setStep(2)}
-              className="h-11 bg-white hover:bg-[#EEF6F1] border border-[#DDE3DF] text-[#1C2421] font-bold rounded-[8px] text-[13px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              className="h-11 min-h-[44px] bg-white hover:bg-[#EEF6F1] border border-[#DDE3DF] text-[#1C2421] font-bold rounded-[8px] text-[13px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
               <ArrowRight className="w-4 h-4" strokeWidth={1.75} />
               <span>الرجوع</span>
@@ -586,14 +712,26 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
             <button
               type="submit"
               disabled={loading || portfolioImages.length < 3}
-              className="h-11 bg-[#0F6B3F] hover:bg-[#0A4D2E] disabled:opacity-50 text-white font-bold rounded-[8px] text-[13px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              className="h-11 min-h-[44px] bg-[#0F6B3F] hover:bg-[#0A4D2E] disabled:opacity-50 text-white font-bold rounded-[8px] text-[13px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" strokeWidth={1.75} />}
               <span>{loading ? 'جاري التسجيل...' : 'إتمام تسجيل الحرفي'}</span>
-              <CheckCircle2 className="w-4 h-4" strokeWidth={1.75} />
             </button>
           </div>
         </form>
       )}
+
+      {/* Guest Browse Option */}
+      <div className="pt-1 text-center">
+        <button
+          type="button"
+          onClick={handleGuestRegister}
+          disabled={loading}
+          className="text-[12px] font-bold text-[#5B6660] hover:text-[#0F6B3F] transition-colors cursor-pointer py-1 underline decoration-[#DDE3DF] underline-offset-4"
+        >
+          {loadingType === 'guest' ? 'جاري الدخول كزائر...' : 'تصفّح كزائر دون تسجيل'}
+        </button>
+      </div>
 
       {/* Switch to Login */}
       <div className="pt-3 border-t border-[#DDE3DF] text-center">

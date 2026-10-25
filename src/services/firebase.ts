@@ -3,10 +3,23 @@ import { getAuth } from 'firebase/auth';
 import { doc, getDocFromServer, getFirestore } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+// Construct complete, verified configuration object from firebase-applet-config.json
+const options = {
+  apiKey: firebaseConfig.apiKey || '',
+  authDomain: firebaseConfig.authDomain || '',
+  projectId: firebaseConfig.projectId || '',
+  storageBucket: firebaseConfig.storageBucket || '',
+  messagingSenderId: firebaseConfig.messagingSenderId || '',
+  appId: firebaseConfig.appId || '',
+  measurementId: firebaseConfig.measurementId || ''
+};
+
+const app = getApps().length === 0 ? initializeApp(options) : getApps()[0];
 
 // Export configured database with specific firestoreDatabaseId
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const db = firebaseConfig.firestoreDatabaseId
+  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
+  : getFirestore(app);
 export const auth = getAuth(app);
 
 // Error logging helper conforming to skill requirement

@@ -109,8 +109,8 @@ export const Header: React.FC = () => {
               <button
                 key={item.id}
                 onClick={() => {
-                  if (item.id === 'chat' && !isLoggedIn) {
-                    openAuthModalWithRedirect('chat');
+                  if ((item.id === 'orders' || item.id === 'chat') && !isLoggedIn) {
+                    openAuthModalWithRedirect(item.id, item.id === 'orders' ? 'أنشئ حساب لإكمال ومتابعة طلباتك' : 'أنشئ حساب لمراسلة الحرفيين');
                     setIsAuthModalOpen(true);
                   } else {
                     setActiveTab(item.id);

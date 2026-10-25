@@ -1,5 +1,6 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { 
   Phone, 
   MapPin, 
@@ -22,8 +23,11 @@ export const ArtisanProfileModal: React.FC = () => {
     startCall, 
     setIsChatOpen,
     setBookingModalService,
+    setIsAuthModalOpen,
     reviews 
   } = useApp();
+
+  const { isLoggedIn, isAnonymous, openAuthModalWithRedirect } = useAuth();
 
   if (!selectedArtisan) return null;
 
@@ -98,6 +102,11 @@ export const ArtisanProfileModal: React.FC = () => {
             variant="primary"
             leftIcon={<Plus className="w-4 h-4" strokeWidth={1.75} />}
             onClick={() => {
+              if (!isLoggedIn || isAnonymous) {
+                openAuthModalWithRedirect(undefined, 'أنشئ حساب لإكمال طلبك واختيار موعد مع الحرفي');
+                setIsAuthModalOpen(true);
+                return;
+              }
               setBookingModalService({
                 categoryId: selectedArtisan.categoryId,
                 subServiceId: selectedArtisan.subCategoryIds[0] || 'plumbing',
@@ -121,6 +130,11 @@ export const ArtisanProfileModal: React.FC = () => {
             variant="secondary"
             leftIcon={<MessageSquare className="w-4 h-4 text-[#0F6B3F]" strokeWidth={1.75} />}
             onClick={() => {
+              if (!isLoggedIn || isAnonymous) {
+                openAuthModalWithRedirect(undefined, 'أنشئ حساب لمراسلة الحرفي مباشرة');
+                setIsAuthModalOpen(true);
+                return;
+              }
               setIsChatOpen(true);
               setSelectedArtisan(null);
             }}

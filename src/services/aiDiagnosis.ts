@@ -257,6 +257,142 @@ export function getLocalHeuristicDiagnosis(
     };
   }
 
+  // 7. Cooking & Home Sweets / طبخ وحلويات منزلية
+  if (
+    text.includes('طبخ') || text.includes('طباخة') || text.includes('وليمة') ||
+    text.includes('عرس') || text.includes('حلويات') || text.includes('كسكسي') ||
+    text.includes('رشتة') || text.includes('شخشوخة') || text.includes('بقلاوة') ||
+    text.includes('تارت') || text.includes('مقروط')
+  ) {
+    return {
+      problem_title: 'طلب إعداد ولائم وأطباق وحلويات منزلية',
+      profession: 'طباخة وحلويات منزلية',
+      alternative_professions: ['خياطة وتفصيل أزياء', 'تجميل وحلاقة نسائية ونقش حناء'],
+      urgency: 'عادي',
+      possible_causes: [
+        'تحضير لمناسبة عائلية أو عرس أو عزومة ضيوف',
+        'الحاجة لأطباق تقليدية متقنة بكميات مخصصة'
+      ],
+      quick_tips: [
+        'حدّد عدد الضيوف ونوع الأطباق أو صواني الحلويات المطلوبة بدقة.',
+        'احجز موعد الطباخة قبل المناسبة بأيام كافية لتأمين المكونات الطازجة.'
+      ],
+      estimated_price_dzd: { min: 3000, max: 15000 },
+      safety_warning: '',
+      needs_more_info: false,
+      follow_up_question: ''
+    };
+  }
+
+  // 8. Home Nursing & Healthcare / تمريض ورعاية صحية منزلية
+  if (
+    text.includes('تمريض') || text.includes('ممرضة') || text.includes('شوكة') ||
+    text.includes('حقنة') || text.includes('سيروم') || text.includes('تضميد') ||
+    text.includes('ضماد') || text.includes('قرحة') || text.includes('كبار السن') ||
+    text.includes('ضغط') || text.includes('سكر') || text.includes('مريض')
+  ) {
+    return {
+      problem_title: 'طلب رعاية صحية وتمريض منزلي',
+      profession: 'تمريض ورعاية صحية منزلية',
+      alternative_professions: ['رعاية أطفال ومربيات (Nounou)'],
+      urgency: text.includes('عاجل') || text.includes('نزيف') ? 'عاجل' : 'عادي',
+      possible_causes: [
+        'حاجة إلى حقنة علاجية دورية أو محلول وريدي (سيروم)',
+        'تغيير وتطهير ضماد جراحي أو متابعة حالة مريض بالمنزل'
+      ],
+      quick_tips: [
+        'تأكد من توفير الوصفة الطبية (Ordonnance) والدواء المطلوب من الصيدلية مسبقاً.',
+        'احرص على تهوية غرفة المريض وتجهيز مكان نظيف ومعقم.'
+      ],
+      estimated_price_dzd: { min: 1500, max: 4000 },
+      safety_warning: text.includes('ضيق تنفس') ? 'إذا كان المريض يعاني من صعوبة حادة في التنفس يرجى الاتصال بالإسعاف والحماية المدنية 14 فوراً.' : '',
+      needs_more_info: false,
+      follow_up_question: ''
+    };
+  }
+
+  // 9. Gaming Recharge / شحن ألعاب وبطاقات رقمية
+  if (
+    text.includes('شحن') || text.includes('فري فاير') || text.includes('free fire') ||
+    text.includes('ببجي') || text.includes('pubg') || text.includes('شدات') ||
+    text.includes('جواهر') || text.includes('روبلوكس') || text.includes('بلايستيشن') ||
+    text.includes('psn') || text.includes('steam') || text.includes('ألعاب')
+  ) {
+    return {
+      problem_title: 'شحن ألعاب إلكترونية وبطاقات رقمية فوري',
+      profession: 'شحن ألعاب وبطاقات رقمية',
+      alternative_professions: ['أرصدة إلكترونية وفليكسي', 'اشتراكات قنوات وIPTV'],
+      urgency: 'عادي',
+      possible_causes: [
+        'تفعيل رويال باس أو شحن جواهر فري فاير أو سكنات الألعاب',
+        'شراء بطاقة متجر PlayStation أو Steam أو Robux'
+      ],
+      quick_tips: [
+        'تأكد من كتابة معرف اللاعب (ID) بدقة لتفادي أي خطأ في الإرسال.',
+        'احتفظ بوصل التحويل عبر BaridiMob أو CCP لتسريع عملية التأكيد.'
+      ],
+      estimated_price_dzd: { min: 250, max: 4500 },
+      safety_warning: '',
+      needs_more_info: false,
+      follow_up_question: ''
+    };
+  }
+
+  // 10. Channels & IPTV / اشتراكات قنوات وIPTV
+  if (
+    text.includes('iptv') || text.includes('قنوات') || text.includes('بين سبورت') ||
+    text.includes('bein') || text.includes('شاهد') || text.includes('نتفليكس') ||
+    text.includes('netflix') || text.includes('tod') || text.includes('سيرفر') ||
+    text.includes('ماتش') || text.includes('كود تفعيل')
+  ) {
+    return {
+      problem_title: 'اشتراك قنوات تلفزيونية وسيرفرات IPTV وبث',
+      profession: 'اشتراكات قنوات وIPTV',
+      alternative_professions: ['شحن ألعاب وبطاقات رقمية'],
+      urgency: 'عادي',
+      possible_causes: [
+        'تفعيل سيرفر IPTV لمتابعة مباريات كرة القدم والقنوات المشفرة',
+        'تجديد اشتراك منصات البث والأفلام بجودة 4K'
+      ],
+      quick_tips: [
+        'تأكد من استقرار سرعة الإنترنت لديك (4Mbps على الأقل للبث عالي الدقة).',
+        'اطلب كود تجريبي (Test) للتأكد من توافق السيرفر مع جهاز التلفاز الخاص بك.'
+      ],
+      estimated_price_dzd: { min: 1500, max: 4500 },
+      safety_warning: '',
+      needs_more_info: false,
+      follow_up_question: ''
+    };
+  }
+
+  // 11. Electronic Balances & Flexy / أرصدة إلكترونية وفليكسي
+  if (
+    text.includes('فليكسي') || text.includes('جازي') || text.includes('djezzy') ||
+    text.includes('موبيليس') || text.includes('mobilis') || text.includes('أوريدو') ||
+    text.includes('ooredoo') || text.includes('بريدي موب') || text.includes('baridimob') ||
+    text.includes('بايسيرا') || text.includes('paysera') || text.includes('وايز') ||
+    text.includes('رصيد')
+  ) {
+    return {
+      problem_title: 'شحن رصيد الهاتف فليكسي أو تحويلات إلكترونية',
+      profession: 'أرصدة إلكترونية وفليكسي',
+      alternative_professions: ['شحن ألعاب وبطاقات رقمية'],
+      urgency: 'عادي',
+      possible_causes: [
+        'تعبئة رصيد المكالمات والإنترنت وتفعيل الباقات الشهرية',
+        'تحويل رصيد مالي عبر BaridiMob أو شحن بطاقة فيزا إلكترونية'
+      ],
+      quick_tips: [
+        'راجع رقم الهاتف أو رقم الحساب RIP جيداً قبل تأكيد التحويل.',
+        'الدفع فوري ومحمي بضمان منصة خدام.'
+      ],
+      estimated_price_dzd: { min: 500, max: 2000 },
+      safety_warning: '',
+      needs_more_info: false,
+      follow_up_question: ''
+    };
+  }
+
   // Generic domestic fallback
   return {
     problem_title: 'عطل منزلي يحتاج لمعاينة فنية متخصصة',

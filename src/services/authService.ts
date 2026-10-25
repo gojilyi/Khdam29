@@ -5,14 +5,19 @@ import {
   sendPasswordResetEmail,
   sendEmailVerification,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+  signInAnonymously,
+  linkWithPopup,
   GoogleAuthProvider,
+  FacebookAuthProvider,
   RecaptchaVerifier,
   signInWithPhoneNumber,
   ConfirmationResult,
   User,
-  fetchSignInMethodsForEmail
+  AuthProvider
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db, handleFirestoreError, OperationType } from './firebase';
 
 export type UserRole = 'client' | 'craftsman';
@@ -43,6 +48,75 @@ export interface UserProfileData {
   reviewCount?: number;
 }
 
+export interface AuthErrorInfo {
+  message: string;
+  code?: string;
+}
+
+// Map Firebase Auth and Firestore errors to clean Arabic with real error codes
+export function mapAuthError(err: any): AuthErrorInfo {
+  const code: string = err?.code || (err?.message?.includes('permission-denied') ? 'permission-denied' : '') || '';
+  const messageStr = String(err?.message || '');
+
+  switch (code) {
+    case 'auth/operation-not-allowed':
+      return { message: 'طريقة الدخول غير مفعّلة في Firebase، يرجى تفعيلها من لوحة التحكم.', code };
+    case 'auth/unauthorized-domain':
+      return { message: 'النطاق غير مضاف في قائمة النطاقات المصرح بها (Authorized domains) في Firebase.', code };
+    case 'auth/invalid-api-key':
+    case 'auth/api-key-not-valid':
+      return { message: 'إعدادات Firebase غير صحيحة، يرجى التحقق من مفتاح API.', code };
+    case 'auth/email-already-in-use':
+      return { message: 'هذا البريد مسجّل مسبقًا، يمكنك تسجيل الدخول مباشرة.', code };
+    case 'auth/weak-password':
+      return { message: 'كلمة المرور ضعيفة (8 أحرف على الأقل).', code };
+    case 'auth/network-request-failed':
+      return { message: 'تحقق من الاتصال بالإنترنت وأعد المحاولة.', code };
+    case 'auth/popup-blocked':
+    case 'auth/popup-closed-by-user':
+      return { message: 'تم إغلاق نافذة الدخول، حاول مجددًا.', code };
+    case 'auth/account-exists-with-different-credential':
+      return { message: 'هذا البريد مسجّل بطريقة أخرى (Google مثلًا)، يرجى تسجيل الدخول بها أولًا.', code };
+    case 'permission-denied':
+      return { message: 'ليس لديك صلاحية الكتابة، راجع قواعد Firestore.', code };
+    case 'auth/invalid-verification-code':
+      return { message: 'رمز التحقق (OTP) الذي أدخلته غير صحيح.', code };
+    case 'auth/code-expired':
+      return { message: 'انتهت صلاحية رمز التحقق، يرجى طلب رمز جديد.', code };
+    case 'auth/too-many-requests':
+      return { message: 'تم تجاوز الحد الأقصى للمحاولات، تم قفل العمليات مؤقتاً لحمايتك. انتظر قليلاً.', code };
+    case 'auth/user-not-found':
+      return { message: 'لا يوجد حساب مسجل بهذا البريد الإلكتروني.', code };
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+      return { message: 'بيانات الدخول غير صحيحة، يرجى التحقق من البريد وكلمة المرور.', code };
+    case 'auth/invalid-email':
+      return { message: 'صيغة البريد الإلكتروني غير صالحة.', code };
+    case 'auth/invalid-phone-number':
+      return { message: 'رقم الهاتف الجزائري غير صالح.', code };
+    case 'auth/credential-already-in-use':
+      return { message: 'هذا الحساب مرتبط بالفعل بحساب آخر مسجل.', code };
+    default:
+      if (messageStr.includes('permission-denied')) {
+        return { message: 'ليس لديك صلاحية الكتابة، راجع قواعد Firestore.', code: 'permission-denied' };
+      }
+      return {
+        message: err?.message && typeof err.message === 'string' && !err.message.includes('Firebase:')
+          ? err.message
+          : 'حدث خطأ أثناء معالجة الطلب، يرجى المحاولة مرة أخرى.',
+        code: code || undefined
+      };
+  }
+}
+
+// Backwards compatibility helper returning string message
+export function translateFirebaseError(codeOrErr: any): string {
+  if (typeof codeOrErr === 'string') {
+    return mapAuthError({ code: codeOrErr }).message;
+  }
+  return mapAuthError(codeOrErr).message;
+}
+
 // 5-attempt rate-limiting / anti-brute force lockout
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
@@ -51,7 +125,7 @@ export function checkRateLimit(): { isLocked: boolean; remainingMinutes?: number
   try {
     const raw = localStorage.getItem('khodam_auth_lockout');
     if (!raw) return { isLocked: false };
-    const { count, lockedUntil } = JSON.parse(raw);
+    const { lockedUntil } = JSON.parse(raw);
     const now = Date.now();
     if (lockedUntil && now < lockedUntil) {
       const remainingMinutes = Math.ceil((lockedUntil - now) / 60000);
@@ -113,45 +187,11 @@ export function normalizeAlgerianPhone(input: string): { isValid: boolean; norma
     };
   }
 
-  // Convert to international +213 format
   const international = '+213' + clean.slice(1);
   return { isValid: true, normalized: international };
 }
 
-// Arabic translation for Firebase error codes
-export function translateFirebaseError(errCode: string): string {
-  switch (errCode) {
-    case 'auth/user-not-found':
-      return 'لا يوجد حساب مسجل بهذا البريد الإلكتروني.';
-    case 'auth/wrong-password':
-    case 'auth/invalid-credential':
-      return 'بيانات الدخول غير صحيحة، يرجى التحقق من البريد وكلمة المرور.';
-    case 'auth/email-already-in-use':
-      return 'البريد الإلكتروني مسجل مسبقاً، يمكنك تسجيل الدخول أو استعادة كلمة المرور.';
-    case 'auth/weak-password':
-      return 'كلمة المرور ضعيفة، يجب أن تحتوي على 6 أحرف أو أرقام على الأقل.';
-    case 'auth/invalid-email':
-      return 'صيغة البريد الإلكتروني غير صالحة.';
-    case 'auth/invalid-phone-number':
-      return 'رقم الهاتف غير صالح للدولة المحددة.';
-    case 'auth/code-expired':
-      return 'انتهت صلاحية رمز التحقق، يرجى طلب رمز جديد.';
-    case 'auth/invalid-verification-code':
-      return 'رمز التحقق (OTP) الذي أدخلته غير صحيح.';
-    case 'auth/too-many-requests':
-      return 'تم تجاوز الحد الأقصى للمحاولات، تم قفل العمليات مؤقتاً لحمايتك. حاول لاحقاً.';
-    case 'auth/popup-closed-by-user':
-      return 'تم إغلاق نافذة تسجيل الدخول قبل اكتمال العملية.';
-    case 'auth/network-request-failed':
-      return 'تعذر الاتصال بالشبكة، يرجى التأكد من اتصالك بالإنترنت.';
-    case 'auth/account-exists-with-different-credential':
-      return 'يوجد حساب مسجل بالفعل بنفس البريد الإلكتروني عبر وسيلة دخول أخرى.';
-    default:
-      return 'حدث خطأ أثناء معالجة الطلب، يرجى المحاولة مرة أخرى.';
-  }
-}
-
-// User Document in Firestore
+// Get User Document from Firestore
 export async function getUserProfile(uid: string): Promise<UserProfileData | null> {
   const path = `users/${uid}`;
   try {
@@ -211,7 +251,7 @@ export async function createUserProfileDoc(
   }
 }
 
-// Sync public craftsman profile (without private phone or direct personal PII)
+// Sync public craftsman profile
 export async function syncPublicCraftsmanProfile(uid: string, profile: UserProfileData) {
   const publicPath = `craftsmen_public/${uid}`;
   const publicDoc = {
@@ -242,7 +282,6 @@ export async function syncPublicCraftsmanProfile(uid: string, profile: UserProfi
 // Update profile
 export async function updateUserProfileDoc(uid: string, data: Partial<UserProfileData>) {
   const path = `users/${uid}`;
-  // Prevent role tampering from client
   const safeData = { ...data };
   delete (safeData as any).role;
   delete (safeData as any).verification_status;
@@ -279,18 +318,38 @@ export async function toggleCraftsmanAvailability(uid: string, isAvailable: bool
   }
 }
 
-// Auth operations
+/**
+ * Separated registration:
+ * Step 1: Create user account in Firebase Auth.
+ * Step 2: In a separate try/catch, save the user's Firestore document.
+ * If Firestore write fails, do not report "registration failed", but inform user.
+ */
 export async function registerWithEmail(
   email: string,
   pass: string,
   profile: Partial<UserProfileData> & { role: UserRole; displayName: string }
-): Promise<UserProfileData> {
-  const cred = await createUserWithEmailAndPassword(auth, email, pass);
-  // Send email verification
+): Promise<{ user: User; profile: UserProfileData }> {
+  // Step 1: Auth account creation
+  let userCred;
   try {
-    await sendEmailVerification(cred.user);
+    userCred = await createUserWithEmailAndPassword(auth, email, pass);
+  } catch (err: any) {
+    throw err;
+  }
+
+  // Attempt verification email
+  try {
+    await sendEmailVerification(userCred.user);
   } catch {}
-  return await createUserProfileDoc(cred.user, profile);
+
+  // Step 2: Firestore document write inside separate try/catch
+  try {
+    const savedProfile = await createUserProfileDoc(userCred.user, profile);
+    return { user: userCred.user, profile: savedProfile };
+  } catch (fsErr: any) {
+    const mapped = mapAuthError(fsErr);
+    throw new Error(`تم إنشاء حسابك بنجاح، لكن حدث خطأ أثناء حفظ الملف الشخصي (${mapped.message}). يُرجى استكمال بياناتك من حسابي.`);
+  }
 }
 
 export async function loginWithEmail(email: string, pass: string): Promise<User> {
@@ -313,35 +372,115 @@ export async function sendResetPassword(email: string): Promise<void> {
   await sendPasswordResetEmail(auth, email);
 }
 
-// Google Sign In with 1-click
-export async function signInWithGoogle(
-  intendedRole: UserRole = 'client'
-): Promise<{ user: User; profile: UserProfileData; isNewUser: boolean }> {
+// Google Sign-In with popup + redirect fallback
+export async function signInWithGoogle(): Promise<{ user: User; profile: UserProfileData | null; isNewUser: boolean }> {
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
-  const result = await signInWithPopup(auth, provider);
-  const user = result.user;
 
-  // Check if profile exists
-  let profile = await getUserProfile(user.uid);
-  let isNewUser = false;
-
-  if (!profile) {
-    isNewUser = true;
-    profile = await createUserProfileDoc(user, {
-      role: intendedRole,
-      displayName: user.displayName || 'مستخدم جديد',
-      email: user.email || '',
-      avatar: user.photoURL || undefined
-    });
+  let user: User;
+  try {
+    const result = await signInWithPopup(auth, provider);
+    user = result.user;
+  } catch (popupErr: any) {
+    // If popup blocked or inside restricted environment, fallback to redirect
+    if (
+      popupErr?.code === 'auth/popup-blocked' ||
+      popupErr?.code === 'auth/popup-closed-by-user' ||
+      popupErr?.code === 'auth/cancelled-popup-request' ||
+      window.self !== window.top // inside iframe
+    ) {
+      await signInWithRedirect(auth, provider);
+      throw popupErr;
+    }
+    throw popupErr;
   }
 
-  return { user, profile, isNewUser };
+  const profile = await getUserProfile(user.uid);
+  return {
+    user,
+    profile,
+    isNewUser: !profile
+  };
+}
+
+// Facebook Sign-In with popup + redirect fallback
+export async function signInWithFacebook(): Promise<{ user: User; profile: UserProfileData | null; isNewUser: boolean }> {
+  const provider = new FacebookAuthProvider();
+  provider.addScope('email');
+  provider.addScope('public_profile');
+
+  let user: User;
+  try {
+    const result = await signInWithPopup(auth, provider);
+    user = result.user;
+  } catch (popupErr: any) {
+    if (
+      popupErr?.code === 'auth/popup-blocked' ||
+      popupErr?.code === 'auth/popup-closed-by-user' ||
+      popupErr?.code === 'auth/cancelled-popup-request' ||
+      window.self !== window.top
+    ) {
+      await signInWithRedirect(auth, provider);
+      throw popupErr;
+    }
+    throw popupErr;
+  }
+
+  const profile = await getUserProfile(user.uid);
+  return {
+    user,
+    profile,
+    isNewUser: !profile
+  };
+}
+
+// Anonymous / Guest Sign-In ("تصفّح كزائر")
+export async function signInAsGuest(): Promise<User> {
+  const result = await signInAnonymously(auth);
+  return result.user;
+}
+
+// Upgrade Guest Account by linking with Provider (Google / Facebook)
+export async function upgradeGuestAccount(
+  provider: AuthProvider
+): Promise<{ user: User; profile: UserProfileData | null; isNewUser: boolean }> {
+  if (!auth.currentUser) {
+    throw new Error('لا يوجد حساب زائر نشط للترقية');
+  }
+
+  try {
+    const result = await linkWithPopup(auth.currentUser, provider);
+    const user = result.user;
+    const profile = await getUserProfile(user.uid);
+    return {
+      user,
+      profile,
+      isNewUser: !profile
+    };
+  } catch (err: any) {
+    throw err;
+  }
+}
+
+// Check redirect result on application boot
+export async function checkRedirectResult(): Promise<{ user: User; profile: UserProfileData | null; isNewUser: boolean } | null> {
+  try {
+    const result = await getRedirectResult(auth);
+    if (!result || !result.user) return null;
+    const user = result.user;
+    const profile = await getUserProfile(user.uid);
+    return {
+      user,
+      profile,
+      isNewUser: !profile
+    };
+  } catch (err) {
+    return null;
+  }
 }
 
 // Phone Auth with RecaptchaVerifier
 export function setupRecaptcha(containerId: string): RecaptchaVerifier {
-  // Clear any existing verifier
   if ((window as any).recaptchaVerifier) {
     try {
       (window as any).recaptchaVerifier.clear();

@@ -20,10 +20,11 @@ export const BottomNav: React.FC = () => {
     activeOrders, 
     openSmartDiagnosis,
     artisanOnline,
-    toggleArtisanOnline
+    toggleArtisanOnline,
+    setIsAuthModalOpen
   } = useApp();
 
-  const { role: authRole, toggleAvailability } = useAuth();
+  const { role: authRole, toggleAvailability, isLoggedIn, isAnonymous, openAuthModalWithRedirect } = useAuth();
   const isArtisan = authRole === 'craftsman';
 
   const handleToggleOnline = async () => {
@@ -152,7 +153,14 @@ export const BottomNav: React.FC = () => {
         {/* 4. Orders (Client) OR Messages (Artisan) */}
         {isArtisan ? (
           <button
-            onClick={() => setActiveTab('chat')}
+            onClick={() => {
+              if (!isLoggedIn || isAnonymous) {
+                openAuthModalWithRedirect('chat', 'أنشئ حساب لإكمال مراسلة الزبائن والحرفيين');
+                setIsAuthModalOpen(true);
+                return;
+              }
+              setActiveTab('chat');
+            }}
             className="flex flex-col items-center justify-center min-h-[48px] min-w-[44px] py-1 select-none transition-colors duration-150 cursor-pointer"
             aria-label="الرسائل"
             aria-current={activeTab === 'chat' ? 'page' : undefined}
@@ -173,7 +181,14 @@ export const BottomNav: React.FC = () => {
           </button>
         ) : (
           <button
-            onClick={() => setActiveTab('orders')}
+            onClick={() => {
+              if (!isLoggedIn || isAnonymous) {
+                openAuthModalWithRedirect('orders', 'أنشئ حساب لإكمال ومتابعة طلباتك');
+                setIsAuthModalOpen(true);
+                return;
+              }
+              setActiveTab('orders');
+            }}
             className="flex flex-col items-center justify-center min-h-[48px] min-w-[44px] py-1 select-none transition-colors duration-150 cursor-pointer"
             aria-label="طلباتي"
             aria-current={activeTab === 'orders' ? 'page' : undefined}

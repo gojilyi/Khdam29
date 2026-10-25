@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { onAuthStateChanged, User, ConfirmationResult } from 'firebase/auth';
+import { onAuthStateChanged, User, ConfirmationResult, GoogleAuthProvider, FacebookAuthProvider } from 'firebase/auth';
 import { auth } from '../services/firebase';
 import {
   UserProfileData,
@@ -8,6 +8,10 @@ import {
   createUserProfileDoc,
   updateUserProfileDoc,
   signInWithGoogle as authSignInWithGoogle,
+  signInWithFacebook as authSignInWithFacebook,
+  signInAsGuest as authSignInAsGuest,
+  upgradeGuestAccount as authUpgradeGuestAccount,
+  checkRedirectResult,
   loginWithEmail as authLoginWithEmail,
   registerWithEmail as authRegisterWithEmail,
   sendResetPassword as authSendResetPassword,
@@ -24,6 +28,7 @@ interface AuthContextType {
   role: UserRole | null;
   loading: boolean;
   isLoggedIn: boolean;
+  isAnonymous: boolean;
   isProfileComplete: boolean;
 
   // Actions
@@ -33,7 +38,11 @@ interface AuthContextType {
     pass: string,
     profileData: Partial<UserProfileData> & { role: UserRole; displayName: string }
   ) => Promise<void>;
-  loginWithGoogle: (intendedRole?: UserRole) => Promise<{ isNewUser: boolean }>;
+  loginWithGoogle: () => Promise<{ user: User; profile: UserProfileData | null; isNewUser: boolean }>;
+  loginWithFacebook: () => Promise<{ user: User; profile: UserProfileData | null; isNewUser: boolean }>;
+  loginAsGuest: () => Promise<User>;
+  upgradeGuest: (provider: 'google' | 'facebook') => Promise<{ isNewUser: boolean }>;
+  completeInitialProfile: (role: UserRole, displayName?: string) => Promise<UserProfileData>;
   requestPhoneOtp: (phoneRaw: string, containerId: string) => Promise<ConfirmationResult>;
   confirmPhoneOtp: (
     confirmationResult: ConfirmationResult,
@@ -47,10 +56,12 @@ interface AuthContextType {
   toggleAvailability: (available: boolean) => Promise<void>;
   refreshProfile: () => Promise<void>;
 
-  // Pending redirect destination for guest route guards
+  // Pending redirect destination & guard messaging
   postLoginRedirect: string | null;
+  authModalPrompt: string | null;
   setPostLoginRedirect: (tab: string | null) => void;
-  openAuthModalWithRedirect: (targetTab?: string) => void;
+  setAuthModalPrompt: (msg: string | null) => void;
+  openAuthModalWithRedirect: (targetTab?: string, message?: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -60,9 +71,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<UserProfileData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [postLoginRedirect, setPostLoginRedirect] = useState<string | null>(null);
+  const [authModalPrompt, setAuthModalPrompt] = useState<string | null>(null);
 
   const refreshProfile = async () => {
-    if (!auth.currentUser) {
+    if (!auth.currentUser || auth.currentUser.isAnonymous) {
       setProfile(null);
       return;
     }
@@ -71,16 +83,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    // Check if returning from redirect sign-in
+    checkRedirectResult().then((res) => {
+      if (res && res.user) {
+        setUser(res.user);
+        if (res.profile) {
+          setProfile(res.profile);
+        }
+      }
+    }).catch(() => {});
+
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
-      if (currentUser) {
+      if (currentUser && !currentUser.isAnonymous) {
         try {
           const userProfile = await getUserProfile(currentUser.uid);
           setProfile(userProfile);
         } catch {
-          // Handled
+          // Handled gracefully
         }
       } else {
+        // Guest user or signed out
         setProfile(null);
       }
       setLoading(false);
@@ -101,16 +124,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     pass: string,
     profileData: Partial<UserProfileData> & { role: UserRole; displayName: string }
   ) => {
-    const newProfile = await authRegisterWithEmail(email, pass, profileData);
-    setUser(auth.currentUser);
+    const { user: newUser, profile: newProfile } = await authRegisterWithEmail(email, pass, profileData);
+    setUser(newUser);
     setProfile(newProfile);
   };
 
-  const loginWithGoogle = async (intendedRole: UserRole = 'client') => {
-    const { user: gUser, profile: gProfile, isNewUser } = await authSignInWithGoogle(intendedRole);
-    setUser(gUser);
-    setProfile(gProfile);
-    return { isNewUser };
+  const loginWithGoogle = async () => {
+    const result = await authSignInWithGoogle();
+    setUser(result.user);
+    if (result.profile) {
+      setProfile(result.profile);
+    }
+    return result;
+  };
+
+  const loginWithFacebook = async () => {
+    const result = await authSignInWithFacebook();
+    setUser(result.user);
+    if (result.profile) {
+      setProfile(result.profile);
+    }
+    return result;
+  };
+
+  const loginAsGuest = async () => {
+    const guestUser = await authSignInAsGuest();
+    setUser(guestUser);
+    setProfile(null);
+    return guestUser;
+  };
+
+  const upgradeGuest = async (providerName: 'google' | 'facebook') => {
+    const provider = providerName === 'google' 
+      ? new GoogleAuthProvider() 
+      : new FacebookAuthProvider();
+    const result = await authUpgradeGuestAccount(provider);
+    setUser(result.user);
+    if (result.profile) {
+      setProfile(result.profile);
+    }
+    return { isNewUser: result.isNewUser };
+  };
+
+  const completeInitialProfile = async (role: UserRole, displayName?: string) => {
+    if (!auth.currentUser) throw new Error('لا يوجد مستخدم مسجل');
+    const newProf = await createUserProfileDoc(auth.currentUser, {
+      role,
+      displayName: displayName || auth.currentUser.displayName || (role === 'craftsman' ? 'حرفي جديد' : 'طالب خدمة'),
+      email: auth.currentUser.email || '',
+      phone: auth.currentUser.phoneNumber || '',
+      avatar: auth.currentUser.photoURL || undefined
+    });
+    setProfile(newProf);
+    return newProf;
   };
 
   const requestPhoneOtp = async (phoneRaw: string, containerId: string): Promise<ConfirmationResult> => {
@@ -165,9 +231,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setProfile(prev => prev ? { ...prev, isAvailableNow: available } : null);
   };
 
-  const openAuthModalWithRedirect = (targetTab?: string) => {
+  const openAuthModalWithRedirect = (targetTab?: string, message?: string) => {
     if (targetTab) {
       setPostLoginRedirect(targetTab);
+    }
+    if (message) {
+      setAuthModalPrompt(message);
     }
   };
 
@@ -178,11 +247,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         profile,
         role: profile?.role || null,
         loading,
-        isLoggedIn: !!user,
+        isLoggedIn: !!user && !user.isAnonymous,
+        isAnonymous: !!user?.isAnonymous,
         isProfileComplete: profile?.role === 'client' ? true : !!profile?.isProfileComplete,
         loginWithEmail,
         registerWithEmail,
         loginWithGoogle,
+        loginWithFacebook,
+        loginAsGuest,
+        upgradeGuest,
+        completeInitialProfile,
         requestPhoneOtp,
         confirmPhoneOtp,
         logout,
@@ -191,7 +265,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toggleAvailability,
         refreshProfile,
         postLoginRedirect,
+        authModalPrompt,
         setPostLoginRedirect,
+        setAuthModalPrompt,
         openAuthModalWithRedirect
       }}
     >

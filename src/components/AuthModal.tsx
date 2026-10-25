@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ShieldCheck } from 'lucide-react';
+import { X, ShieldCheck, ArrowLeft, Loader2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { RoleSelect } from './auth/RoleSelect';
@@ -11,7 +11,7 @@ import { ConfirmationResult } from 'firebase/auth';
 import { UserRole } from '../services/authService';
 
 type AuthTab = 'login' | 'register';
-type SubScreen = 'main' | 'role_select' | 'otp' | 'forgot_password';
+type SubScreen = 'main' | 'role_select' | 'post_social_role' | 'otp' | 'forgot_password';
 
 export const AuthModal: React.FC = () => {
   const { isAuthModalOpen, setIsAuthModalOpen, setActiveTab, setRole: setAppRole, updateUserProfile } = useApp();
@@ -20,12 +20,16 @@ export const AuthModal: React.FC = () => {
     requestPhoneOtp, 
     profile, 
     postLoginRedirect, 
-    setPostLoginRedirect 
+    setPostLoginRedirect,
+    authModalPrompt,
+    setAuthModalPrompt,
+    completeInitialProfile
   } = useAuth();
 
   const [activeTab, setModalTab] = useState<AuthTab>('login');
   const [subScreen, setSubScreen] = useState<SubScreen>('main');
   const [selectedRole, setSelectedRole] = useState<UserRole>('client');
+  const [completingProfile, setCompletingProfile] = useState(false);
 
   // Phone OTP state
   const [activePhoneNumber, setActivePhoneNumber] = useState('');
@@ -36,10 +40,10 @@ export const AuthModal: React.FC = () => {
   const handleClose = () => {
     setIsAuthModalOpen(false);
     setSubScreen('main');
+    setAuthModalPrompt(null);
   };
 
   const handleAuthSuccess = () => {
-    // Sync with AppContext role and user
     if (profile) {
       setAppRole(profile.role === 'craftsman' ? 'artisan' : 'client');
       updateUserProfile({
@@ -54,6 +58,7 @@ export const AuthModal: React.FC = () => {
 
     setIsAuthModalOpen(false);
     setSubScreen('main');
+    setAuthModalPrompt(null);
 
     // Handle post-login redirection if user was guarded from a specific tab
     if (postLoginRedirect) {
@@ -79,8 +84,34 @@ export const AuthModal: React.FC = () => {
     setConfirmationResult(res);
   };
 
+  const handleCompleteSocialRole = async () => {
+    setCompletingProfile(true);
+    try {
+      const prof = await completeInitialProfile(selectedRole);
+      setAppRole(prof.role === 'craftsman' ? 'artisan' : 'client');
+      updateUserProfile({
+        name: prof.displayName,
+        email: prof.email,
+        phone: prof.phone,
+        avatar: prof.avatar,
+        role: prof.role === 'craftsman' ? 'artisan' : 'client',
+        isLoggedIn: true
+      });
+      setIsAuthModalOpen(false);
+      setSubScreen('main');
+      if (postLoginRedirect) {
+        setActiveTab(postLoginRedirect);
+        setPostLoginRedirect(null);
+      }
+    } catch {
+      // Handled
+    } finally {
+      setCompletingProfile(false);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-fade-in overflow-y-auto" dir="rtl">
       {/* Invisible container for Firebase Phone Recaptcha */}
       <div id="recaptcha-container" />
 
@@ -104,12 +135,14 @@ export const AuthModal: React.FC = () => {
               ? 'استعادة كلمة المرور' 
               : subScreen === 'otp'
               ? 'تأكيد رمز التحقق (OTP)'
+              : subScreen === 'post_social_role'
+              ? 'إكمال تحديد نوع الحساب'
               : activeTab === 'login'
               ? 'تسجيل الدخول إلى خـدّام'
               : 'إنشاء حساب جديد في خـدّام'}
           </h3>
           <p className="text-[12px] text-[#5B6660]">
-            منصة الحرفيين والخدمات المنزلية الأولى في الجزائر
+            {authModalPrompt || 'منصة الحرفيين والخدمات المنزلية الأولى في الجزائر'}
           </p>
         </div>
 
@@ -176,9 +209,32 @@ export const AuthModal: React.FC = () => {
                   setSubScreen('main');
                   setModalTab('register');
                 }}
-                className="w-full h-11 bg-[#0F6B3F] hover:bg-[#0A4D2E] text-white font-bold rounded-[8px] text-[13px] transition-colors cursor-pointer"
+                className="w-full h-11 min-h-[44px] bg-[#0F6B3F] hover:bg-[#0A4D2E] text-white font-bold rounded-[8px] text-[13px] flex items-center justify-center gap-2 transition-colors cursor-pointer"
               >
-                متابعة التسجيل كـ {selectedRole === 'craftsman' ? 'حرفي' : 'طالب خدمة'}
+                <span>متابعة التسجيل كـ {selectedRole === 'craftsman' ? 'حرفي' : 'طالب خدمة'}</span>
+                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+              </button>
+            </div>
+          )}
+
+          {/* SubScreen: Post Social Login Role Select */}
+          {subScreen === 'post_social_role' && (
+            <div className="space-y-4">
+              <div className="text-center p-2 bg-[#EEF6F1] rounded-[8px] text-[12px] text-[#0A4D2E] font-medium">
+                تم تسجيل دخولك بنجاح! يرجى اختيار دورك لإتمام حسابك في المنصة.
+              </div>
+              <RoleSelect
+                selectedRole={selectedRole}
+                onSelect={(r) => setSelectedRole(r)}
+              />
+              <button
+                type="button"
+                onClick={handleCompleteSocialRole}
+                disabled={completingProfile}
+                className="w-full h-11 min-h-[44px] bg-[#0F6B3F] hover:bg-[#0A4D2E] disabled:opacity-50 text-white font-bold rounded-[8px] text-[13px] flex items-center justify-center gap-2 transition-colors cursor-pointer"
+              >
+                {completingProfile ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />}
+                <span>{completingProfile ? 'جاري الحفظ...' : 'تأكيد والدخول إلى التطبيق'}</span>
               </button>
             </div>
           )}
@@ -193,6 +249,7 @@ export const AuthModal: React.FC = () => {
               onForgotPassword={() => setSubScreen('forgot_password')}
               onStartOtp={handleStartOtp}
               onSuccess={handleAuthSuccess}
+              onNeedRoleSelection={() => setSubScreen('post_social_role')}
             />
           )}
 
