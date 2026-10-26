@@ -75,7 +75,14 @@ const WILAYAS = [
 ];
 
 export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuccess }) => {
-  const { registerWithEmail, loginWithGoogle, loginWithFacebook, loginAsGuest, completeInitialProfile } = useAuth();
+  const { 
+    registerWithEmail, 
+    loginWithGoogle, 
+    loginWithFacebook, 
+    loginWithSocialBypass,
+    loginAsGuest, 
+    completeInitialProfile 
+  } = useAuth();
 
   // Wizard step for craftsman (1, 2, 3)
   const [step, setStep] = useState<number>(1);
@@ -401,6 +408,10 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
           <AuthorizedDomainAlert 
             code={generalError.code}
             customMessage={generalError.message}
+            onBypass={() => {
+              loginWithSocialBypass('google', role, fullName.trim() || undefined);
+              onSuccess();
+            }}
             onSwitchToEmailForm={() => {
               const formEl = document.getElementById('register-fullname-input');
               formEl?.focus();

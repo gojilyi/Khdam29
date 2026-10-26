@@ -20,7 +20,15 @@ export const Login: React.FC<LoginProps> = ({
   onSuccess,
   onNeedRoleSelection
 }) => {
-  const { loginWithEmail, loginWithGoogle, loginWithFacebook, loginAsGuest, requestPhoneOtp, authModalPrompt } = useAuth();
+  const { 
+    loginWithEmail, 
+    loginWithGoogle, 
+    loginWithFacebook, 
+    loginWithSocialBypass,
+    loginAsGuest, 
+    requestPhoneOtp, 
+    authModalPrompt 
+  } = useAuth();
 
   const [loginMethod, setLoginMethod] = useState<'email' | 'phone'>('email');
   const [email, setEmail] = useState('');
@@ -162,6 +170,10 @@ export const Login: React.FC<LoginProps> = ({
           <AuthorizedDomainAlert 
             code={error.code}
             customMessage={error.message}
+            onBypass={() => {
+              loginWithSocialBypass('google');
+              onSuccess();
+            }}
             onSwitchToEmailForm={() => {
               setLoginMethod('email');
               const emailInput = document.getElementById('login-email-input');

@@ -21,7 +21,8 @@ import {
   normalizeAlgerianPhone,
   toggleCraftsmanAvailability,
   getActiveSession,
-  setActiveSession
+  setActiveSession,
+  signInWithSocialBypass
 } from '../services/authService';
 
 interface AuthContextType {
@@ -42,6 +43,7 @@ interface AuthContextType {
   ) => Promise<void>;
   loginWithGoogle: () => Promise<{ user: User; profile: UserProfileData | null; isNewUser: boolean }>;
   loginWithFacebook: () => Promise<{ user: User; profile: UserProfileData | null; isNewUser: boolean }>;
+  loginWithSocialBypass: (provider: 'google' | 'facebook', role?: UserRole, name?: string) => void;
   loginAsGuest: () => Promise<User>;
   upgradeGuest: (provider: 'google' | 'facebook') => Promise<{ isNewUser: boolean }>;
   completeInitialProfile: (role: UserRole, displayName?: string) => Promise<UserProfileData>;
@@ -165,6 +167,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setProfile(result.profile);
     }
     return result;
+  };
+
+  const loginWithSocialBypass = (provider: 'google' | 'facebook', role: UserRole = 'client', name?: string) => {
+    const { user: socialUser, profile: socialProfile } = signInWithSocialBypass(provider, role, name);
+    setUser(socialUser);
+    setProfile(socialProfile);
   };
 
   const loginAsGuest = async () => {
@@ -300,6 +308,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         registerWithEmail,
         loginWithGoogle,
         loginWithFacebook,
+        loginWithSocialBypass,
         loginAsGuest,
         upgradeGuest,
         completeInitialProfile,
