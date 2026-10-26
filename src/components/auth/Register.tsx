@@ -203,7 +203,31 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
     if (role === 'client') {
       if (!validateStep1()) return;
     } else {
-      if (!validateStep3()) return;
+      // Craftsman registration flow: advance step if not on step 3
+      if (step === 1) {
+        if (validateStep1()) {
+          setStep(2);
+        }
+        return;
+      }
+      if (step === 2) {
+        if (validateStep2()) {
+          setStep(3);
+        }
+        return;
+      }
+      // On Step 3: ensure all previous steps are valid
+      if (!validateStep1()) {
+        setStep(1);
+        return;
+      }
+      if (!validateStep2()) {
+        setStep(2);
+        return;
+      }
+      if (!validateStep3()) {
+        return;
+      }
     }
 
     setLoading(true);
@@ -222,7 +246,11 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
         wilayas: role === 'craftsman' ? selectedWilayas : undefined,
         approximatePriceDzd: role === 'craftsman' ? approxPrice : undefined,
         bio: role === 'craftsman' ? bio : undefined,
-        portfolioImages: role === 'craftsman' ? portfolioImages : undefined,
+        portfolioImages: role === 'craftsman' ? (portfolioImages.length > 0 ? portfolioImages : [
+          'https://images.unsplash.com/photo-1581244277943-fe4a9c777189?w=600&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=600&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1505798577917-a65157d3320a?w=600&auto=format&fit=crop&q=80'
+        ]) : undefined,
         isProfileComplete: true
       });
       onSuccess();

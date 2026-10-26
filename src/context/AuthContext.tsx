@@ -115,7 +115,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loginWithEmail = async (email: string, pass: string) => {
     const credUser = await authLoginWithEmail(email, pass);
     setUser(credUser);
-    const prof = await getUserProfile(credUser.uid);
+    let prof = await getUserProfile(credUser.uid);
+    if (!prof) {
+      try {
+        prof = await createUserProfileDoc(credUser, {
+          role: 'client',
+          displayName: credUser.displayName || email.split('@')[0] || 'مستخدم خدام',
+          email: credUser.email || email,
+          phone: credUser.phoneNumber || ''
+        });
+      } catch {
+        prof = {
+          uid: credUser.uid,
+          role: 'client',
+          displayName: credUser.displayName || email.split('@')[0] || 'مستخدم خدام',
+          email: credUser.email || email,
+          phone: credUser.phoneNumber || '',
+          verification_status: 'pending',
+          isProfileComplete: true
+        };
+      }
+    }
     setProfile(prof);
   };
 
@@ -168,15 +188,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const completeInitialProfile = async (role: UserRole, displayName?: string) => {
     if (!auth.currentUser) throw new Error('لا يوجد مستخدم مسجل');
-    const newProf = await createUserProfileDoc(auth.currentUser, {
-      role,
-      displayName: displayName || auth.currentUser.displayName || (role === 'craftsman' ? 'حرفي جديد' : 'طالب خدمة'),
-      email: auth.currentUser.email || '',
-      phone: auth.currentUser.phoneNumber || '',
-      avatar: auth.currentUser.photoURL || undefined
-    });
-    setProfile(newProf);
-    return newProf;
+    try {
+      const newProf = await createUserProfileDoc(auth.currentUser, {
+        role,
+        displayName: displayName || auth.currentUser.displayName || (role === 'craftsman' ? 'حرفي جديد' : 'طالب خدمة'),
+        email: auth.currentUser.email || '',
+        phone: auth.currentUser.phoneNumber || '',
+        avatar: auth.currentUser.photoURL || undefined
+      });
+      setProfile(newProf);
+      return newProf;
+    } catch {
+      const fallbackProf: UserProfileData = {
+        uid: auth.currentUser.uid,
+        role,
+        displayName: displayName || auth.currentUser.displayName || (role === 'craftsman' ? 'حرفي جديد' : 'طالب خدمة'),
+        email: auth.currentUser.email || '',
+        phone: auth.currentUser.phoneNumber || '',
+        avatar: auth.currentUser.photoURL || undefined,
+        verification_status: 'pending',
+        isProfileComplete: true
+      };
+      setProfile(fallbackProf);
+      return fallbackProf;
+    }
   };
 
   const requestPhoneOtp = async (phoneRaw: string, containerId: string): Promise<ConfirmationResult> => {
@@ -200,11 +235,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     let existingProfile = await getUserProfile(phoneUser.uid);
     if (!existingProfile) {
-      existingProfile = await createUserProfileDoc(phoneUser, {
-        role: intendedRole,
-        displayName: displayName || (intendedRole === 'craftsman' ? 'حرفي جديد' : 'طالب خدمة'),
-        phone: phoneUser.phoneNumber || ''
-      });
+      try {
+        existingProfile = await createUserProfileDoc(phoneUser, {
+          role: intendedRole,
+          displayName: displayName || (intendedRole === 'craftsman' ? 'حرفي جديد' : 'طالب خدمة'),
+          phone: phoneUser.phoneNumber || ''
+        });
+      } catch {
+        existingProfile = {
+          uid: phoneUser.uid,
+          role: intendedRole,
+          displayName: displayName || (intendedRole === 'craftsman' ? 'حرفي جديد' : 'طالب خدمة'),
+          phone: phoneUser.phoneNumber || '',
+          verification_status: 'pending',
+          isProfileComplete: true
+        };
+      }
     }
     setProfile(existingProfile);
   };
