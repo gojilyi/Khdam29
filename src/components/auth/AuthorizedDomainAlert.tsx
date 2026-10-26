@@ -115,16 +115,19 @@ export const AuthorizedDomainAlert: React.FC<AuthorizedDomainAlertProps> = ({
 
       {/* Steps to resolve */}
       <div className="space-y-1 text-[11px] text-amber-900 pr-1">
-        <div className="font-bold text-amber-950">خطوات الحل في دقيقة واحدة:</div>
-        <ol className="list-decimal list-inside space-y-1 leading-relaxed text-[11px]">
+        <div className="font-bold text-amber-950">خطوات إضافة النطاق (كما في لوحة تحكم هاتفك):</div>
+        <ol className="list-decimal list-inside space-y-1.5 leading-relaxed text-[11px]">
           <li>
             افتح لوحة إعدادات Firebase مباشرة بالضغط على الزر أدناه.
           </li>
           <li>
-            انزل إلى قسم <strong>"Authorized domains"</strong> واضغط <strong>"Add domain"</strong>.
+            في الشريط العلوي بجانب "Méthode de connexion"، اسحب لليمين واضغط على تبويب <strong>"Paramètres" (الإعدادات)</strong>.
           </li>
           <li>
-            الصق النطاق الذي نسخته <code className="font-mono font-bold" dir="ltr">{currentDomain}</code> ثم اضغط <strong>Save</strong>.
+            انزل لأسفل الصفحة إلى قسم <strong>"Domaines autorisés" (Authorized domains)</strong> واضغط <strong>"Ajouter un domaine"</strong>.
+          </li>
+          <li>
+            الصق النطاق الذي نسخته <code className="font-mono font-bold" dir="ltr">{currentDomain}</code> ثم اضغط <strong>Enregistrer (Save)</strong>.
           </li>
         </ol>
       </div>

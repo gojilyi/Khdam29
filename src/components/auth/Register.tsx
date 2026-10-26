@@ -135,8 +135,8 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
   // Step 1 Validation
   const validateStep1 = (): boolean => {
     const errs: Record<string, string> = {};
-    if (!fullName.trim() || fullName.trim().length < 3) {
-      errs.fullName = 'يرجى إدخال الاسم الكامل (3 أحرف على الأقل)';
+    if (!fullName.trim() || fullName.trim().length < 2) {
+      errs.fullName = 'يرجى إدخال الاسم الكامل (حرفين على الأقل)';
     }
 
     const phoneCheck = normalizeAlgerianPhone(phone);
@@ -148,8 +148,8 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
       errs.email = 'يرجى إدخال بريد إلكتروني صحيح';
     }
 
-    if (!password || password.length < 8) {
-      errs.password = 'كلمة المرور ضعيفة (8 أحرف على الأقل)';
+    if (!password || password.length < 6) {
+      errs.password = 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
     }
 
     setErrors(errs);

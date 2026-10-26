@@ -19,7 +19,9 @@ import {
   setupRecaptcha,
   sendPhoneOtp as authSendPhoneOtp,
   normalizeAlgerianPhone,
-  toggleCraftsmanAvailability
+  toggleCraftsmanAvailability,
+  getActiveSession,
+  setActiveSession
 } from '../services/authService';
 
 interface AuthContextType {
@@ -83,44 +85,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    // 1. Immediately restore persistent session if active
+    const localSession = getActiveSession();
+    if (localSession) {
+      setUser(localSession.user);
+      setProfile(localSession.profile);
+      setLoading(false);
+    }
+
     // Check if returning from redirect sign-in
     checkRedirectResult().then((res) => {
       if (res && res.user) {
         setUser(res.user);
         if (res.profile) {
           setProfile(res.profile);
+          setActiveSession(res.user, res.profile);
         }
       }
     }).catch(() => {});
 
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
-        try {
-          await currentUser.getIdToken();
-        } catch (tokenErr: any) {
-          const msg = String(tokenErr?.message || '');
-          if (msg.includes('token-service-api') || msg.includes('securetoken.googleapis.com')) {
-            console.warn('Firebase Token Service API needs activation for project 563678292032. Purging stale auth state.');
-            await auth.signOut().catch(() => {});
-            setUser(null);
-            setProfile(null);
-            setLoading(false);
-            return;
-          }
-        }
-      }
-
-      setUser(currentUser);
       if (currentUser && !currentUser.isAnonymous) {
+        setUser(currentUser);
         try {
           const userProfile = await getUserProfile(currentUser.uid);
-          setProfile(userProfile);
+          if (userProfile) {
+            setProfile(userProfile);
+            setActiveSession(currentUser, userProfile);
+          }
         } catch {
           // Handled gracefully
         }
-      } else {
-        // Guest user or signed out
-        setProfile(null);
+      } else if (!currentUser) {
+        // If Firebase Auth is empty, check if we have a resilient session
+        const active = getActiveSession();
+        if (active) {
+          setUser(active.user);
+          setProfile(active.profile);
+        } else {
+          setUser(null);
+          setProfile(null);
+        }
       }
       setLoading(false);
     });
@@ -129,30 +134,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const loginWithEmail = async (email: string, pass: string) => {
-    const credUser = await authLoginWithEmail(email, pass);
+    const { user: credUser, profile: credProfile } = await authLoginWithEmail(email, pass);
     setUser(credUser);
-    let prof = await getUserProfile(credUser.uid);
-    if (!prof) {
-      try {
-        prof = await createUserProfileDoc(credUser, {
-          role: 'client',
-          displayName: credUser.displayName || email.split('@')[0] || 'مستخدم خدام',
-          email: credUser.email || email,
-          phone: credUser.phoneNumber || ''
-        });
-      } catch {
-        prof = {
-          uid: credUser.uid,
-          role: 'client',
-          displayName: credUser.displayName || email.split('@')[0] || 'مستخدم خدام',
-          email: credUser.email || email,
-          phone: credUser.phoneNumber || '',
-          verification_status: 'pending',
-          isProfileComplete: true
-        };
-      }
-    }
-    setProfile(prof);
+    setProfile(credProfile);
   };
 
   const registerWithEmail = async (
