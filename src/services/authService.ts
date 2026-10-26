@@ -97,6 +97,12 @@ export function mapAuthError(err: any): AuthErrorInfo {
     case 'auth/credential-already-in-use':
       return { message: 'هذا الحساب مرتبط بالفعل بحساب آخر مسجل.', code };
     default:
+      if (messageStr.includes('token-service-api') || messageStr.includes('securetoken.googleapis.com')) {
+        return {
+          message: 'خدمة التوثيق (Identity / Secure Token API) قيد التفعيل في مشروع Firebase. إذا قمت بتفعيلها للتو، يرجى الانتظار دقيقة ثم إعادة المحاولة.',
+          code: 'auth/token-service-api-disabled'
+        };
+      }
       if (messageStr.includes('permission-denied')) {
         return { message: 'ليس لديك صلاحية الكتابة، راجع قواعد Firestore.', code: 'permission-denied' };
       }
@@ -429,8 +435,14 @@ export async function signInAsGuest(): Promise<User> {
     const result = await signInAnonymously(auth);
     return result.user;
   } catch (err: any) {
-    // If anonymous auth is not enabled in Firebase Console, provide synthetic guest session
-    if (err?.code === 'auth/operation-not-allowed' || err?.code === 'auth/admin-restricted-operation') {
+    const msg = String(err?.message || '');
+    // If anonymous auth is not enabled in Firebase Console or token API is pending, provide synthetic guest session
+    if (
+      err?.code === 'auth/operation-not-allowed' || 
+      err?.code === 'auth/admin-restricted-operation' ||
+      msg.includes('token-service-api') ||
+      msg.includes('securetoken.googleapis.com')
+    ) {
       const fallbackGuestUser = {
         uid: 'guest_' + Math.random().toString(36).substring(2, 10),
         isAnonymous: true,

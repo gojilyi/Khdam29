@@ -69,14 +69,24 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   throw new Error(JSON.stringify(errInfo));
 }
 
-// Startup connection verification
+// Startup connection verification conforming to offline resilience
 async function testConnection() {
   try {
+    if (typeof auth.authStateReady === 'function') {
+      await auth.authStateReady().catch(() => {});
+    }
     await getDocFromServer(doc(db, 'test', 'connection'));
-  } catch (error) {
-    // Expected to not find document, offline test verification
+  } catch (error: any) {
+    const errorMsg = error?.message || String(error || '');
+    if (errorMsg.includes('token-service-api') || errorMsg.includes('securetoken.googleapis.com')) {
+      console.warn("Firebase Token Service API is pending activation for project. Running in offline resilience mode.");
+      return;
+    }
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.warn("Firestore running in offline mode. Local operations available.");
+    }
   }
 }
-testConnection().catch(() => {});
+testConnection();
 
 export default app;

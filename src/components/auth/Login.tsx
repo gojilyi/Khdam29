@@ -3,6 +3,7 @@ import { Mail, Lock, Eye, EyeOff, Smartphone, AlertCircle, ArrowLeft, KeyRound, 
 import { useAuth } from '../../context/AuthContext';
 import { ConfirmationResult } from 'firebase/auth';
 import { checkRateLimit, normalizeAlgerianPhone, mapAuthError, AuthErrorInfo } from '../../services/authService';
+import { AuthorizedDomainAlert } from './AuthorizedDomainAlert';
 
 interface LoginProps {
   onSwitchToRegister: () => void;
@@ -157,19 +158,31 @@ export const Login: React.FC<LoginProps> = ({
 
       {/* Error Banner with Real Error Code */}
       {error && (
-        <div className="p-3 bg-red-50 border border-red-200 text-[#C62828] text-[12px] rounded-[8px] flex items-start gap-2.5">
-          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={1.75} />
-          <div className="flex-1 space-y-1">
-            <p className="font-medium leading-relaxed">{error.message}</p>
-            {error.code && (
-              <div className="pt-0.5">
-                <span className="inline-block text-[10px] font-mono px-1.5 py-0.5 bg-red-100 text-red-900 rounded border border-red-200" dir="ltr">
-                  code: {error.code}
-                </span>
-              </div>
-            )}
+        (error.code === 'auth/unauthorized-domain' || error.code === 'auth/token-service-api-disabled') ? (
+          <AuthorizedDomainAlert 
+            code={error.code}
+            customMessage={error.message}
+            onSwitchToEmailForm={() => {
+              setLoginMethod('email');
+              const emailInput = document.getElementById('login-email-input');
+              emailInput?.focus();
+            }} 
+          />
+        ) : (
+          <div className="p-3 bg-red-50 border border-red-200 text-[#C62828] text-[12px] rounded-[8px] flex items-start gap-2.5">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={1.75} />
+            <div className="flex-1 space-y-1">
+              <p className="font-medium leading-relaxed">{error.message}</p>
+              {error.code && (
+                <div className="pt-0.5">
+                  <span className="inline-block text-[10px] font-mono px-1.5 py-0.5 bg-red-100 text-red-900 rounded border border-red-200" dir="ltr">
+                    code: {error.code}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )
       )}
 
       {/* 1. Google Button (Official colors and logo) */}

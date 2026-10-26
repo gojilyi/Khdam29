@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { normalizeAlgerianPhone, mapAuthError, AuthErrorInfo, UserRole } from '../../services/authService';
+import { AuthorizedDomainAlert } from './AuthorizedDomainAlert';
 
 interface RegisterProps {
   role: UserRole;
@@ -396,19 +397,30 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
 
       {/* General Error Banner with Error Code */}
       {generalError && (
-        <div className="p-3 bg-red-50 border border-red-200 text-[#C62828] text-[12px] rounded-[8px] flex items-start gap-2.5">
-          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={1.75} />
-          <div className="flex-1 space-y-1">
-            <p className="font-medium leading-relaxed">{generalError.message}</p>
-            {generalError.code && (
-              <div className="pt-0.5">
-                <span className="inline-block text-[10px] font-mono px-1.5 py-0.5 bg-red-100 text-red-900 rounded border border-red-200" dir="ltr">
-                  code: {generalError.code}
-                </span>
-              </div>
-            )}
+        (generalError.code === 'auth/unauthorized-domain' || generalError.code === 'auth/token-service-api-disabled') ? (
+          <AuthorizedDomainAlert 
+            code={generalError.code}
+            customMessage={generalError.message}
+            onSwitchToEmailForm={() => {
+              const formEl = document.getElementById('register-fullname-input');
+              formEl?.focus();
+            }} 
+          />
+        ) : (
+          <div className="p-3 bg-red-50 border border-red-200 text-[#C62828] text-[12px] rounded-[8px] flex items-start gap-2.5">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={1.75} />
+            <div className="flex-1 space-y-1">
+              <p className="font-medium leading-relaxed">{generalError.message}</p>
+              {generalError.code && (
+                <div className="pt-0.5">
+                  <span className="inline-block text-[10px] font-mono px-1.5 py-0.5 bg-red-100 text-red-900 rounded border border-red-200" dir="ltr">
+                    code: {generalError.code}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )
       )}
 
       {/* FORM: Client or Step 1 of Craftsman */}

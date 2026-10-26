@@ -94,6 +94,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }).catch(() => {});
 
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        try {
+          await currentUser.getIdToken();
+        } catch (tokenErr: any) {
+          const msg = String(tokenErr?.message || '');
+          if (msg.includes('token-service-api') || msg.includes('securetoken.googleapis.com')) {
+            console.warn('Firebase Token Service API needs activation for project 563678292032. Purging stale auth state.');
+            await auth.signOut().catch(() => {});
+            setUser(null);
+            setProfile(null);
+            setLoading(false);
+            return;
+          }
+        }
+      }
+
       setUser(currentUser);
       if (currentUser && !currentUser.isAnonymous) {
         try {
