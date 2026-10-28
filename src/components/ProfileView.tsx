@@ -32,7 +32,10 @@ import {
   Mail,
   Trash2,
   LogOut,
-  Power
+  Power,
+  Camera,
+  Image as ImageIcon,
+  Headphones
 } from 'lucide-react';
 import { Language, VerificationLevel } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -95,6 +98,107 @@ export const ProfileView: React.FC = () => {
   const [l2DiplomaTitle, setL2DiplomaTitle] = useState('شهادة الكفاءة المهنية (CAP) - ترصيص صحي وشبكات تدفئة');
   const [l2DiplomaPreview, setL2DiplomaPreview] = useState('https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?w=600&auto=format&fit=crop&q=80');
   const [l2Submitted, setL2Submitted] = useState(false);
+
+  // File Upload State & Compression Handlers
+  const [l1IdFileName, setL1IdFileName] = useState<string>('carte_identite_biometrique.jpg');
+  const [l1SelfieFileName, setL1SelfieFileName] = useState<string>('photo_selfie_verif.jpg');
+  const [l2DiplomaFileName, setL2DiplomaFileName] = useState<string>('diplome_qualification.jpg');
+  const [isProcessingImg, setIsProcessingImg] = useState<boolean>(false);
+
+  const compressImageFile = (file: File, maxWidth = 1200, maxHeight = 1200, quality = 0.82): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = document.createElement('img');
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+          if (width > maxWidth || height > maxHeight) {
+            if (width > height) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            } else {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(e.target?.result as string);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => resolve(e.target?.result as string);
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleL1IdChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsProcessingImg(true);
+    try {
+      const dataUrl = await compressImageFile(file);
+      if (dataUrl) {
+        setL1IdPreview(dataUrl);
+        setL1IdFileName(file.name);
+      }
+    } finally {
+      setIsProcessingImg(false);
+    }
+  };
+
+  const handleL1SelfieChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsProcessingImg(true);
+    try {
+      const dataUrl = await compressImageFile(file, 800, 800, 0.85);
+      if (dataUrl) {
+        setL1SelfiePreview(dataUrl);
+        setL1SelfieFileName(file.name);
+      }
+    } finally {
+      setIsProcessingImg(false);
+    }
+  };
+
+  const handleL2DiplomaChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsProcessingImg(true);
+    try {
+      const dataUrl = await compressImageFile(file);
+      if (dataUrl) {
+        setL2DiplomaPreview(dataUrl);
+        setL2DiplomaFileName(file.name);
+      }
+    } finally {
+      setIsProcessingImg(false);
+    }
+  };
+
+  const handlePostImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsProcessingImg(true);
+    try {
+      const dataUrl = await compressImageFile(file, 1200, 1000, 0.82);
+      if (dataUrl) {
+        setPostImage(dataUrl);
+      }
+    } finally {
+      setIsProcessingImg(false);
+    }
+  };
 
   // Quick inline new work post state
   const [isCreatingPost, setIsCreatingPost] = useState(false);
@@ -722,31 +826,85 @@ export const ProfileView: React.FC = () => {
             <div className="flex items-center justify-between">
               <h4 className="font-bold text-xs text-blue-900 dark:text-blue-300 flex items-center gap-1.5">
                 <FileCheck className="w-4 h-4 text-blue-500" />
-                <span>إرسال وثائق التوثيق المستوى الأول:</span>
+                <span>إرسال وثائق التوثيق المستوى الأول (الهوية والصورة):</span>
               </h4>
-              <button type="button" onClick={() => setIsL1Open(false)} className="text-xs text-slate-400 hover:text-slate-600">
+              <button type="button" onClick={() => setIsL1Open(false)} className="text-xs text-slate-400 hover:text-slate-600 cursor-pointer">
                 إلغاء
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  1. بطاقة التعريف الوطنية (الواجهتان):
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* ID Card Upload */}
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                  1. بطاقة التعريف الوطنية البيومترية:
                 </label>
-                <div className="p-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center gap-2">
-                  <img src={l1IdPreview} alt="ID" className="w-14 h-10 object-cover rounded-lg border" />
-                  <span className="text-[10px] text-slate-500 truncate">carte_identite_biometrique.jpg</span>
+                <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
+                  <div className="relative aspect-[16/10] w-full rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex items-center justify-center">
+                    <img src={l1IdPreview} alt="بطاقة الهوية" className="w-full h-full object-cover" />
+                    {isProcessingImg && (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white text-[10px] font-bold">
+                        جارٍ المعالجة...
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <label className="flex-1 py-1.5 px-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 rounded-lg text-[11px] font-bold text-center cursor-pointer border border-blue-200 dark:border-blue-800 flex items-center justify-center gap-1">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>اختر صورة الهوية</span>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={handleL1IdChange} 
+                        className="hidden" 
+                      />
+                    </label>
+
+                    <label className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg cursor-pointer border border-slate-200 dark:border-slate-700" title="التقاط بالكاميرا">
+                      <Camera className="w-4 h-4" />
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        capture="environment" 
+                        onChange={handleL1IdChange} 
+                        className="hidden" 
+                      />
+                    </label>
+                  </div>
+                  <p className="text-[10px] text-slate-400 truncate text-start" dir="ltr">{l1IdFileName}</p>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  2. الصورة الشخصية الحية (سيلفي):
+              {/* Selfie Live Photo Upload */}
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                  2. الصورة الشخصية الحية (سيلفي للوجه):
                 </label>
-                <div className="p-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center gap-2">
-                  <img src={l1SelfiePreview} alt="Selfie" className="w-10 h-10 rounded-full object-cover border" />
-                  <span className="text-[10px] text-slate-500 truncate">photo_selfie_verif.jpg</span>
+                <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
+                  <div className="relative aspect-[16/10] w-full rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex items-center justify-center">
+                    <img src={l1SelfiePreview} alt="صورة السيلفي" className="w-full h-full object-cover" />
+                    {isProcessingImg && (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white text-[10px] font-bold">
+                        جارٍ المعالجة...
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <label className="flex-1 py-1.5 px-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 rounded-lg text-[11px] font-bold text-center cursor-pointer border border-blue-200 dark:border-blue-800 flex items-center justify-center gap-1">
+                      <Camera className="w-3.5 h-3.5" />
+                      <span>التقاط / رفع سيلفي</span>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        capture="user" 
+                        onChange={handleL1SelfieChange} 
+                        className="hidden" 
+                      />
+                    </label>
+                  </div>
+                  <p className="text-[10px] text-slate-400 truncate text-start" dir="ltr">{l1SelfieFileName}</p>
                 </div>
               </div>
             </div>
@@ -754,15 +912,16 @@ export const ProfileView: React.FC = () => {
             {l1Submitted ? (
               <div className="p-3 bg-emerald-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2">
                 <Check className="w-4 h-4" />
-                <span>تم إرسال طلب التوثيق المستوى 1 بنجاح إلى إدارة خدام للتدقيق!</span>
+                <span>تم إرسال طلب التوثيق المستوى 1 بنجاح مع الصور الجديدة!</span>
               </div>
             ) : (
               <button
                 type="submit"
-                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm"
+                disabled={isProcessingImg}
+                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
               >
                 <Upload className="w-4 h-4" />
-                <span>إرسال وثائق المستوى الأول للمطابقة</span>
+                <span>تأكيد وإرسال وثائق المستوى الأول للمطابقة</span>
               </button>
             )}
           </form>
@@ -776,7 +935,7 @@ export const ProfileView: React.FC = () => {
                 <Award className="w-4 h-4 text-emerald-500" />
                 <span>إرسال دبلوم وشهادة الكفاءة المهنية المستوى الثاني:</span>
               </h4>
-              <button type="button" onClick={() => setIsL2Open(false)} className="text-xs text-slate-400 hover:text-slate-600">
+              <button type="button" onClick={() => setIsL2Open(false)} className="text-xs text-slate-400 hover:text-slate-600 cursor-pointer">
                 إلغاء
               </button>
             </div>
@@ -790,32 +949,62 @@ export const ProfileView: React.FC = () => {
                 required
                 value={l2DiplomaTitle}
                 onChange={(e) => setL2DiplomaTitle(e.target.value)}
+                placeholder="مثال: شهادة الكفاءة المهنية (CAP) - ترصيص صحي أو تكوين مهني"
                 className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
               />
             </div>
 
             <div>
               <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                نسخة الدبلوم أو الشهادة المهنية:
+                صورة أو وثيقة الدبلوم والشهادة:
               </label>
-              <div className="p-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center gap-3">
-                <img src={l2DiplomaPreview} alt="Diploma" className="w-16 h-12 object-cover rounded-lg border" />
-                <div>
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block truncate">diplome_qualification_artisanat.jpg</span>
-                  <span className="text-[10px] text-slate-400">صادرة من مركز تكوين مهني معتمد</span>
+              <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
+                <div className="relative aspect-[16/9] max-h-48 w-full rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex items-center justify-center">
+                  <img src={l2DiplomaPreview} alt="الدبلوم" className="w-full h-full object-cover" />
+                  {isProcessingImg && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white text-[10px] font-bold">
+                      جارٍ المعالجة...
+                    </div>
+                  )}
                 </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="flex-1 py-1.5 px-3 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 rounded-lg text-[11px] font-bold text-center cursor-pointer border border-emerald-200 dark:border-emerald-800 flex items-center justify-center gap-1.5">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>رفع صورة أو ملف الدبلوم</span>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleL2DiplomaChange} 
+                      className="hidden" 
+                    />
+                  </label>
+
+                  <label className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg cursor-pointer border border-slate-200 dark:border-slate-700" title="تصوير الدبلوم بالكاميرا">
+                    <Camera className="w-4 h-4" />
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      capture="environment" 
+                      onChange={handleL2DiplomaChange} 
+                      className="hidden" 
+                    />
+                  </label>
+                </div>
+                <p className="text-[10px] text-slate-400 truncate text-start" dir="ltr">{l2DiplomaFileName}</p>
               </div>
             </div>
 
             {l2Submitted ? (
               <div className="p-3 bg-emerald-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2">
                 <Check className="w-4 h-4" />
-                <span>تم إرسال الدبلوم بنجاح! سيتم تفعيل المستوى 2 فور اعتماد الإدارة.</span>
+                <span>تم إرسال الدبلوم بنجاح! سيتم تفعيل المستوى 2 فور مراجعة الإدارة.</span>
               </div>
             ) : (
               <button
                 type="submit"
-                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm"
+                disabled={isProcessingImg}
+                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
               >
                 <Award className="w-4 h-4" />
                 <span>إرسال الدبلوم المهني لتفعيل المستوى 2</span>
@@ -872,6 +1061,22 @@ export const ProfileView: React.FC = () => {
               onChange={(e) => setPostDescription(e.target.value)}
               className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none"
             />
+
+            {/* Post Image Selector */}
+            <div className="space-y-1.5">
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                صورة الإنجاز أو المشروع:
+              </label>
+              <div className="flex items-center gap-3">
+                <img src={postImage} alt="معاينة" className="w-16 h-12 object-cover rounded-lg border border-slate-200 dark:border-slate-700 shrink-0" />
+                <label className="py-2 px-3 bg-white dark:bg-slate-800 hover:bg-slate-100 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-700 cursor-pointer flex items-center gap-1.5">
+                  <ImageIcon className="w-3.5 h-3.5 text-amber-500" />
+                  <span>اختر صورة من الهاتف</span>
+                  <input type="file" accept="image/*" onChange={handlePostImageChange} className="hidden" />
+                </label>
+              </div>
+            </div>
+
             {postSuccess ? (
               <div className="text-xs font-bold text-emerald-600 py-1 text-center">
                 تم نشر العمل بنجاح في بروفايلك والمعرض العام ✓
@@ -879,7 +1084,8 @@ export const ProfileView: React.FC = () => {
             ) : (
               <button
                 type="submit"
-                className="w-full py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1"
+                disabled={isProcessingImg}
+                className="w-full py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1 cursor-pointer"
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>نشر العمل في المعرض</span>
@@ -1073,48 +1279,70 @@ export const ProfileView: React.FC = () => {
           </div>
         </div>
 
-        {/* 6. ADMIN PORTAL & LIVE TEXT EDITING ACCESS (بوابة المشرف وتعديل النصوص) */}
-        <div className="p-4 sm:p-5 bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-amber-500/10 dark:from-amber-950/40 dark:to-slate-900 border border-amber-500/30 rounded-2xl space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shrink-0 shadow-sm">
-                <Lock className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
-                    {language === 'ar' ? 'بوابة إدارة المنصة وتعديل الواجهة' : 'Admin Portal & Live Customizer'}
-                  </h4>
-                  {isAdminAuthenticated && (
+        {/* 6. ADMIN PORTAL & LIVE TEXT EDITING ACCESS (يظهر فقط إذا كان المشرف مسجلاً بالفعل عبر 7 نقرات على خـدّام) */}
+        {isAdminAuthenticated && (
+          <div className="p-4 sm:p-5 bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-amber-500/10 dark:from-amber-950/40 dark:to-slate-900 border border-amber-500/30 rounded-2xl space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shrink-0 shadow-sm">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
+                      {language === 'ar' ? 'بوابة إدارة المنصة وتعديل الواجهة' : 'Admin Portal & Live Customizer'}
+                    </h4>
                     <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] border border-emerald-500/30">
                       {language === 'ar' ? 'مشرف مفعّل ✓' : 'Admin Active'}
                     </span>
-                  )}
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    {language === 'ar' 
+                      ? 'التحكم في أيقونة وشعار التطبيق، وتعديل أي نص بالنقر مرتين (Double Click)، وإدارة المنصة.' 
+                      : 'Manage app branding, live in-place double-click text editing, and platform settings.'}
+                  </p>
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                  {language === 'ar' 
-                    ? 'التحكم في أيقونة وشعار التطبيق، وتعديل أي نص بالنقر مرتين (Double Click)، وإدارة المنصة.' 
-                    : 'Manage app branding, live in-place double-click text editing, and platform settings.'}
-                </p>
               </div>
-            </div>
 
-            {isAdminAuthenticated ? (
               <button
                 onClick={() => setActiveTab('admin')}
                 className="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-transform active:scale-95 shrink-0 cursor-pointer"
               >
                 <span>فتح لوحة الأدمن ⚙️</span>
               </button>
-            ) : (
-              <button
-                onClick={() => setIsAdminAuthModalOpen(true)}
-                className="px-3.5 py-2 bg-slate-900 dark:bg-amber-500 text-white dark:text-slate-950 hover:bg-amber-600 dark:hover:bg-amber-400 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-transform active:scale-95 shrink-0 cursor-pointer"
-              >
-                <Key className="w-3.5 h-3.5" />
-                <span>دخول المشرف 🔑</span>
-              </button>
-            )}
+            </div>
+          </div>
+        )}
+
+        {/* Contact Box & Customer Support Banner (علبة التواصل والدعم الفني 24/7) */}
+        <div className="p-4 sm:p-5 bg-gradient-to-r from-emerald-500/10 via-[#0F6B3F]/10 to-transparent dark:from-emerald-950/40 dark:to-slate-900 border border-[#0F6B3F]/30 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-[#0F6B3F] text-white flex items-center justify-center font-bold shadow-md shadow-[#0F6B3F]/20 shrink-0">
+              <Headphones className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                  علبة التواصل والدعم الفني المباشر
+                </h4>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-[10px]">
+                  متاح 24/7
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                فريق خـدّام في خدمتك لحل النزاعات، متابعة الطلبات، أو المساعدة في الاستخدام.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+            <button
+              onClick={() => setIsContactModalOpen(true)}
+              className="w-full sm:w-auto px-4 py-2 bg-[#0F6B3F] hover:bg-[#0A4D2E] text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition-transform active:scale-95 cursor-pointer"
+            >
+              <Headphones className="w-3.5 h-3.5" />
+              <span>فتح علبة التواصل</span>
+            </button>
           </div>
         </div>
 

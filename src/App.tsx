@@ -50,6 +50,7 @@ import { PlayStoreLegalModal } from './components/PlayStoreLegalModal';
 import { WorkPartnerFinder } from './components/WorkPartnerFinder';
 import { AppointmentsCalendarView } from './components/AppointmentsCalendarView';
 import { BookingAppointmentModal } from './components/BookingAppointmentModal';
+import { FloatingContactButton } from './components/FloatingContactButton';
 import { serviceCategories } from './data/mockData';
 import { 
   Calendar,
@@ -408,6 +409,9 @@ const MainContent: React.FC = () => {
 
       {/* Floating Smart Search Bar above BottomNav on Home (Only for Client) */}
       {role !== 'artisan' && <SmartHomeSearchBar />}
+
+      {/* Floating Contact & Support Box Button (علبة التواصل) */}
+      <FloatingContactButton />
 
       {/* Mobile Bottom Navigation with center diagnosis button */}
       <BottomNav />

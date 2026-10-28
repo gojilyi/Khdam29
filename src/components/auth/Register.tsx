@@ -57,22 +57,8 @@ const TRADES = [
   'أقفال وتصليح أبواب ومفاتيح'
 ];
 
-const WILAYAS = [
-  'الجزائر العاصمة',
-  'وهران',
-  'قسنطينة',
-  'عنابة',
-  'سطيف',
-  'البليدة',
-  'تيزي وزو',
-  'بجاية',
-  'باتنة',
-  'بومرداس',
-  'تيبازة',
-  'الشلف',
-  'تلمسان',
-  'بسكرة'
-];
+import { ALGERIA_WILAYAS } from '../../data/algeriaData';
+const ALL_58_WILAYAS = ALGERIA_WILAYAS.map(w => w.name);
 
 export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuccess }) => {
   const { 
@@ -101,9 +87,12 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
   const [trade, setTrade] = useState('سبّاك');
   const [experienceYears, setExperienceYears] = useState(5);
   const [selectedWilayas, setSelectedWilayas] = useState<string[]>(['الجزائر العاصمة', 'البليدة']);
+  const [wilayaSearch, setWilayaSearch] = useState('');
   const [approxPrice, setApproxPrice] = useState(2500);
   const [bio, setBio] = useState('حرفي معتمد بخبرة في الصيانة المنزلية والإصلاحات الدقيقة.');
   
+  const currentCommunes = ALGERIA_WILAYAS.find(w => w.name === wilaya)?.communes || [];
+
   // At least 3 portfolio images
   const [portfolioImages, setPortfolioImages] = useState<string[]>([
     'https://images.unsplash.com/photo-1581244277943-fe4a9c777189?w=600&auto=format&fit=crop&q=80',
@@ -128,11 +117,33 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
     }
   };
 
+  const selectAllWilayas = () => {
+    setSelectedWilayas(ALL_58_WILAYAS);
+  };
+
+  const selectOnlyMyWilaya = () => {
+    setSelectedWilayas([wilaya]);
+  };
+
   const addPortfolioImage = () => {
     if (newImageInput.trim()) {
       setPortfolioImages([...portfolioImages, newImageInput.trim()]);
       setNewImageInput('');
     }
+  };
+
+  const handlePortfolioFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    Array.from(files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        if (typeof ev.target?.result === 'string') {
+          setPortfolioImages(prev => [...prev, ev.target!.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
   const removePortfolioImage = (index: number) => {
@@ -481,29 +492,50 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
             {errors.phone && <p className="text-[11px] text-[#C62828] mt-1">{errors.phone}</p>}
           </div>
 
-          {/* Wilaya & Commune */}
+          {/* Wilaya & Commune - All 58 Wilayas */}
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-[12px] font-bold text-[#1C2421] mb-1">الولاية</label>
+              <label className="block text-[12px] font-bold text-[#1C2421] mb-1">الولاية (58 ولاية)</label>
               <select
                 value={wilaya}
-                onChange={(e) => setWilaya(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setWilaya(val);
+                  const found = ALGERIA_WILAYAS.find(item => item.name === val);
+                  if (found && found.communes.length > 0) {
+                    setCommune(found.communes[0]);
+                  }
+                }}
                 className="w-full h-11 min-h-[44px] bg-white border border-[#DDE3DF] rounded-[8px] px-2 text-[12px] text-[#1C2421] focus:outline-none focus:border-[#0F6B3F]"
               >
-                {WILAYAS.map(w => (
-                  <option key={w} value={w}>{w}</option>
+                {ALGERIA_WILAYAS.map(w => (
+                  <option key={w.code} value={w.name}>
+                    {w.code} - {w.name}
+                  </option>
                 ))}
               </select>
             </div>
             <div>
               <label className="block text-[12px] font-bold text-[#1C2421] mb-1">البلدية</label>
-              <input
-                type="text"
-                value={commune}
-                onChange={(e) => setCommune(e.target.value)}
-                placeholder="مثال: باب الوادي"
-                className="w-full h-11 min-h-[44px] bg-white border border-[#DDE3DF] rounded-[8px] px-3 text-[12px] text-[#1C2421] focus:outline-none focus:border-[#0F6B3F]"
-              />
+              {currentCommunes.length > 0 ? (
+                <select
+                  value={commune}
+                  onChange={(e) => setCommune(e.target.value)}
+                  className="w-full h-11 min-h-[44px] bg-white border border-[#DDE3DF] rounded-[8px] px-2 text-[12px] text-[#1C2421] focus:outline-none focus:border-[#0F6B3F]"
+                >
+                  {currentCommunes.map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={commune}
+                  onChange={(e) => setCommune(e.target.value)}
+                  placeholder="اسم البلدية"
+                  className="w-full h-11 min-h-[44px] bg-white border border-[#DDE3DF] rounded-[8px] px-3 text-[12px] text-[#1C2421] focus:outline-none focus:border-[#0F6B3F]"
+                />
+              )}
             </div>
           </div>
 
@@ -629,29 +661,61 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
             </div>
           </div>
 
-          {/* Covered Wilayas */}
+          {/* Covered Wilayas - All 58 Wilayas with Search & Quick Select */}
           <div>
-            <label className="block text-[12px] font-bold text-[#1C2421] mb-1">
-              الولايات التي تغطيها بخدماتك ({selectedWilayas.length})
-            </label>
-            <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-2 bg-[#EEF6F1] border border-[#DDE3DF] rounded-[8px]">
-              {WILAYAS.map(w => {
-                const isSelected = selectedWilayas.includes(w);
-                return (
-                  <button
-                    key={w}
-                    type="button"
-                    onClick={() => toggleWilaya(w)}
-                    className={`px-2.5 py-1 text-[11px] font-bold rounded-[6px] transition-colors cursor-pointer ${
-                      isSelected
-                        ? 'bg-[#0F6B3F] text-white shadow-xs'
-                        : 'bg-white text-[#5B6660] border border-[#DDE3DF] hover:border-[#0F6B3F]'
-                    }`}
-                  >
-                    {w}
-                  </button>
-                );
-              })}
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-[12px] font-bold text-[#1C2421]">
+                الولايات التي تغطيها بخدماتك ({selectedWilayas.length} من 58)
+              </label>
+              <div className="flex items-center gap-1.5 text-[11px]">
+                <button
+                  type="button"
+                  onClick={selectAllWilayas}
+                  className="text-[10px] text-[#0F6B3F] hover:underline font-bold cursor-pointer"
+                >
+                  تحديد كل الولايات (58)
+                </button>
+                <span className="text-slate-300">|</span>
+                <button
+                  type="button"
+                  onClick={selectOnlyMyWilaya}
+                  className="text-[10px] text-[#5B6660] hover:underline cursor-pointer"
+                >
+                  ولايتي فقط
+                </button>
+              </div>
+            </div>
+
+            {/* Quick search filter for 58 wilayas */}
+            <input
+              type="text"
+              value={wilayaSearch}
+              onChange={(e) => setWilayaSearch(e.target.value)}
+              placeholder="ابحث بالاسم أو رقم الولاية (مثال: 16 أو تيزي وزو)..."
+              className="w-full h-8 bg-white border border-[#DDE3DF] rounded-[6px] px-2.5 mb-1.5 text-[11px] text-[#1C2421] focus:outline-none focus:border-[#0F6B3F]"
+            />
+
+            <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-2 bg-[#EEF6F1] border border-[#DDE3DF] rounded-[8px]">
+              {ALGERIA_WILAYAS
+                .filter(w => !wilayaSearch.trim() || w.name.includes(wilayaSearch.trim()) || w.code.includes(wilayaSearch.trim()) || w.nameLatin.toLowerCase().includes(wilayaSearch.toLowerCase()))
+                .map(w => {
+                  const isSelected = selectedWilayas.includes(w.name);
+                  return (
+                    <button
+                      key={w.code}
+                      type="button"
+                      onClick={() => toggleWilaya(w.name)}
+                      className={`px-2 py-1 text-[11px] font-bold rounded-[6px] transition-colors cursor-pointer flex items-center gap-1 ${
+                        isSelected
+                          ? 'bg-[#0F6B3F] text-white shadow-xs'
+                          : 'bg-white text-[#5B6660] border border-[#DDE3DF] hover:border-[#0F6B3F]'
+                      }`}
+                    >
+                      <span className="opacity-60 text-[9px] font-mono">{w.code}</span>
+                      <span>{w.name}</span>
+                    </button>
+                  );
+                })}
             </div>
             {errors.wilayas && <p className="text-[11px] text-[#C62828] mt-1">{errors.wilayas}</p>}
           </div>
@@ -722,24 +786,39 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
             ))}
           </div>
 
-          {/* Add Image Link */}
-          <div className="flex gap-2">
-            <input
-              type="url"
-              dir="ltr"
-              value={newImageInput}
-              onChange={(e) => setNewImageInput(e.target.value)}
-              placeholder="https://example.com/work.jpg"
-              className="flex-1 h-10 min-h-[40px] bg-white border border-[#DDE3DF] rounded-[8px] px-3 text-[12px] text-[#1C2421] focus:outline-none focus:border-[#0F6B3F]"
-            />
-            <button
-              type="button"
-              onClick={addPortfolioImage}
-              className="h-10 px-3 bg-[#EEF6F1] hover:bg-[#DDE3DF] text-[#0A4D2E] font-bold rounded-[8px] text-[12px] flex items-center gap-1 cursor-pointer shrink-0"
-            >
-              <Plus className="w-4 h-4" strokeWidth={1.75} />
-              <span>إضافة صورة</span>
-            </button>
+          {/* Add Image via File Picker or Link */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <label className="flex-1 h-11 bg-[#0F6B3F] hover:bg-[#0A4D2E] text-white font-bold rounded-[8px] text-[12px] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-colors">
+                <Plus className="w-4 h-4" strokeWidth={2} />
+                <span>رفع صور من الهاتف أو الكاميرا (Gallery)</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handlePortfolioFileChange}
+                  className="hidden"
+                />
+              </label>
+            </div>
+
+            <div className="flex gap-2">
+              <input
+                type="url"
+                dir="ltr"
+                value={newImageInput}
+                onChange={(e) => setNewImageInput(e.target.value)}
+                placeholder="أو ضع رابط صورة مباشر: https://..."
+                className="flex-1 h-10 min-h-[40px] bg-white border border-[#DDE3DF] rounded-[8px] px-3 text-[12px] text-[#1C2421] focus:outline-none focus:border-[#0F6B3F]"
+              />
+              <button
+                type="button"
+                onClick={addPortfolioImage}
+                className="h-10 px-3 bg-[#EEF6F1] hover:bg-[#DDE3DF] text-[#0A4D2E] font-bold rounded-[8px] text-[12px] flex items-center gap-1 cursor-pointer shrink-0"
+              >
+                <span>إضافة</span>
+              </button>
+            </div>
           </div>
           {errors.portfolio && <p className="text-[11px] text-[#C62828]">{errors.portfolio}</p>}
 

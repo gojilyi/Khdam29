@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { 
   Role, 
   Language, 
@@ -2460,14 +2460,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setVerificationRequests(prev => [newReq, ...prev]);
   };
 
-  // Easter Egg Secret Admin: 7 clicks on Khodam/الخدم button triggers direct admin entrance!
+  // Secret Admin Entry: 7 clicks on "خـدّام" word triggers secret admin entrance!
+  const adminClickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleBrandSecretClick = () => {
     if (isAdminAuthenticated) {
       setActiveTab('admin');
       setActiveNotificationToast({
         id: `notif_${Date.now()}`,
         title: 'لوحة المشرف العام',
-        message: 'أنت متواجد بالفعل بصلاحية الأدمن الكاملة.',
+        message: 'أنت متواجد بالفعل بصلاحية المشرف الكاملة.',
         type: 'announcement',
         audience: 'all',
         sentAt: 'الآن',
@@ -2476,13 +2478,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return;
     }
 
+    if (adminClickTimeoutRef.current) {
+      clearTimeout(adminClickTimeoutRef.current);
+    }
+    adminClickTimeoutRef.current = setTimeout(() => {
+      setAdminClickCount(0);
+    }, 4000);
+
     setAdminClickCount(prev => {
       const next = prev + 1;
       if (next === 4) {
         setActiveNotificationToast({
           id: `notif_${Date.now()}`,
-          title: 'زر الخدم (المشرف)',
-          message: 'بقي 3 نقرات للدخول كأدمن...',
+          title: '🔐 منطقة خـدّام السرية',
+          message: 'بقي 3 نقرات على كلمة خـدّام للدخول كأدمن...',
           type: 'announcement',
           audience: 'all',
           sentAt: 'الآن',
@@ -2491,8 +2500,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } else if (next === 5) {
         setActiveNotificationToast({
           id: `notif_${Date.now()}`,
-          title: 'زر الخدم (المشرف)',
-          message: 'بقي نقرتان للدخول كأدمن...',
+          title: '🔐 منطقة خـدّام السرية',
+          message: 'بقي نقرتان على كلمة خـدّام...',
           type: 'announcement',
           audience: 'all',
           sentAt: 'الآن',
@@ -2501,8 +2510,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } else if (next === 6) {
         setActiveNotificationToast({
           id: `notif_${Date.now()}`,
-          title: 'زر الخدم (المشرف)',
-          message: 'بقي نقرة واحدة فقط للدخول كأدمن!',
+          title: '🔐 منطقة خـدّام السرية',
+          message: 'بقي نقرة واحدة فقط على كلمة خـدّام!',
           type: 'announcement',
           audience: 'all',
           sentAt: 'الآن',
@@ -2513,7 +2522,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setActiveNotificationToast({
           id: `notif_${Date.now()}`,
           title: '🔐 بوابة المشرف السرية',
-          message: 'تم استدعاء بوابة الإدارة بعد 7 نقرات على زر الخدم. يرجى إدخال كلمة السر المشفرة للمتابعة.',
+          message: 'تم فتح بوابة المشرف بعد 7 نقرات على كلمة خـدّام! يرجى إدخال كلمة السر للمتابعة.',
           type: 'announcement',
           audience: 'all',
           sentAt: 'الآن',

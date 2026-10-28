@@ -66,8 +66,8 @@ export const AdminAuthModal: React.FC = () => {
         </div>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
           {language === 'ar' 
-            ? 'تم استدعاء شاشة الإدارة بعد النقر 7 مرات على زر الخدم. أدخل كلمة سر المشرف المشفرة للمتابعة.' 
-            : 'Access summoned via 7-tap Khodam trigger. Enter encrypted admin password to continue.'}
+            ? 'تم فتح بوابة المشرف السرية بعد النقر 7 مرات على كلمة «خـدّام». أدخل كلمة سر المشرف للمتابعة.' 
+            : 'Access summoned via 7 clicks on the "Khodam" brand wordmark. Enter admin password to continue.'}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-5">

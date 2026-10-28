@@ -15,7 +15,7 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
   } else {
     // In production, safely register service worker without automatic page reloading
     registerSW({
-      immediate: false,
+      immediate: true,
       onNeedRefresh() {
         console.log('New content available');
       },

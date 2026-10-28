@@ -9,7 +9,8 @@ import {
   User, 
   Plus, 
   LogOut,
-  ShieldCheck
+  ShieldCheck,
+  Headphones
 } from 'lucide-react';
 import { ALGERIA_WILAYAS } from '../data/algeriaData';
 
@@ -26,7 +27,9 @@ export const Header: React.FC = () => {
     setIsNotificationsModalOpen,
     unreadNotificationsCount,
     isAdminAuthenticated,
-    setIsAdminAuthModalOpen
+    setIsAdminAuthModalOpen,
+    handleBrandSecretClick,
+    setIsContactModalOpen
   } = useApp();
 
   const { isLoggedIn, profile, role: authRole, logout, openAuthModalWithRedirect } = useAuth();
@@ -53,19 +56,17 @@ export const Header: React.FC = () => {
     <header className="sticky top-0 z-40 bg-[#0A4D2E] text-white border-b border-[#0A4D2E] shadow-sm select-none header-safe-padding w-full max-w-full">
       <div className="max-w-7xl mx-auto px-2.5 sm:px-6 h-16 flex items-center justify-between gap-2 sm:gap-4 min-w-0 w-full">
         
-        {/* Zone 1: Clean Brand Wordmark & Logo */}
+        {/* Zone 1: Clean Brand Wordmark & Logo (Click 7 times on 'خدام' for secret admin access) */}
         <div className="flex items-center gap-2 shrink-0">
           <button
-            onClick={() => setActiveTab('home')}
-            onDoubleClick={() => {
-              if (!isAdminAuthenticated) {
-                setIsAdminAuthModalOpen(true);
-              } else {
-                setActiveTab('admin');
-              }
+            type="button"
+            onClick={() => {
+              setActiveTab('home');
+              handleBrandSecretClick();
             }}
-            className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded-[8px] p-1 cursor-pointer"
-            title="خدام - حرفيك قريب منك"
+            className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded-[8px] p-1 cursor-pointer select-none active:scale-[0.98] transition-transform"
+            title="خـدّام - حرفيك قريب منك"
+            aria-label="خـدّام"
           >
             {/* SVG Mark */}
             <svg 
@@ -191,11 +192,24 @@ export const Header: React.FC = () => {
             onClick={() => setIsNotificationsModalOpen(true)}
             className="hidden sm:flex w-9 sm:w-10 h-9 sm:h-10 rounded-[8px] items-center justify-center text-white hover:bg-[#0F6B3F] transition-colors relative cursor-pointer"
             aria-label="التنبيهات"
+            title="الإشعارات والتنبيهات"
           >
             <Bell className="w-4 h-4" strokeWidth={1.75} />
             {unreadNotificationsCount > 0 && (
               <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#E8A317]" />
             )}
+          </button>
+
+          {/* Contact Box (علبة التواصل والدعم الفني) */}
+          <button
+            onClick={() => setIsContactModalOpen(true)}
+            className="w-9 sm:w-10 h-9 sm:h-10 rounded-[8px] flex items-center justify-center text-white hover:bg-[#0F6B3F] transition-colors relative cursor-pointer"
+            aria-label="علبة التواصل والدعم الفني"
+            title="علبة التواصل والدعم المباشر"
+          >
+            <Headphones className="w-4 h-4 text-emerald-300" strokeWidth={1.75} />
+            <span className="w-2 h-2 rounded-full bg-emerald-400 absolute top-2 right-2 animate-ping" />
+            <span className="w-2 h-2 rounded-full bg-emerald-400 absolute top-2 right-2" />
           </button>
 
           {/* User Auth Profile Trigger */}

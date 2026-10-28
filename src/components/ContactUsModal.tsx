@@ -973,7 +973,7 @@ export const ContactUsModal: React.FC = () => {
                         محادثة واتساب سريعة
                       </span>
                       <a
-                        href={`https://wa.me/${contactDetails.whatsapp.replace(/[^0-9]/g, '')}`}
+                        href={`https://wa.me/${contactDetails.whatsapp.replace(/[^0-9]/g, '').replace(/^0/, '213')}?text=${encodeURIComponent('السلام عليكم، أحتاج مساعدة أو استفسار عبر تطبيق خـدّام.')}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-xs font-mono font-bold text-slate-900 dark:text-white dir-ltr block truncate hover:underline"
@@ -982,13 +982,24 @@ export const ContactUsModal: React.FC = () => {
                       </a>
                     </div>
                   </div>
-                  <button
-                    onClick={() => copyToClipboard(contactDetails.whatsapp, 'channel')}
-                    className="p-2 text-slate-400 hover:text-emerald-600 rounded-lg cursor-pointer"
-                    title="نسخ الرقم"
-                  >
-                    {copiedChannelText === contactDetails.whatsapp ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
-                  </button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <a
+                      href={`https://wa.me/${contactDetails.whatsapp.replace(/[^0-9]/g, '').replace(/^0/, '213')}?text=${encodeURIComponent('السلام عليكم، أحتاج مساعدة أو استفسار عبر تطبيق خـدّام.')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] flex items-center gap-1 shadow-xs"
+                    >
+                      <span>فتح</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                    <button
+                      onClick={() => copyToClipboard(contactDetails.whatsapp, 'channel')}
+                      className="p-1.5 text-slate-400 hover:text-emerald-600 rounded-lg cursor-pointer"
+                      title="نسخ الرقم"
+                    >
+                      {copiedChannelText === contactDetails.whatsapp ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Direct Phone */}
@@ -1002,20 +1013,29 @@ export const ContactUsModal: React.FC = () => {
                         الهاتف المباشر الموحد
                       </span>
                       <a
-                        href={`tel:${contactDetails.phone}`}
+                        href={`tel:${contactDetails.phone.replace(/[^0-9+]/g, '')}`}
                         className="text-xs font-mono font-bold text-slate-900 dark:text-white dir-ltr block truncate hover:underline"
                       >
                         {contactDetails.phone}
                       </a>
                     </div>
                   </div>
-                  <button
-                    onClick={() => copyToClipboard(contactDetails.phone, 'channel')}
-                    className="p-2 text-slate-400 hover:text-amber-600 rounded-lg cursor-pointer"
-                    title="نسخ الرقم"
-                  >
-                    {copiedChannelText === contactDetails.phone ? <Check className="w-4 h-4 text-amber-500" /> : <Copy className="w-4 h-4" />}
-                  </button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <a
+                      href={`tel:${contactDetails.phone.replace(/[^0-9+]/g, '')}`}
+                      className="px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-[11px] flex items-center gap-1 shadow-xs"
+                    >
+                      <Phone className="w-3 h-3" />
+                      <span>اتصال</span>
+                    </a>
+                    <button
+                      onClick={() => copyToClipboard(contactDetails.phone, 'channel')}
+                      className="p-1.5 text-slate-400 hover:text-amber-600 rounded-lg cursor-pointer"
+                      title="نسخ الرقم"
+                    >
+                      {copiedChannelText === contactDetails.phone ? <Check className="w-4 h-4 text-amber-500" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Email */}
