@@ -82,59 +82,108 @@ export const ProfileView: React.FC = () => {
   const isRtl = language === 'ar';
   const ChevronIcon = isRtl ? ChevronLeft : ChevronRight;
 
-  // Active user level (defaults to Level 2 for Master Kamal, Level 1 for verified user)
+  // Active user level with local storage persistence
   const userArtisan = artisans.find(a => a.name === currentUser.name) || artisans[0];
-  const userLevel: VerificationLevel = role === 'artisan' ? (userArtisan?.verification.level ?? 2) : 1;
+  const hasSavedL2 = typeof localStorage !== 'undefined' && (localStorage.getItem('khodam_user_level2_verified') === 'true' || !!localStorage.getItem('khodam_user_diploma'));
+  const hasSavedL1 = typeof localStorage !== 'undefined' && (localStorage.getItem('khodam_user_level1_verified') === 'true' || !!localStorage.getItem('khodam_user_id_card'));
+  const userLevel: VerificationLevel = hasSavedL2 || userArtisan?.verification?.level === 2 ? 2 : (hasSavedL1 || userArtisan?.verification?.level === 1 ? 1 : 1);
   const userTrade = role === 'artisan' ? (userArtisan?.bio || 'سباك وترصيص صحي') : 'طالب خدمات معتمد';
 
-  // Level 1 form state (National ID + Selfie)
+  // Level 1 form state (National ID + Selfie) with persistent caching
   const [isL1Open, setIsL1Open] = useState(false);
-  const [l1IdPreview, setL1IdPreview] = useState('https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80');
-  const [l1SelfiePreview, setL1SelfiePreview] = useState(currentUser.avatar);
+  const [l1IdPreview, setL1IdPreview] = useState<string>(() => {
+    try {
+      return localStorage.getItem('khodam_user_id_card') || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80';
+    } catch {
+      return 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80';
+    }
+  });
+  const [l1SelfiePreview, setL1SelfiePreview] = useState<string>(() => {
+    try {
+      return localStorage.getItem('khodam_user_selfie') || currentUser.avatar;
+    } catch {
+      return currentUser.avatar;
+    }
+  });
   const [l1Submitted, setL1Submitted] = useState(false);
+  const [hasCustomId, setHasCustomId] = useState<boolean>(() => {
+    try { return !!localStorage.getItem('khodam_user_id_card'); } catch { return false; }
+  });
 
-  // Level 2 form state (Vocational Diploma)
+  // Level 2 form state (Vocational Diploma) with persistent caching
   const [isL2Open, setIsL2Open] = useState(false);
-  const [l2DiplomaTitle, setL2DiplomaTitle] = useState('شهادة الكفاءة المهنية (CAP) - ترصيص صحي وشبكات تدفئة');
-  const [l2DiplomaPreview, setL2DiplomaPreview] = useState('https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?w=600&auto=format&fit=crop&q=80');
+  const [l2DiplomaTitle, setL2DiplomaTitle] = useState<string>(() => {
+    try {
+      return localStorage.getItem('khodam_user_diploma_title') || 'شهادة الكفاءة المهنية (CAP) - ترصيص صحي وشبكات تدفئة';
+    } catch {
+      return 'شهادة الكفاءة المهنية (CAP) - ترصيص صحي وشبكات تدفئة';
+    }
+  });
+  const [l2DiplomaPreview, setL2DiplomaPreview] = useState<string>(() => {
+    try {
+      return localStorage.getItem('khodam_user_diploma') || 'https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?w=600&auto=format&fit=crop&q=80';
+    } catch {
+      return 'https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?w=600&auto=format&fit=crop&q=80';
+    }
+  });
   const [l2Submitted, setL2Submitted] = useState(false);
+  const [hasCustomDiploma, setHasCustomDiploma] = useState<boolean>(() => {
+    try { return !!localStorage.getItem('khodam_user_diploma'); } catch { return false; }
+  });
 
-  // File Upload State & Compression Handlers
+  // File Upload State & Safe FileReader Handlers
   const [l1IdFileName, setL1IdFileName] = useState<string>('carte_identite_biometrique.jpg');
   const [l1SelfieFileName, setL1SelfieFileName] = useState<string>('photo_selfie_verif.jpg');
   const [l2DiplomaFileName, setL2DiplomaFileName] = useState<string>('diplome_qualification.jpg');
   const [isProcessingImg, setIsProcessingImg] = useState<boolean>(false);
 
-  const compressImageFile = (file: File, maxWidth = 1200, maxHeight = 1200, quality = 0.82): Promise<string> => {
+  // Failsafe reader that never hangs on mobile and handles high-res images / PDFs
+  const safeReadFile = (file: File): Promise<string> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (e) => {
-        const img = document.createElement('img');
-        img.onload = () => {
-          let width = img.width;
-          let height = img.height;
-          if (width > maxWidth || height > maxHeight) {
-            if (width > height) {
-              height = Math.round((height * maxWidth) / width);
-              width = maxWidth;
-            } else {
-              width = Math.round((width * maxHeight) / height);
-              height = maxHeight;
+        const raw = (e.target?.result as string) || '';
+        // If it's a PDF or already small, resolve immediately
+        if (!file.type.startsWith('image/') || file.size < 1.2 * 1024 * 1024) {
+          resolve(raw);
+          return;
+        }
+
+        try {
+          const img = new Image();
+          img.onload = () => {
+            try {
+              const maxDim = 1200;
+              let w = img.width;
+              let h = img.height;
+              if (w > maxDim || h > maxDim) {
+                if (w > h) {
+                  h = Math.round((h * maxDim) / w);
+                  w = maxDim;
+                } else {
+                  w = Math.round((w * maxDim) / h);
+                  h = maxDim;
+                }
+              }
+              const canvas = document.createElement('canvas');
+              canvas.width = w;
+              canvas.height = h;
+              const ctx = canvas.getContext('2d');
+              if (ctx) {
+                ctx.drawImage(img, 0, 0, w, h);
+                resolve(canvas.toDataURL('image/jpeg', 0.82));
+                return;
+              }
+            } catch {
+              // fallback to raw
             }
-          }
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            resolve(e.target?.result as string);
-            return;
-          }
-          ctx.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/jpeg', quality));
-        };
-        img.onerror = () => resolve(e.target?.result as string);
-        img.src = e.target?.result as string;
+            resolve(raw);
+          };
+          img.onerror = () => resolve(raw);
+          img.src = raw;
+        } catch {
+          resolve(raw);
+        }
       };
       reader.onerror = () => resolve('');
       reader.readAsDataURL(file);
@@ -146,10 +195,12 @@ export const ProfileView: React.FC = () => {
     if (!file) return;
     setIsProcessingImg(true);
     try {
-      const dataUrl = await compressImageFile(file);
+      const dataUrl = await safeReadFile(file);
       if (dataUrl) {
         setL1IdPreview(dataUrl);
         setL1IdFileName(file.name);
+        setHasCustomId(true);
+        try { localStorage.setItem('khodam_user_id_card', dataUrl); } catch {}
       }
     } finally {
       setIsProcessingImg(false);
@@ -161,10 +212,11 @@ export const ProfileView: React.FC = () => {
     if (!file) return;
     setIsProcessingImg(true);
     try {
-      const dataUrl = await compressImageFile(file, 800, 800, 0.85);
+      const dataUrl = await safeReadFile(file);
       if (dataUrl) {
         setL1SelfiePreview(dataUrl);
         setL1SelfieFileName(file.name);
+        try { localStorage.setItem('khodam_user_selfie', dataUrl); } catch {}
       }
     } finally {
       setIsProcessingImg(false);
@@ -176,10 +228,12 @@ export const ProfileView: React.FC = () => {
     if (!file) return;
     setIsProcessingImg(true);
     try {
-      const dataUrl = await compressImageFile(file);
+      const dataUrl = await safeReadFile(file);
       if (dataUrl) {
         setL2DiplomaPreview(dataUrl);
         setL2DiplomaFileName(file.name);
+        setHasCustomDiploma(true);
+        try { localStorage.setItem('khodam_user_diploma', dataUrl); } catch {}
       }
     } finally {
       setIsProcessingImg(false);
@@ -191,7 +245,7 @@ export const ProfileView: React.FC = () => {
     if (!file) return;
     setIsProcessingImg(true);
     try {
-      const dataUrl = await compressImageFile(file, 1200, 1000, 0.82);
+      const dataUrl = await safeReadFile(file);
       if (dataUrl) {
         setPostImage(dataUrl);
       }

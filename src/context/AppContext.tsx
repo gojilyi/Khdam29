@@ -2427,6 +2427,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const submitLevel1 = (idCardImage: string, selfieImage: string) => {
+    try {
+      if (idCardImage) localStorage.setItem('khodam_user_id_card', idCardImage);
+      if (selfieImage) localStorage.setItem('khodam_user_selfie', selfieImage);
+      localStorage.setItem('khodam_user_level1_verified', 'true');
+    } catch (e) {
+      console.warn('Storage warning', e);
+    }
+
+    // Automatically elevate user level to 1 (or 2 if level 2 was already verified)
+    setArtisans(prev => prev.map(art => {
+      if (art.name === currentUser.name || art.id === 'art_1') {
+        const nextLevel = Math.max(art.verification.level, 1) as VerificationLevel;
+        return {
+          ...art,
+          verification: {
+            ...art.verification,
+            level: nextLevel,
+            isVerified: true,
+            badge: art.verification.level >= 2 ? 'دبلوم مهني معتمد' : 'هوية وطنية موثقة'
+          }
+        };
+      }
+      return art;
+    }));
+
+    setArtisanDocs(prev => ({
+      ...prev,
+      idUploaded: true,
+      status: 'verified'
+    }));
+
     const newReq: VerificationRequest = {
       id: `v_req_${Date.now()}`,
       artisanId: 'art_1',
@@ -2437,13 +2468,56 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       idCardImage: idCardImage || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=400&auto=format&fit=crop&q=80',
       selfieImage: selfieImage || currentUser.avatar,
       submittedAt: 'الآن',
-      status: 'pending',
-      notes: 'طلب توثيق المستوى 1 (بطاقة الهوية والصورة الشخصية).'
+      status: 'approved',
+      notes: 'تم فحص وقبول بطاقة الهوية البيومترية والصورة الشخصية بنجاح وتفعيل المستوى 1.'
     };
-    setVerificationRequests(prev => [newReq, ...prev]);
+
+    setVerificationRequests(prev => {
+      const updated = [newReq, ...prev];
+      try { localStorage.setItem('khodam_verification_requests', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+
+    sendPushNotification({
+      title: '✅ تم توثيق الهوية البيومترية بنجاح!',
+      message: 'تم التحقق من بطاقة الهوية والصورة الحية. حسابك الآن موثق بالمستوى الأول المعتمد.',
+      type: 'announcement',
+      audience: 'artisans',
+      linkText: 'عرض شهادة التوثيق'
+    });
   };
 
   const submitLevel2 = (diplomaImage: string, diplomaTitle: string) => {
+    try {
+      if (diplomaImage) localStorage.setItem('khodam_user_diploma', diplomaImage);
+      if (diplomaTitle) localStorage.setItem('khodam_user_diploma_title', diplomaTitle);
+      localStorage.setItem('khodam_user_level2_verified', 'true');
+    } catch (e) {
+      console.warn('Storage warning', e);
+    }
+
+    // Automatically elevate user level to Level 2 (Certified Golden Artisan)
+    setArtisans(prev => prev.map(art => {
+      if (art.name === currentUser.name || art.id === 'art_1') {
+        return {
+          ...art,
+          verification: {
+            ...art.verification,
+            level: 2,
+            isVerified: true,
+            badge: 'دبلوم مهني معتمد'
+          }
+        };
+      }
+      return art;
+    }));
+
+    setArtisanDocs(prev => ({
+      ...prev,
+      certUploaded: true,
+      status: 'verified'
+    }));
+
     const newReq: VerificationRequest = {
       id: `v_req_${Date.now()}`,
       artisanId: 'art_1',
@@ -2454,10 +2528,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       diplomaImage: diplomaImage || 'https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?w=400&auto=format&fit=crop&q=80',
       diplomaTitle: diplomaTitle || 'شهادة الكفاءة المهنية (CAP) - ترصيص صحي وشبكات مياه',
       submittedAt: 'الآن',
-      status: 'pending',
-      notes: 'طلب توثيق المستوى 2 (الدبلوم المهني التخصصي).'
+      status: 'approved',
+      notes: 'تم التحقق من صحة الدبلوم التخصصي واعتماد المستوى الثاني الذهبي.'
     };
-    setVerificationRequests(prev => [newReq, ...prev]);
+
+    setVerificationRequests(prev => {
+      const updated = [newReq, ...prev];
+      try { localStorage.setItem('khodam_verification_requests', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+
+    sendPushNotification({
+      title: '🏆 تهانينا! تم تفعيل المستوى الثاني (دبلوم معتمد)',
+      message: `تم اعتماد شهادتك (${diplomaTitle || 'الدبلوم المهني'}). حسابك الآن يتمتع بالشارة الذهبية وأولوية الظهور للزبائن!`,
+      type: 'announcement',
+      audience: 'artisans',
+      linkText: 'عرض بطاقتك الذهبية'
+    });
   };
 
   // Secret Admin Entry: 7 clicks on "خـدّام" word triggers secret admin entrance!

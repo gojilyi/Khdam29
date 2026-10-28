@@ -6,6 +6,7 @@ import {
   Image as ImageIcon, 
   ShieldCheck, 
   PhoneCall, 
+  Phone,
   Lock, 
   Search,
   CheckCheck,
@@ -21,9 +22,16 @@ import {
   Zap,
   ChevronDown,
   ArrowDown,
-  ArrowUp
+  ArrowUp,
+  Paperclip,
+  BadgeCheck,
+  Plus,
+  Info,
+  MapPin,
+  CheckCircle2,
+  MoreVertical
 } from 'lucide-react';
-import { ChatMessage } from '../types';
+import { ChatMessage, Artisan } from '../types';
 import { VoiceNotePlayer } from './VoiceNotePlayer';
 import { AudioRecordingSession } from '../utils/audioRecorder';
 
@@ -31,9 +39,12 @@ interface ConversationMeta {
   id: string;
   participantId: string;
   participantName: string;
+  participantPhone: string;
   participantAvatar: string;
   participantTrade: string;
+  city: string;
   orderSummary: string;
+  orderPrice: string;
   isOnline: boolean;
   verificationLevel: number;
   lastActive: string;
@@ -65,11 +76,12 @@ export const ChatInboxView: React.FC = () => {
   const [activeConversationId, setActiveConversationId] = useState<string>('conv_art_1');
   const [showMobileChat, setShowMobileChat] = useState(false);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
-  const [filterMode, setFilterMode] = useState<'all' | 'unread'>('all');
+  const [filterMode, setFilterMode] = useState<'all' | 'unread' | 'artisans'>('all');
   const [showScrollBottomBtn, setShowScrollBottomBtn] = useState(false);
-  const [showScrollTopBtn, setShowScrollTopBtn] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
 
-  // Messages container reference for reliable, bug-free scrolling
+  // Messages container reference
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -79,15 +91,18 @@ export const ChatInboxView: React.FC = () => {
   const recordingTimerRef = useRef<any>(null);
   const recordingSessionRef = useRef<AudioRecordingSession | null>(null);
 
-  // Predefined Conversations Thread List
+  // Predefined Conversations Thread List with Algerian Context
   const conversations: ConversationMeta[] = useMemo(() => [
     {
       id: 'conv_art_1',
       participantId: 'art_1',
       participantName: 'المعلم كمال بلقاسم',
+      participantPhone: '0550123456',
       participantAvatar: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80',
       participantTrade: 'سباكة وترصيص صحي وشوفاج',
-      orderSummary: 'إصلاح تسريب مائي مفاجئ في أنبوب المطبخ',
+      city: 'الجزائر العاصمة - الأبيار',
+      orderSummary: 'إصلاح تسريب مائي مفاجئ في أنبوب المطبخ الرئيسي',
+      orderPrice: '3,500 دج',
       isOnline: true,
       verificationLevel: 2,
       lastActive: 'متصل الآن',
@@ -97,9 +112,12 @@ export const ChatInboxView: React.FC = () => {
       id: 'conv_art_2',
       participantId: 'art_2',
       participantName: 'حميد بن عمار',
+      participantPhone: '0661234567',
       participantAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
       participantTrade: 'كهرباء معمارية وإنارة LED',
-      orderSummary: 'تجديد لوحة القواطع الرئيسية للمنزل',
+      city: 'البليدة - أولاد يعيش',
+      orderSummary: 'تجديد لوحة القواطع الكهربائية والتأريض',
+      orderPrice: '4,800 دج',
       isOnline: false,
       verificationLevel: 2,
       lastActive: 'منذ 15 دقيقة',
@@ -109,12 +127,30 @@ export const ChatInboxView: React.FC = () => {
       id: 'conv_art_3',
       participantId: 'art_3',
       participantName: 'رشيد حداد',
+      participantPhone: '0770987654',
       participantAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
       participantTrade: 'نجارة وأقفال أبواب مصفحة',
-      orderSummary: 'تغيير كالون وقفل إيطالي لباب المدخل',
+      city: 'الجزائر العاصمة - باب الزوار',
+      orderSummary: 'تغيير كالون أمان وقفل إيطالي ثلاثي لباب المدخل',
+      orderPrice: '5,000 دج',
       isOnline: true,
       verificationLevel: 2,
       lastActive: 'متصل الآن',
+      unreadCount: 0
+    },
+    {
+      id: 'conv_support',
+      participantId: 'art_support',
+      participantName: 'خدمة عملاء منصة خـدّام',
+      participantPhone: '023101010',
+      participantAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+      participantTrade: 'الدعم الفني وضمان المعاملات',
+      city: 'الجزائر - الدعم المركزي',
+      orderSummary: 'تتبع الطلبات، الضمان، وفحص الوثائق المهنية',
+      orderPrice: 'خدمة مجانية',
+      isOnline: true,
+      verificationLevel: 2,
+      lastActive: 'متصل 24/7',
       unreadCount: 0
     }
   ], []);
@@ -141,7 +177,7 @@ export const ChatInboxView: React.FC = () => {
     );
   }, [conversationMessages, searchFilter]);
 
-  // Bug-free container-level scrolling to bottom & top
+  // Container scroll to bottom
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
     const container = messagesContainerRef.current;
     if (!container) return;
@@ -151,20 +187,11 @@ export const ChatInboxView: React.FC = () => {
     });
   };
 
-  const scrollToTop = (behavior: ScrollBehavior = 'smooth') => {
-    const container = messagesContainerRef.current;
-    if (!container) return;
-    container.scrollTo({
-      top: 0,
-      behavior
-    });
-  };
-
   // Scroll to bottom when conversation changes or initially rendered
   useEffect(() => {
     const timer = setTimeout(() => {
       scrollToBottom('auto');
-    }, 40);
+    }, 50);
     return () => clearTimeout(timer);
   }, [activeConversationId, showMobileChat]);
 
@@ -176,13 +203,12 @@ export const ChatInboxView: React.FC = () => {
     return () => clearTimeout(timer);
   }, [displayedMessages.length]);
 
-  // Handle scroll events to show/hide "Scroll to bottom" and "Scroll to top" buttons
+  // Handle scroll events
   const handleScroll = () => {
     const container = messagesContainerRef.current;
     if (!container) return;
     const distanceToBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
     setShowScrollBottomBtn(distanceToBottom > 80);
-    setShowScrollTopBtn(container.scrollTop > 80);
   };
 
   // Clean up recording timer on unmount
@@ -208,6 +234,7 @@ export const ChatInboxView: React.FC = () => {
 
   const handleSend = () => {
     if (!inputVal.trim() && !attachedImage) return;
+
     sendMessage(
       inputVal.trim(), 
       false, 
@@ -221,9 +248,18 @@ export const ChatInboxView: React.FC = () => {
         trade: currentConv.participantTrade
       }
     );
+
     setInputVal('');
     setAttachedImage(null);
     setTimeout(() => scrollToBottom('smooth'), 50);
+
+    // Simulate typing indicator from artisan
+    if (role === 'client') {
+      setIsTyping(true);
+      setTimeout(() => {
+        setIsTyping(false);
+      }, 1600);
+    }
   };
 
   const handleStartRecording = async () => {
@@ -273,82 +309,99 @@ export const ChatInboxView: React.FC = () => {
     setRecordingSeconds(0);
     recordingSessionRef.current = null;
     setTimeout(() => scrollToBottom('smooth'), 50);
+
+    if (role === 'client') {
+      setIsTyping(true);
+      setTimeout(() => setIsTyping(false), 1700);
+    }
   };
 
-  // Quick replies list
+  // Quick replies list adapted for Algerian home repair workflow
   const quickReplies = [
-    'أنا في انتظارك أمام الباب',
-    'هل أحتاج لشراء قطع غيار إضافية؟',
-    'مكان العمل مفرغ وجاهز تماماً',
-    'وصلت إلى الموقع وسأبدأ الفحص',
+    'أنا في انتظارك في العنوان المحدد',
+    'هل أحتاج لشراء قطع غيار إضافية قبل وصولك؟',
+    'أرسل لي موقعك عبر GPS لو سمحت',
+    'مكان العمل مفرغ وجاهز للفحص فوراً',
+    'متى يمكنك الوصول إلى المنزل تقريباً؟',
     'شكراً جزيلاً، العمل متقن وممتاز'
   ];
 
   return (
-    <div className="space-y-3 max-w-6xl mx-auto pb-6">
-      {/* Sleek Top Banner & Dual-Role Switcher */}
-      <div className="bg-slate-900 text-white px-4 py-3 rounded-2xl border border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0">
-            <MessageSquare className="w-4 h-4" />
+    <div className="max-w-6xl mx-auto space-y-3 pb-8" dir="rtl">
+      {/* Sleek Top Banner & Role Switcher */}
+      <div className="bg-[#0A4D2E] text-white px-4 py-3 rounded-2xl shadow-sm border border-[#0F6B3F] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-white/10 text-white flex items-center justify-center shrink-0 border border-white/15 shadow-xs">
+            <MessageSquare className="w-5 h-5 text-emerald-300" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-sm sm:text-base font-bold text-white">
-                صندوق الرسائل والمحادثات المباشرة
+                لوحة المحادثات والرسائل المباشرة
               </h2>
-              <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-200 border border-emerald-400/30">
                 <Lock className="w-2.5 h-2.5" />
                 <span>مشفر وآمن</span>
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 line-clamp-1">
-              محادثات مباشرة مشفرة بين العميل والحرفي مع المكالمات ومشاركة الصور والتسجيلات
+            <p className="text-[11px] text-emerald-100/80 line-clamp-1">
+              تواصل كتابي وصوتي مباشر بين العميل والحرفي مع مشاركة الصور وتفاصيل الورشة
             </p>
           </div>
         </div>
 
-        {/* Role Switcher Pill */}
-        <div className="flex items-center gap-2 bg-slate-800/80 px-2.5 py-1 rounded-xl border border-slate-700/80 shrink-0 self-start sm:self-auto text-xs">
-          <span className="text-[10px] text-slate-400">الطرف:</span>
-          <span className="font-bold text-amber-300">
-            {role === 'client' ? 'العميل' : 'الحرفي'}
-          </span>
+        {/* Dual-Role & Action Buttons */}
+        <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
           <button
-            onClick={() => setRole(role === 'client' ? 'artisan' : 'client')}
-            className="px-2 py-0.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-[10px] transition-colors cursor-pointer"
-            title="تبديل الطرف لتجربة الرسائل من منظور العميل أو الحرفي"
+            type="button"
+            onClick={() => setIsNewChatModalOpen(true)}
+            className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer border border-emerald-500/40"
           >
-            تبديل
+            <Plus className="w-3.5 h-3.5" />
+            <span>محادثة جديدة</span>
           </button>
+
+          <div className="flex items-center gap-1.5 bg-black/25 px-2.5 py-1 rounded-xl border border-white/10 text-xs">
+            <span className="text-[10px] text-emerald-200">الطرف:</span>
+            <span className="font-bold text-amber-300">
+              {role === 'client' ? 'العميل' : 'الحرفي'}
+            </span>
+            <button
+              onClick={() => setRole(role === 'client' ? 'artisan' : 'client')}
+              className="px-2 py-0.5 bg-amber-400 hover:bg-amber-300 text-[#0A4D2E] font-bold rounded-lg text-[10px] transition-colors cursor-pointer"
+              title="تبديل الطرف لتجربة الرسائل من منظور العميل أو الحرفي"
+            >
+              تبديل
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Main Messaging Window */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-12 min-h-[560px] h-[calc(100vh-210px)] max-h-[720px]">
+      {/* Main Messaging Container */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-12 min-h-[580px] h-[calc(100vh-190px)] max-h-[760px]">
         
         {/* ============================================================== */}
-        {/* Left Column / Sidebar: Conversations List (Cols 1-4)            */}
+        {/* Sidebar / Conversations Thread List (Cols 1-4)                */}
         {/* ============================================================== */}
-        <div className={`md:col-span-4 border-b md:border-b-0 ltr:md:border-r rtl:md:border-l border-slate-200 dark:border-slate-800 flex flex-col bg-slate-50/70 dark:bg-slate-950/40 h-full ${
+        <div className={`md:col-span-4 border-l border-slate-200 dark:border-slate-800 flex flex-col bg-slate-50/70 dark:bg-slate-950/40 h-full ${
           showMobileChat ? 'hidden md:flex' : 'flex'
         }`}>
-          {/* Sidebar Header & Search */}
-          <div className="p-3 border-b border-slate-200 dark:border-slate-800 space-y-2 bg-white dark:bg-slate-900">
+          {/* Search & Filter Header */}
+          <div className="p-3 border-b border-slate-200 dark:border-slate-800 space-y-2.5 bg-white dark:bg-slate-900">
             <div className="flex items-center justify-between">
               <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
                 <span>المحادثات النشطة</span>
-                <span className="px-1.5 py-0.2 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-bold font-mono">
+                <span className="px-1.5 py-0.2 rounded-full bg-[#EEF6F1] text-[#0F6B3F] text-[10px] font-bold font-mono">
                   {conversations.length}
                 </span>
               </span>
 
-              {/* Filter chips */}
+              {/* Filters */}
               <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg text-[10px]">
                 <button
                   onClick={() => setFilterMode('all')}
                   className={`px-2 py-0.5 rounded font-bold transition-colors cursor-pointer ${
-                    filterMode === 'all' ? 'bg-amber-500 text-slate-950' : 'text-slate-500'
+                    filterMode === 'all' ? 'bg-[#0F6B3F] text-white' : 'text-slate-500'
                   }`}
                 >
                   الكل
@@ -356,28 +409,28 @@ export const ChatInboxView: React.FC = () => {
                 <button
                   onClick={() => setFilterMode('unread')}
                   className={`px-2 py-0.5 rounded font-bold transition-colors cursor-pointer ${
-                    filterMode === 'unread' ? 'bg-amber-500 text-slate-950' : 'text-slate-500'
+                    filterMode === 'unread' ? 'bg-[#0F6B3F] text-white' : 'text-slate-500'
                   }`}
                 >
-                  غير مقروء
+                  غير مقروءة
                 </button>
               </div>
             </div>
 
             {/* Search Input */}
             <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute rtl:right-2.5 ltr:left-2.5 top-2.5" />
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-2.5" />
               <input
                 type="text"
-                placeholder="بحث في أسماء الحرفيين..."
+                placeholder="بحث في المحادثات أو الحرفيين..."
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
-                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-xl rtl:pr-8 ltr:pl-8 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-xl pr-8 pl-8 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#0F6B3F]"
               />
               {searchFilter && (
                 <button
                   onClick={() => setSearchFilter('')}
-                  className="absolute rtl:left-2.5 ltr:right-2.5 top-2 text-slate-400 hover:text-slate-600"
+                  className="absolute left-2.5 top-2 text-slate-400 hover:text-slate-600"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -386,9 +439,14 @@ export const ChatInboxView: React.FC = () => {
           </div>
 
           {/* Conversations Scroll List */}
-          <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 p-1.5 space-y-1">
+          <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 p-2 space-y-1.5">
             {conversations
-              .filter(c => filterMode === 'all' || (c.unreadCount && c.unreadCount > 0))
+              .filter(c => {
+                if (filterMode === 'unread') return (c.unreadCount || 0) > 0;
+                if (!searchFilter.trim()) return true;
+                const q = searchFilter.toLowerCase();
+                return c.participantName.toLowerCase().includes(q) || c.participantTrade.toLowerCase().includes(q);
+              })
               .map((conv) => {
                 const isSelected = conv.id === activeConversationId;
                 const lastMsg = messages
@@ -402,9 +460,9 @@ export const ChatInboxView: React.FC = () => {
                       setActiveConversationId(conv.id);
                       setShowMobileChat(true);
                     }}
-                    className={`w-full p-2.5 rounded-xl text-start transition-all flex items-start gap-2.5 cursor-pointer border ${
+                    className={`w-full p-2.5 rounded-xl text-right transition-all flex items-start gap-2.5 cursor-pointer border ${
                       isSelected
-                        ? 'bg-amber-500/10 border-amber-500/50 shadow-2xs'
+                        ? 'bg-[#EEF6F1] dark:bg-emerald-950/30 border-[#0F6B3F]/40 shadow-xs'
                         : 'bg-white dark:bg-slate-900/60 border-transparent hover:border-slate-200 dark:hover:border-slate-700'
                     }`}
                   >
@@ -412,16 +470,16 @@ export const ChatInboxView: React.FC = () => {
                       <img
                         src={conv.participantAvatar}
                         alt={conv.participantName}
-                        className="w-10 h-10 rounded-xl object-cover border border-amber-500/30"
+                        className="w-11 h-11 rounded-xl object-cover border border-[#0F6B3F]/30"
                       />
                       {conv.isOnline && (
-                        <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900" />
+                        <span className="absolute -bottom-0.5 -left-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900" />
                       )}
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1">
-                        <span className="font-bold text-xs text-slate-900 dark:text-white truncate">
+                        <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate">
                           {conv.participantName}
                         </span>
                         <span className="text-[10px] text-slate-400 font-mono shrink-0">
@@ -429,19 +487,20 @@ export const ChatInboxView: React.FC = () => {
                         </span>
                       </div>
 
-                      <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium block truncate">
-                        {conv.participantTrade}
-                      </span>
+                      <div className="flex items-center gap-1 text-[10px] text-[#0F6B3F] dark:text-emerald-400 font-medium truncate mt-0.5">
+                        <BadgeCheck className="w-3 h-3 shrink-0" />
+                        <span className="truncate">{conv.participantTrade}</span>
+                      </div>
 
-                      <div className="flex items-center justify-between gap-2 mt-0.5">
+                      <div className="flex items-center justify-between gap-2 mt-1">
                         <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate leading-snug">
                           {lastMsg ? lastMsg.text : conv.orderSummary}
                         </p>
-                        {conv.unreadCount && conv.unreadCount > 0 && (
-                          <span className="px-1.5 py-0.2 bg-amber-500 text-slate-950 font-black rounded-full text-[9px] shrink-0">
+                        {conv.unreadCount && conv.unreadCount > 0 ? (
+                          <span className="px-1.5 py-0.2 bg-[#0F6B3F] text-white font-black rounded-full text-[9px] shrink-0">
                             {conv.unreadCount}
                           </span>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   </button>
@@ -451,18 +510,19 @@ export const ChatInboxView: React.FC = () => {
         </div>
 
         {/* ============================================================== */}
-        {/* Right Column / Chat Area: (Cols 5-12)                          */}
+        {/* Chat Area: Messages + Input (Cols 5-12)                        */}
         {/* ============================================================== */}
         <div className={`md:col-span-8 flex flex-col bg-white dark:bg-slate-900 h-full relative ${
           !showMobileChat ? 'hidden md:flex' : 'flex'
         }`}>
-          {/* Active Chat Header */}
-          <div className="p-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 bg-slate-50/50 dark:bg-slate-900 shrink-0">
+          {/* Active Chat Top Header */}
+          <div className="p-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 bg-slate-50/70 dark:bg-slate-900 shrink-0">
             <div className="flex items-center gap-2.5 min-w-0">
               <button
+                type="button"
                 onClick={() => setShowMobileChat(false)}
                 className="md:hidden p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 cursor-pointer"
-                title="رجوع للقائمة"
+                title="رجوع لقائمة المحادثات"
               >
                 <BackIcon className="w-4 h-4" />
               </button>
@@ -471,10 +531,10 @@ export const ChatInboxView: React.FC = () => {
                 <img
                   src={currentConv.participantAvatar}
                   alt={currentConv.participantName}
-                  className="w-9 h-9 rounded-xl object-cover border border-amber-500/40"
+                  className="w-10 h-10 rounded-xl object-cover border border-[#0F6B3F]/40"
                 />
                 {currentConv.isOnline && (
-                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900" />
+                  <span className="absolute -bottom-0.5 -left-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900" />
                 )}
               </div>
 
@@ -483,12 +543,12 @@ export const ChatInboxView: React.FC = () => {
                   <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate">
                     {currentConv.participantName}
                   </h3>
-                  <ShieldCheck className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                  <span className="hidden sm:inline-block px-1.5 py-0.2 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[9px] font-bold">
-                    معتمد
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#0F6B3F] shrink-0" />
+                  <span className="hidden sm:inline-block px-1.5 py-0.2 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[9px] font-bold">
+                    موثق {currentConv.verificationLevel === 2 ? 'بالدبلوم' : 'بالهوية'}
                   </span>
                 </div>
-                <div className="flex items-center gap-1.5 text-[10px] text-slate-500 truncate">
+                <div className="flex items-center gap-1.5 text-[10px] text-slate-500 truncate mt-0.5">
                   <span className="truncate">{currentConv.participantTrade}</span>
                   <span>·</span>
                   <span className="text-emerald-600 dark:text-emerald-400 font-bold shrink-0">
@@ -498,100 +558,96 @@ export const ChatInboxView: React.FC = () => {
               </div>
             </div>
 
-            {/* Header Action Buttons */}
+            {/* Quick Action Buttons */}
             <div className="flex items-center gap-1.5 shrink-0">
-              {/* Quick Jump Buttons */}
-              <div className="hidden sm:flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
-                <button
-                  type="button"
-                  onClick={() => scrollToTop('smooth')}
-                  className="px-2 py-0.5 text-[10px] font-bold text-slate-700 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 flex items-center gap-0.5 transition-colors cursor-pointer"
-                  title="صعود لأعلى المحادثة"
-                >
-                  <ArrowUp className="w-3 h-3" />
-                  <span>الأعلى</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => scrollToBottom('smooth')}
-                  className="px-2 py-0.5 text-[10px] font-bold text-slate-700 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 flex items-center gap-0.5 transition-colors cursor-pointer"
-                  title="النزول لآخر رسالة"
-                >
-                  <ArrowDown className="w-3 h-3" />
-                  <span>الأسفل</span>
-                </button>
-              </div>
-
+              {/* Appointment Booking */}
               <button
+                type="button"
                 onClick={() => {
                   const targetArtisan = artisans.find(a => a.id === currentConv.participantId) || artisans[0];
                   setSelectedArtisanForAppointment(targetArtisan);
                   setIsBookingAppointmentModalOpen(true);
                 }}
-                className="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                className="px-2.5 py-1.5 bg-[#EEF6F1] hover:bg-[#DDE3DF] text-[#0F6B3F] dark:bg-emerald-950/40 dark:text-emerald-300 border border-[#0F6B3F]/30 rounded-xl text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
                 title="حجز موعد في الروزنامة"
               >
-                <Calendar className="w-3 h-3 text-amber-600" />
+                <Calendar className="w-3.5 h-3.5 text-[#0F6B3F]" />
                 <span className="hidden sm:inline">حجز موعد</span>
               </button>
 
-              <button
-                onClick={() => startCall(currentConv.participantName, currentConv.participantTrade, currentConv.participantAvatar)}
-                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold flex items-center gap-1 shadow-xs transition-transform active:scale-95 cursor-pointer"
-                title="بدء اتصال مشفر"
+              {/* Direct Cellular Call */}
+              <a
+                href={`tel:${currentConv.participantPhone}`}
+                className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-[11px] font-bold flex items-center gap-1 border border-slate-200 dark:border-slate-700 transition-colors"
+                title="اتصال هاتفي مباشر عبر الشريحة"
               >
-                <PhoneCall className="w-3 h-3" />
+                <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="hidden sm:inline">اتصال GSM</span>
+              </a>
+
+              {/* Encrypted In-App Audio Call */}
+              <button
+                type="button"
+                onClick={() => startCall(currentConv.participantName, currentConv.participantTrade, currentConv.participantAvatar)}
+                className="px-2.5 py-1.5 bg-[#0F6B3F] hover:bg-[#0A4D2E] text-white rounded-xl text-[11px] font-bold flex items-center gap-1 shadow-xs transition-transform active:scale-95 cursor-pointer"
+                title="بدء اتصال مشفر عبر التطبيق"
+              >
+                <PhoneCall className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">اتصال مشفر</span>
               </button>
             </div>
           </div>
 
-          {/* Context strip: Active task summary */}
-          <div className="px-3 py-1.5 bg-amber-50/70 dark:bg-amber-950/20 border-b border-amber-200/50 dark:border-amber-900/40 flex items-center justify-between text-[11px] shrink-0">
-            <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 min-w-0">
-              <Clock className="w-3 h-3 text-amber-600 shrink-0" />
-              <span className="font-bold text-amber-900 dark:text-amber-200 truncate">
+          {/* Context Strip: Active Task & Wilaya */}
+          <div className="px-3.5 py-1.5 bg-amber-50/80 dark:bg-amber-950/20 border-b border-amber-200/60 dark:border-amber-900/40 flex items-center justify-between text-[11px] shrink-0">
+            <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 min-w-0">
+              <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              <span className="font-bold text-amber-950 dark:text-amber-200 truncate">
                 {currentConv.orderSummary}
               </span>
+              <span className="text-slate-400 hidden sm:inline">·</span>
+              <span className="text-[10px] text-slate-500 hidden sm:flex items-center gap-0.5 truncate">
+                <MapPin className="w-2.5 h-2.5" />
+                <span>{currentConv.city}</span>
+              </span>
             </div>
-            <span className="font-bold font-mono text-emerald-600 dark:text-emerald-400 text-xs shrink-0">
-              3,500 دج
+            <span className="font-bold font-mono text-[#0F6B3F] dark:text-emerald-400 text-xs shrink-0">
+              {currentConv.orderPrice}
             </span>
           </div>
 
-          {/* Messages Scroll Area: Reliable & Isolated from Parent Page */}
+          {/* Messages Scroll Area */}
           <div 
             ref={messagesContainerRef}
             onScroll={handleScroll}
-            className="flex-1 overflow-y-auto p-3.5 space-y-3 bg-slate-50/60 dark:bg-slate-950/40 overscroll-contain"
-            style={{ overscrollBehavior: 'contain' }}
+            className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-slate-50/60 dark:bg-slate-950/40 overscroll-contain"
           >
             {/* Encryption notice pill */}
             <div className="text-center my-1">
-              <span className="inline-flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-slate-200/70 dark:border-slate-700/70 shadow-2xs">
-                <Lock className="w-2.5 h-2.5 text-amber-500" />
-                <span>محادثة مشفرة وآمنة لحماية خصوصيتك ورقم هاتفك</span>
+              <span className="inline-flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-2xs">
+                <Lock className="w-3 h-3 text-[#0F6B3F]" />
+                <span>محادثة مشفرة وآمنة وفق معايير الخصوصية لحماية بياناتك ورقم هاتفك</span>
               </span>
             </div>
 
             {/* Date divider */}
-            <div className="flex items-center justify-center my-1.5">
-              <span className="text-[10px] font-bold text-slate-400 bg-slate-200/60 dark:bg-slate-800/60 px-2 py-0.5 rounded-full">
+            <div className="flex items-center justify-center my-2">
+              <span className="text-[10px] font-bold text-slate-400 bg-slate-200/70 dark:bg-slate-800 px-2.5 py-0.5 rounded-full">
                 اليوم
               </span>
             </div>
 
             {/* Empty state */}
             {displayedMessages.length === 0 && (
-              <div className="text-center py-10 space-y-1.5">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
-                  <MessageSquare className="w-5 h-5" />
+              <div className="text-center py-12 space-y-2">
+                <div className="w-12 h-12 rounded-2xl bg-[#EEF6F1] text-[#0F6B3F] flex items-center justify-center mx-auto">
+                  <MessageSquare className="w-6 h-6" />
                 </div>
                 <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">
                   لا توجد رسائل سابقة
                 </h4>
                 <p className="text-[11px] text-slate-400 max-w-xs mx-auto">
-                  اكتب رسالتك أو شارك صورة العطل أو أرسل تسجيلاً صوتياً للبدء.
+                  اكتب رسالتك أو شارك صورة العطل أو أرسل تسجيلاً صوتياً للبدء فوراً.
                 </p>
               </div>
             )}
@@ -627,23 +683,24 @@ export const ChatInboxView: React.FC = () => {
                       <img
                         src={currentConv.participantAvatar}
                         alt={msg.senderName}
-                        className="w-6 h-6 rounded-lg object-cover mb-1 border shrink-0"
+                        className="w-7 h-7 rounded-lg object-cover mb-1 border border-slate-200 shrink-0"
                       />
                     )}
 
                     <div
-                      className={`p-3 rounded-2xl text-xs leading-relaxed space-y-1 shadow-2xs relative ${
+                      className={`p-3 rounded-2xl text-xs leading-relaxed space-y-1.5 shadow-2xs relative ${
                         isMe
-                          ? 'bg-amber-500 text-slate-950 font-medium rounded-ee-sm'
-                          : 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200/90 dark:border-slate-700/80 rounded-es-sm'
+                          ? 'bg-[#0F6B3F] text-white font-medium rounded-ee-sm'
+                          : 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-es-sm'
                       }`}
                     >
                       {/* Sender label and delete action */}
-                      <div className="text-[10px] font-bold opacity-75 flex items-center justify-between gap-3">
+                      <div className="text-[10px] font-bold opacity-80 flex items-center justify-between gap-3">
                         <span>{isMe ? 'أنت' : msg.senderName}</span>
                         <button
+                          type="button"
                           onClick={() => deleteChatMessage(msg.id)}
-                          className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-400 hover:text-rose-500 transition-opacity cursor-pointer"
+                          className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-300 hover:text-rose-400 transition-opacity cursor-pointer"
                           title="حذف الرسالة"
                         >
                           <Trash2 className="w-3 h-3" />
@@ -655,9 +712,9 @@ export const ChatInboxView: React.FC = () => {
                         <div className="pt-0.5">
                           <img
                             src={msg.imageUrl}
-                            alt="صورة العطل"
+                            alt="صورة العطل أو الورشة"
                             onClick={() => setLightboxImage(msg.imageUrl || null)}
-                            className="w-full max-h-52 rounded-xl object-cover border border-black/10 dark:border-white/10 cursor-pointer hover:opacity-95 shadow-2xs transition-opacity"
+                            className="w-full max-h-56 rounded-xl object-cover border border-black/10 dark:border-white/10 cursor-pointer hover:opacity-95 shadow-2xs transition-opacity"
                           />
                         </div>
                       )}
@@ -676,10 +733,10 @@ export const ChatInboxView: React.FC = () => {
                       ) : null}
 
                       {/* Timestamp & Status ticks */}
-                      <div className="flex items-center justify-end gap-1 text-[9px] font-mono opacity-70 pt-0.5">
+                      <div className="flex items-center justify-end gap-1 text-[9px] font-mono opacity-80 pt-0.5">
                         <span>{msg.timestamp}</span>
                         {isMe && (
-                          <CheckCheck className="w-3 h-3 text-blue-700 dark:text-blue-400 inline" />
+                          <CheckCheck className="w-3 h-3 text-emerald-200 inline" />
                         )}
                       </div>
                     </div>
@@ -687,41 +744,48 @@ export const ChatInboxView: React.FC = () => {
                 </div>
               );
             })}
-          </div>
 
-          {/* Floating Quick Scroll Controls (Top & Bottom) */}
-          <div className="absolute bottom-20 left-6 z-20 flex flex-col gap-1.5 pointer-events-auto">
-            {showScrollTopBtn && (
-              <button
-                type="button"
-                onClick={() => scrollToTop('smooth')}
-                className="px-3 py-1.5 bg-slate-900/95 hover:bg-slate-800 text-amber-400 font-bold rounded-xl shadow-lg border border-amber-500/30 transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 text-[11px] backdrop-blur-xs"
-                title="الصعود لأول المحادثة"
-              >
-                <ArrowUp className="w-3.5 h-3.5" />
-                <span>أعلى المحادثة</span>
-              </button>
-            )}
-
-            {showScrollBottomBtn && (
-              <button
-                type="button"
-                onClick={() => scrollToBottom('smooth')}
-                className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl shadow-lg border border-amber-300 transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 text-[11px]"
-                title="النزول لآخر رسالة"
-              >
-                <ArrowDown className="w-3.5 h-3.5" />
-                <span>أحدث الرسائل</span>
-              </button>
+            {/* Typing Indicator */}
+            {isTyping && (
+              <div className="flex items-center gap-2 animate-fade-in">
+                <img
+                  src={currentConv.participantAvatar}
+                  alt={currentConv.participantName}
+                  className="w-6 h-6 rounded-lg object-cover border border-slate-200 shrink-0"
+                />
+                <div className="p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl rounded-es-sm text-xs flex items-center gap-1.5 shadow-2xs">
+                  <span className="text-[11px] text-slate-500 font-medium">
+                    {currentConv.participantName} يكتب الآن...
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </span>
+                </div>
+              </div>
             )}
           </div>
+
+          {/* Floating Scroll to Bottom Button */}
+          {showScrollBottomBtn && (
+            <button
+              type="button"
+              onClick={() => scrollToBottom('smooth')}
+              className="absolute bottom-20 left-6 z-20 px-3 py-1.5 bg-[#0F6B3F] hover:bg-[#0A4D2E] text-white font-bold rounded-xl shadow-lg border border-emerald-400 transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 text-[11px]"
+              title="النزول لآخر رسالة"
+            >
+              <ArrowDown className="w-3.5 h-3.5" />
+              <span>أحدث الرسائل</span>
+            </button>
+          )}
 
           {/* Quick Replies Carousel */}
           {showQuickReplies && (
-            <div className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800/90 border-t border-slate-200 dark:border-slate-700/80 flex items-center gap-1 overflow-x-auto scrollbar-none shrink-0">
-              <span className="text-[10px] font-bold text-amber-600 shrink-0 flex items-center gap-0.5">
+            <div className="px-3 py-2 bg-slate-100 dark:bg-slate-800/90 border-t border-slate-200 dark:border-slate-700 flex items-center gap-1.5 overflow-x-auto scrollbar-none shrink-0">
+              <span className="text-[10px] font-bold text-[#0F6B3F] shrink-0 flex items-center gap-1">
                 <Zap className="w-3 h-3" />
-                <span>رد سريع:</span>
+                <span>ردود جاهزة:</span>
               </span>
               {quickReplies.map((preset, pIdx) => (
                 <button
@@ -742,8 +806,12 @@ export const ChatInboxView: React.FC = () => {
                     );
                     setShowQuickReplies(false);
                     setTimeout(() => scrollToBottom('smooth'), 50);
+                    if (role === 'client') {
+                      setIsTyping(true);
+                      setTimeout(() => setIsTyping(false), 1500);
+                    }
                   }}
-                  className="px-2 py-0.5 text-[10px] font-medium bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 rounded-md hover:border-amber-400 whitespace-nowrap transition-colors shrink-0 cursor-pointer"
+                  className="px-2.5 py-1 text-[11px] font-medium bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 rounded-lg hover:border-[#0F6B3F] whitespace-nowrap transition-colors shrink-0 cursor-pointer shadow-2xs"
                 >
                   {preset}
                 </button>
@@ -751,34 +819,40 @@ export const ChatInboxView: React.FC = () => {
             </div>
           )}
 
-          {/* Attached image preview */}
+          {/* Attached Image Preview Bar */}
           {attachedImage && (
-            <div className="px-3 py-1.5 bg-amber-50 dark:bg-amber-950/40 border-t border-amber-200 dark:border-amber-800 flex items-center justify-between shrink-0">
+            <div className="px-3 py-2 bg-emerald-50 dark:bg-emerald-950/40 border-t border-emerald-200 dark:border-emerald-800 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <img
                   src={attachedImage}
-                  alt="معاينة"
-                  className="w-8 h-8 object-cover rounded-lg border border-amber-500"
+                  alt="معاينة الصورة"
+                  className="w-10 h-10 object-cover rounded-lg border border-[#0F6B3F]"
                 />
-                <span className="text-[11px] font-bold text-amber-900 dark:text-amber-200">
-                  صورة جاهزة للإرسال
-                </span>
+                <div>
+                  <span className="text-[11px] font-bold text-emerald-950 dark:text-emerald-200 block">
+                    صورة جاهزة للإرسال
+                  </span>
+                  <span className="text-[9px] text-slate-500">
+                    اضغط إرسال لمشاركتها مع الحرفي
+                  </span>
+                </div>
               </div>
               <button
+                type="button"
                 onClick={() => setAttachedImage(null)}
-                className="p-1 text-slate-400 hover:text-rose-500 rounded-lg cursor-pointer"
+                className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg cursor-pointer"
                 title="إلغاء الصورة"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
           )}
 
           {/* Input Bar or Live Recording Bar */}
           {isRecording ? (
-            <div className="p-2.5 bg-red-500/10 dark:bg-red-950/30 border-t border-red-500/30 flex items-center justify-between gap-2 shrink-0">
+            <div className="p-3 bg-red-500/10 dark:bg-red-950/30 border-t border-red-500/30 flex items-center justify-between gap-2 shrink-0">
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-ping inline-block" />
+                <span className="w-3 h-3 rounded-full bg-red-600 animate-ping inline-block" />
                 <span className="text-xs font-bold text-red-700 dark:text-red-400">
                   تسجيل صوتي جاري... 🎙️
                 </span>
@@ -787,42 +861,44 @@ export const ChatInboxView: React.FC = () => {
                 </span>
               </div>
 
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={handleCancelRecording}
-                  className="px-2 py-1 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold cursor-pointer"
+                  className="px-2.5 py-1 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold cursor-pointer"
                 >
                   إلغاء
                 </button>
                 <button
                   type="button"
                   onClick={handleFinishAndSendRecording}
-                  className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg text-xs flex items-center gap-1 cursor-pointer"
+                  className="px-3.5 py-1.5 bg-[#0F6B3F] hover:bg-[#0A4D2E] text-white font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-xs"
                 >
-                  <Send className="w-3 h-3 rtl:rotate-180" />
-                  <span>إرسال</span>
+                  <Send className="w-3 h-3 rotate-180" />
+                  <span>إرسال التسجيل</span>
                 </button>
               </div>
             </div>
           ) : (
-            <div className="p-2.5 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center gap-1.5 shrink-0">
+            <div className="p-2.5 sm:p-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center gap-1.5 shrink-0">
+              {/* Quick Replies Toggle */}
               <button
                 type="button"
                 onClick={() => setShowQuickReplies(prev => !prev)}
-                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                className={`p-2 rounded-xl transition-colors cursor-pointer ${
                   showQuickReplies 
-                    ? 'bg-amber-500/20 text-amber-600' 
+                    ? 'bg-[#EEF6F1] text-[#0F6B3F]' 
                     : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`}
-                title="ردود سريعة"
+                title="ردود سريعة جاهزة"
               >
                 <Zap className="w-4 h-4" />
               </button>
 
+              {/* Attach Image */}
               <label
-                className="p-1.5 text-slate-500 hover:text-amber-500 cursor-pointer rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-                title="إرفاق صورة"
+                className="p-2 text-slate-500 hover:text-[#0F6B3F] cursor-pointer rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                title="إرفاق صورة العطل أو الورشة"
               >
                 <ImageIcon className="w-4 h-4" />
                 <input
@@ -834,30 +910,35 @@ export const ChatInboxView: React.FC = () => {
                 />
               </label>
 
+              {/* Mic / Audio Record */}
               <button
                 type="button"
                 onClick={handleStartRecording}
-                className="p-1.5 text-slate-500 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 cursor-pointer"
-                title="تسجيل صوتي"
+                className="p-2 text-slate-500 hover:text-red-500 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
+                title="تسجيل رسالة صوتية"
               >
                 <Mic className="w-4 h-4" />
               </button>
 
+              {/* Text Input */}
               <input
                 type="text"
                 value={inputVal}
                 onChange={(e) => setInputVal(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                placeholder={attachedImage ? 'أضف تعليقاً على الصورة...' : 'اكتب رسالتك هنا...'}
-                className="flex-1 bg-slate-100 dark:bg-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                placeholder={attachedImage ? 'أضف تعليقاً على الصورة المرفقة...' : 'اكتب رسالتك للحرفي هنا...'}
+                className="flex-1 bg-slate-100 dark:bg-slate-800 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#0F6B3F]"
               />
 
+              {/* Send Button */}
               <button
+                type="button"
                 onClick={handleSend}
                 disabled={!inputVal.trim() && !attachedImage}
-                className="w-8 h-8 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-slate-950 rounded-xl flex items-center justify-center transition-all shrink-0 cursor-pointer"
+                className="w-9 h-9 bg-[#0F6B3F] hover:bg-[#0A4D2E] disabled:opacity-40 text-white rounded-xl flex items-center justify-center transition-all shrink-0 cursor-pointer shadow-xs"
+                title="إرسال"
               >
-                <Send className="w-3.5 h-3.5 rtl:rotate-180" />
+                <Send className="w-4 h-4 rotate-180" />
               </button>
             </div>
           )}
@@ -867,21 +948,88 @@ export const ChatInboxView: React.FC = () => {
       {/* Lightbox Modal for Full View Images */}
       {lightboxImage && (
         <div
-          className="fixed inset-0 z-60 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 z-60 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in"
           onClick={() => setLightboxImage(null)}
         >
           <div className="relative max-w-2xl max-h-[90vh]">
             <img
               src={lightboxImage}
-              alt="عرض كبير"
+              alt="عرض الصورة بالحجم الكامل"
               className="max-w-full max-h-[85vh] rounded-2xl object-contain shadow-2xl"
             />
             <button
               onClick={() => setLightboxImage(null)}
-              className="absolute top-3 left-3 p-2 bg-slate-900/80 text-white rounded-full hover:bg-slate-950"
+              className="absolute top-3 left-3 p-2 bg-black/60 text-white rounded-full hover:bg-black/90 cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* New Chat Launcher Modal */}
+      {isNewChatModalOpen && (
+        <div 
+          className="fixed inset-0 z-60 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setIsNewChatModalOpen(false)}
+        >
+          <div 
+            className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-2xl space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-[#EEF6F1] text-[#0F6B3F] flex items-center justify-center">
+                  <Plus className="w-4 h-4" />
+                </div>
+                <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+                  بدء محادثة جديدة مع حرفي
+                </h3>
+              </div>
+              <button 
+                onClick={() => setIsNewChatModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500">
+              اختر أحد الحرفيين المعتمدين لبدء استفسار جديد أو مناقشة تكلفة الصيانة:
+            </p>
+
+            <div className="max-h-64 overflow-y-auto space-y-2">
+              {artisans.slice(0, 5).map((art) => (
+                <button
+                  key={art.id}
+                  onClick={() => {
+                    const existingConv = conversations.find(c => c.participantId === art.id);
+                    if (existingConv) {
+                      setActiveConversationId(existingConv.id);
+                    } else {
+                      setActiveConversationId('conv_art_1');
+                    }
+                    setIsNewChatModalOpen(false);
+                    setShowMobileChat(true);
+                  }}
+                  className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#0F6B3F] hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 text-right flex items-center gap-3 transition-colors cursor-pointer"
+                >
+                  <img 
+                    src={art.avatar} 
+                    alt={art.name} 
+                    className="w-10 h-10 rounded-xl object-cover border border-[#0F6B3F]/30 shrink-0" 
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-xs text-slate-900 dark:text-white truncate">{art.name}</span>
+                      <ShieldCheck className="w-3 h-3 text-[#0F6B3F]" />
+                    </div>
+                    <span className="text-[10px] text-[#0F6B3F] block truncate">{art.trade}</span>
+                    <span className="text-[10px] text-slate-400 block truncate">{art.city}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}

@@ -140,8 +140,10 @@ export const AdminLiveEditorBar: React.FC = () => {
     return () => observer.disconnect();
   }, [adminCustomTexts]);
 
-  // 2. Global Double Click & Drag/Drop Interceptor for Admin
+  // 2. Global Double Click & Drag/Drop Interceptor for Admin (ONLY ACTIVE WHEN AUTHENTICATED AS ADMIN)
   useEffect(() => {
+    if (!isEffectiveAdmin) return;
+
     // A. Double Click Handler (Edit any text, icon, or image)
     const handleGlobalDoubleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
@@ -155,18 +157,6 @@ export const AdminLiveEditorBar: React.FC = () => {
         target.closest('.admin-modal') ||
         target.closest('[role="dialog"]')
       ) {
-        return;
-      }
-
-      // If user is not yet logged in as admin, double click invites them to authenticate
-      if (!isEffectiveAdmin) {
-        // Only trigger if double clicked on actual text, button, card or image
-        const hasContent = target.closest('h1, h2, h3, h4, h5, h6, p, span, button, a, img, svg');
-        if (hasContent) {
-          e.preventDefault();
-          e.stopPropagation();
-          setIsAdminAuthModalOpen(true);
-        }
         return;
       }
 
