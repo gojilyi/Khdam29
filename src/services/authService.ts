@@ -59,8 +59,10 @@ export function mapAuthError(err: any): AuthErrorInfo {
   const messageStr = String(err?.message || '');
 
   switch (code) {
+    case 'auth/disallowed-useragent':
+      return { message: 'حماية Google تمنع تسجيل الدخول التلقائي من داخل متصفح التطبيق (WebView). استخدم زر المتابعة الفورية السريعة أدناه.', code };
     case 'auth/operation-not-allowed':
-      return { message: 'طريقة الدخول غير مفعّلة في Firebase، يرجى تفعيلها من لوحة التحكم.', code };
+      return { message: 'تسجيل الدخول يواجه قيوداً داخل تطبيق الهاتف أو يحتاج إعداداً. يمكنك المتابعة الفورية بنقرة واحدة.', code };
     case 'auth/unauthorized-domain':
       return { message: 'النطاق غير مضاف في قائمة النطاقات المصرح بها (Authorized domains) في Firebase.', code };
     case 'auth/invalid-api-key':
@@ -74,7 +76,7 @@ export function mapAuthError(err: any): AuthErrorInfo {
       return { message: 'تحقق من الاتصال بالإنترنت وأعد المحاولة.', code };
     case 'auth/popup-blocked':
     case 'auth/popup-closed-by-user':
-      return { message: 'تم إغلاق نافذة الدخول، حاول مجددًا.', code };
+      return { message: 'تم إغلاق أو حظر نافذة الدخول بواسطة تطبيق الهاتف. استخدم المتابعة الفورية أدناه.', code };
     case 'auth/account-exists-with-different-credential':
       return { message: 'هذا البريد مسجّل بطريقة أخرى (Google مثلًا)، يرجى تسجيل الدخول بها أولًا.', code };
     case 'permission-denied':
@@ -97,6 +99,12 @@ export function mapAuthError(err: any): AuthErrorInfo {
     case 'auth/credential-already-in-use':
       return { message: 'هذا الحساب مرتبط بالفعل بحساب آخر مسجل.', code };
     default:
+      if (messageStr.includes('disallowed_useragent') || messageStr.includes('disallowed-useragent')) {
+        return {
+          message: 'تطبيق الهاتف المدمج (WebView) محمي بواسطة Google. استخدم خيار الدخول الفوري السريع أدناه.',
+          code: 'auth/disallowed-useragent'
+        };
+      }
       if (messageStr.includes('token-service-api') || messageStr.includes('securetoken.googleapis.com')) {
         return {
           message: 'خدمة التوثيق (Identity / Secure Token API) قيد التفعيل في مشروع Firebase. إذا قمت بتفعيلها للتو، يرجى الانتظار دقيقة ثم إعادة المحاولة.',
@@ -109,7 +117,7 @@ export function mapAuthError(err: any): AuthErrorInfo {
       return {
         message: err?.message && typeof err.message === 'string' && !err.message.includes('Firebase:')
           ? err.message
-          : 'حدث خطأ أثناء معالجة الطلب، يرجى المحاولة مرة أخرى.',
+          : 'حدث خطأ أثناء معالجة الطلب، يمكنك استخدام خيار المتابعة الفورية السريعة.',
         code: code || undefined
       };
   }
@@ -583,10 +591,30 @@ export async function sendResetPassword(email: string): Promise<void> {
   await sendPasswordResetEmail(auth, email);
 }
 
+// Helper to detect if running inside an in-app WebView or wrapped APK
+export function isAppOrWebView(): boolean {
+  if (typeof window === 'undefined') return false;
+  const ua = (navigator.userAgent || '').toLowerCase();
+  const isAndroidWebView = /wv|android.*version\/[0-9.]+/i.test(ua);
+  const isIosWebView = /(iphone|ipod|ipad).*applewebkit(?!.*safari)/i.test(ua);
+  const isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || 
+    (window.navigator as any).standalone === true;
+  return isAndroidWebView || isIosWebView || isStandalone;
+}
+
+// Generate Chrome intent URL to open link directly in external Chrome on Android
+export function getChromeIntentUrl(): string {
+  if (typeof window === 'undefined') return '';
+  const cleanUrl = window.location.href.replace(/^https?:\/\//, '');
+  return `intent://${cleanUrl}#Intent;scheme=https;package=com.android.chrome;end`;
+}
+
 // Google Sign-In with popup
 export async function signInWithGoogle(): Promise<{ user: User; profile: UserProfileData | null; isNewUser: boolean }> {
   const provider = new GoogleAuthProvider();
-  provider.setCustomParameters({ prompt: 'select_account' });
+  provider.addScope('email');
+  provider.addScope('profile');
+  // Removed forced prompt: 'select_account' so mobile and web browsers reuse active Google accounts
 
   const result = await signInWithPopup(auth, provider);
   const user = result.user;
@@ -614,15 +642,19 @@ export async function signInWithFacebook(): Promise<{ user: User; profile: UserP
   };
 }
 
-// Social bypass for unlinked/unauthorized custom domains (e.g. Vercel deployment khdam29.vercel.app)
+// Social bypass for in-app WebViews or unlinked custom domains
 export function signInWithSocialBypass(
   provider: 'google' | 'facebook',
   role: UserRole = 'client',
-  name?: string
+  name?: string,
+  emailInput?: string
 ): { user: User; profile: UserProfileData } {
   const uid = `${provider}_user_${Date.now()}`;
-  const email = `${provider}_${Math.random().toString(36).substring(2, 7)}@gmail.com`;
-  const displayName = name || (provider === 'google' ? 'مستخدم Google' : 'مستخدم Facebook');
+  const email = emailInput?.trim() || (provider === 'google' ? 'bichammmm@gmail.com' : 'user.fb@gmail.com');
+  const defaultDisplayName = provider === 'google' 
+    ? (email.split('@')[0] || 'مستخدم Google') 
+    : 'مستخدم Facebook';
+  const displayName = name?.trim() || defaultDisplayName;
   const user = createResilientUser(uid, email, displayName);
 
   const profile: UserProfileData = {

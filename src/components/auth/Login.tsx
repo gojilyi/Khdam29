@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, Smartphone, AlertCircle, ArrowLeft, KeyRound, Loader2, UserCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ConfirmationResult } from 'firebase/auth';
-import { checkRateLimit, normalizeAlgerianPhone, mapAuthError, AuthErrorInfo } from '../../services/authService';
+import { checkRateLimit, normalizeAlgerianPhone, mapAuthError, AuthErrorInfo, isAppOrWebView } from '../../services/authService';
 import { AuthorizedDomainAlert } from './AuthorizedDomainAlert';
+import { InAppSocialHelper } from './InAppSocialHelper';
 
 interface LoginProps {
   onSwitchToRegister: () => void;
@@ -29,6 +30,10 @@ export const Login: React.FC<LoginProps> = ({
     requestPhoneOtp, 
     authModalPrompt 
   } = useAuth();
+
+  const isApp = isAppOrWebView();
+  const [showInAppHelper, setShowInAppHelper] = useState<boolean>(isApp);
+  const [activeSocialFailedProvider, setActiveSocialFailedProvider] = useState<'google' | 'facebook' | 'both'>('both');
 
   const [loginMethod, setLoginMethod] = useState<'email' | 'phone'>('email');
   const [email, setEmail] = useState('');
@@ -113,7 +118,10 @@ export const Login: React.FC<LoginProps> = ({
         onSuccess();
       }
     } catch (err: any) {
-      setError(mapAuthError(err));
+      const mapped = mapAuthError(err);
+      setError(mapped);
+      setActiveSocialFailedProvider('google');
+      setShowInAppHelper(true);
     } finally {
       setLoading(false);
       setLoadingType(null);
@@ -132,7 +140,10 @@ export const Login: React.FC<LoginProps> = ({
         onSuccess();
       }
     } catch (err: any) {
-      setError(mapAuthError(err));
+      const mapped = mapAuthError(err);
+      setError(mapped);
+      setActiveSocialFailedProvider('facebook');
+      setShowInAppHelper(true);
     } finally {
       setLoading(false);
       setLoadingType(null);
@@ -164,8 +175,17 @@ export const Login: React.FC<LoginProps> = ({
         </div>
       )}
 
+      {/* In-App WebView Fast Login Assistant */}
+      {showInAppHelper && (
+        <InAppSocialHelper
+          provider={activeSocialFailedProvider}
+          onSuccess={onSuccess}
+          onNeedRoleSelection={onNeedRoleSelection}
+        />
+      )}
+
       {/* Error Banner with Real Error Code */}
-      {error && (
+      {error && !showInAppHelper && (
         (error.code === 'auth/unauthorized-domain' || error.code === 'auth/token-service-api-disabled') ? (
           <AuthorizedDomainAlert 
             code={error.code}

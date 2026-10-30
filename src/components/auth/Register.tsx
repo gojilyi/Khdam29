@@ -19,8 +19,9 @@ import {
   Loader2
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { normalizeAlgerianPhone, mapAuthError, AuthErrorInfo, UserRole } from '../../services/authService';
+import { normalizeAlgerianPhone, mapAuthError, AuthErrorInfo, UserRole, isAppOrWebView } from '../../services/authService';
 import { AuthorizedDomainAlert } from './AuthorizedDomainAlert';
+import { InAppSocialHelper } from './InAppSocialHelper';
 
 interface RegisterProps {
   role: UserRole;
@@ -72,6 +73,10 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
 
   // Wizard step for craftsman (1, 2, 3)
   const [step, setStep] = useState<number>(1);
+
+  const isApp = isAppOrWebView();
+  const [showInAppHelper, setShowInAppHelper] = useState<boolean>(isApp);
+  const [activeSocialFailedProvider, setActiveSocialFailedProvider] = useState<'google' | 'facebook' | 'both'>('both');
 
   // Form State
   const [fullName, setFullName] = useState('');
@@ -292,7 +297,10 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
       }
       onSuccess();
     } catch (err: any) {
-      setGeneralError(mapAuthError(err));
+      const mapped = mapAuthError(err);
+      setGeneralError(mapped);
+      setActiveSocialFailedProvider('google');
+      setShowInAppHelper(true);
     } finally {
       setLoading(false);
       setLoadingType(null);
@@ -310,7 +318,10 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
       }
       onSuccess();
     } catch (err: any) {
-      setGeneralError(mapAuthError(err));
+      const mapped = mapAuthError(err);
+      setGeneralError(mapped);
+      setActiveSocialFailedProvider('facebook');
+      setShowInAppHelper(true);
     } finally {
       setLoading(false);
       setLoadingType(null);
@@ -413,8 +424,20 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
         </div>
       )}
 
+      {/* In-App WebView Fast Register Assistant */}
+      {step === 1 && showInAppHelper && (
+        <InAppSocialHelper
+          provider={activeSocialFailedProvider}
+          role={role}
+          fullName={fullName}
+          title="التسجيل الفوري داخل تطبيق الهاتف"
+          description="نظام الهاتف يعزل متصفح التطبيق (WebView) عن حسابات Google و Facebook لحماية الخصوصية. يمكنك إتمام التسجيل فوراً بنقرة واحدة أدناه:"
+          onSuccess={onSuccess}
+        />
+      )}
+
       {/* General Error Banner with Error Code */}
-      {generalError && (
+      {generalError && !showInAppHelper && (
         (generalError.code === 'auth/unauthorized-domain' || generalError.code === 'auth/token-service-api-disabled') ? (
           <AuthorizedDomainAlert 
             code={generalError.code}

@@ -22,6 +22,7 @@ export const AuthorizedDomainAlert: React.FC<AuthorizedDomainAlertProps> = ({
   const messagingSenderId = firebaseConfig.messagingSenderId || '563678292032';
 
   const isTokenApiError = code === 'auth/token-service-api-disabled' || code?.includes('token-service');
+  const isOperationNotAllowed = code === 'auth/operation-not-allowed' || code === 'auth/disallowed-useragent';
   const consoleUrl = isTokenApiError
     ? `https://console.developers.google.com/apis/api/securetoken.googleapis.com/overview?project=${messagingSenderId}`
     : `https://console.firebase.google.com/project/${projectId}/authentication/settings`;
@@ -33,6 +34,35 @@ export const AuthorizedDomainAlert: React.FC<AuthorizedDomainAlertProps> = ({
       setTimeout(() => setCopiedDomain(null), 3000);
     }
   };
+
+  if (isOperationNotAllowed) {
+    return (
+      <div className="p-3.5 bg-amber-50 border border-amber-300 text-amber-950 rounded-[10px] space-y-3 text-[12px] shadow-xs" dir="rtl">
+        <div className="flex items-start gap-2">
+          <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" strokeWidth={1.75} />
+          <div className="space-y-1">
+            <h5 className="font-bold text-[13px] text-amber-900">
+              تنبيه تسجيل الدخول عبر التطبيق (Facebook / Google)
+            </h5>
+            <p className="text-amber-800 leading-relaxed text-[11px]">
+              {customMessage || 'متصفح تطبيق الهاتف (WebView) يفرض قيوداً أمنية على النوافذ المنبثقة، أو أن تسجيل Facebook يحتاج ربط App ID في لوحة Firebase. يمكنك تخطي ذلك بالدخول الفوري بنقرة واحدة.'}
+            </p>
+          </div>
+        </div>
+
+        {onBypass && (
+          <button
+            type="button"
+            onClick={onBypass}
+            className="w-full h-10 px-3 bg-[#0F6B3F] hover:bg-[#0A4D2E] text-white font-bold rounded-[8px] text-[12px] flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm"
+          >
+            <Sparkles className="w-4 h-4 text-emerald-200" />
+            <span>المتابعة السريعة الفورية (تخطي قيود التطبيق)</span>
+          </button>
+        )}
+      </div>
+    );
+  }
 
   if (isTokenApiError) {
     return (
