@@ -27,13 +27,13 @@ export const InAppSocialHelper: React.FC<InAppSocialHelperProps> = ({
   const [customGoogleEmail, setCustomGoogleEmail] = useState('bichammmm@gmail.com');
   const [showEditEmail, setShowEditEmail] = useState(false);
 
-  const handleInstantGoogle = () => {
-    loginWithSocialBypass('google', role, fullName.trim() || undefined, customGoogleEmail.trim() || 'bichammmm@gmail.com');
+  const handleInstantGoogle = async () => {
+    await loginWithSocialBypass('google', role, fullName.trim() || undefined, customGoogleEmail.trim() || 'bichammmm@gmail.com');
     onSuccess();
   };
 
-  const handleInstantFacebook = () => {
-    loginWithSocialBypass('facebook', role, fullName.trim() || undefined);
+  const handleInstantFacebook = async () => {
+    await loginWithSocialBypass('facebook', role, fullName.trim() || undefined);
     onSuccess();
   };
 

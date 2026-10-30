@@ -642,47 +642,76 @@ export async function signInWithFacebook(): Promise<{ user: User; profile: UserP
   };
 }
 
-// Social bypass for in-app WebViews or unlinked custom domains
-export function signInWithSocialBypass(
+// Social bypass for in-app WebViews or direct 1-click social authentication
+export async function signInWithSocialBypass(
   provider: 'google' | 'facebook',
   role: UserRole = 'client',
   name?: string,
-  emailInput?: string
-): { user: User; profile: UserProfileData } {
-  const uid = `${provider}_user_${Date.now()}`;
-  const email = emailInput?.trim() || (provider === 'google' ? 'bichammmm@gmail.com' : 'user.fb@gmail.com');
+  emailInput?: string,
+  extraData?: Partial<UserProfileData>
+): Promise<{ user: User; profile: UserProfileData }> {
+  const email = (emailInput?.trim() || (provider === 'google' ? 'bichammmm@gmail.com' : 'user.fb@facebook.com')).toLowerCase();
+  
+  // 1. Check if user already exists locally to preserve account history
+  const localUsers = getLocalUsers();
+  const existingRecord = localUsers[email];
+  const uid = existingRecord?.uid || `${provider}_${email.replace(/[^a-zA-Z0-9]/g, '_')}`;
+
   const defaultDisplayName = provider === 'google' 
     ? (email.split('@')[0] || 'مستخدم Google') 
     : 'مستخدم Facebook';
-  const displayName = name?.trim() || defaultDisplayName;
-  const user = createResilientUser(uid, email, displayName);
+  const displayName = name?.trim() || existingRecord?.profile?.displayName || defaultDisplayName;
 
   const profile: UserProfileData = {
     uid,
-    role,
+    role: extraData?.role || existingRecord?.profile?.role || role,
     displayName,
     email,
-    phone: '0550123456',
-    wilaya: 'الجزائر العاصمة',
-    commune: 'الأبيار',
+    phone: extraData?.phone || existingRecord?.profile?.phone || '0550123456',
+    wilaya: extraData?.wilaya || existingRecord?.profile?.wilaya || 'الجزائر العاصمة',
+    commune: extraData?.commune || existingRecord?.profile?.commune || 'الأبيار',
     avatar: provider === 'google'
       ? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'
       : 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80',
     verification_status: 'verified',
     isProfileComplete: true,
-    createdAt: new Date().toISOString(),
+    trade: extraData?.trade || existingRecord?.profile?.trade || (role === 'craftsman' ? 'سبّاك' : undefined),
+    experienceYears: extraData?.experienceYears || existingRecord?.profile?.experienceYears || (role === 'craftsman' ? 5 : undefined),
+    wilayas: extraData?.wilayas || existingRecord?.profile?.wilayas || (role === 'craftsman' ? ['الجزائر العاصمة'] : undefined),
+    approximatePriceDzd: extraData?.approximatePriceDzd || existingRecord?.profile?.approximatePriceDzd || (role === 'craftsman' ? 2500 : undefined),
+    bio: extraData?.bio || existingRecord?.profile?.bio || (role === 'craftsman' ? 'حرفي معتمد بخبرة في الصيانة المنزلية والإصلاحات الدقيقة.' : undefined),
+    portfolioImages: extraData?.portfolioImages || existingRecord?.profile?.portfolioImages || (role === 'craftsman' ? [
+      'https://images.unsplash.com/photo-1581244277943-fe4a9c777189?w=600&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=600&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1505798577917-a65157d3320a?w=600&auto=format&fit=crop&q=80'
+    ] : undefined),
+    createdAt: existingRecord?.profile?.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
 
+  const user = createResilientUser(uid, email, displayName, profile.phone);
+
+  // 2. Persist local record and activate session immediately
   saveLocalUser({
     uid,
     email,
-    passwordHash: 'social_login',
+    passwordHash: 'social_direct_login',
     profile,
-    createdAt: new Date().toISOString()
+    createdAt: profile.createdAt || new Date().toISOString()
   });
 
   setActiveSession(user, profile);
+
+  // 3. Sync to Firestore in background
+  try {
+    await setDoc(doc(db, 'users', uid), profile, { merge: true });
+    if (profile.role === 'craftsman' && profile.trade) {
+      await syncPublicCraftsmanProfile(uid, profile).catch(() => {});
+    }
+  } catch (fsErr) {
+    console.warn('Firestore sync note:', fsErr);
+  }
+
   return { user, profile };
 }
 export async function signInAsGuest(): Promise<User> {

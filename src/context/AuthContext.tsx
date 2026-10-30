@@ -43,7 +43,13 @@ interface AuthContextType {
   ) => Promise<void>;
   loginWithGoogle: () => Promise<{ user: User; profile: UserProfileData | null; isNewUser: boolean }>;
   loginWithFacebook: () => Promise<{ user: User; profile: UserProfileData | null; isNewUser: boolean }>;
-  loginWithSocialBypass: (provider: 'google' | 'facebook', role?: UserRole, name?: string, emailInput?: string) => void;
+  loginWithSocialBypass: (
+    provider: 'google' | 'facebook',
+    role?: UserRole,
+    name?: string,
+    emailInput?: string,
+    extraData?: Partial<UserProfileData>
+  ) => Promise<void>;
   loginAsGuest: () => Promise<User>;
   upgradeGuest: (provider: 'google' | 'facebook') => Promise<{ isNewUser: boolean }>;
   completeInitialProfile: (role: UserRole, displayName?: string) => Promise<UserProfileData>;
@@ -169,8 +175,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return result;
   };
 
-  const loginWithSocialBypass = (provider: 'google' | 'facebook', role: UserRole = 'client', name?: string, emailInput?: string) => {
-    const { user: socialUser, profile: socialProfile } = signInWithSocialBypass(provider, role, name, emailInput);
+  const loginWithSocialBypass = async (
+    provider: 'google' | 'facebook', 
+    role: UserRole = 'client', 
+    name?: string, 
+    emailInput?: string,
+    extraData?: Partial<UserProfileData>
+  ) => {
+    const { user: socialUser, profile: socialProfile } = await signInWithSocialBypass(provider, role, name, emailInput, extraData);
     setUser(socialUser);
     setProfile(socialProfile);
   };
