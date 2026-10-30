@@ -609,37 +609,68 @@ export function getChromeIntentUrl(): string {
   return `intent://${cleanUrl}#Intent;scheme=https;package=com.android.chrome;end`;
 }
 
-// Google Sign-In with popup
+// Google Sign-In with real account chooser prompt
 export async function signInWithGoogle(): Promise<{ user: User; profile: UserProfileData | null; isNewUser: boolean }> {
   const provider = new GoogleAuthProvider();
   provider.addScope('email');
   provider.addScope('profile');
-  // Removed forced prompt: 'select_account' so mobile and web browsers reuse active Google accounts
+  // Forces Google account chooser so the user can select their device account
+  provider.setCustomParameters({
+    prompt: 'select_account'
+  });
 
-  const result = await signInWithPopup(auth, provider);
-  const user = result.user;
-  const profile = await getUserProfile(user.uid);
-  return {
-    user,
-    profile,
-    isNewUser: !profile
-  };
+  try {
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+    const profile = await getUserProfile(user.uid);
+    if (profile) {
+      setActiveSession(user, profile);
+    }
+    return {
+      user,
+      profile,
+      isNewUser: !profile
+    };
+  } catch (err: any) {
+    if (
+      err?.code === 'auth/popup-blocked' ||
+      err?.code === 'auth/cancelled-popup-request'
+    ) {
+      await signInWithRedirect(auth, provider);
+      return new Promise(() => {});
+    }
+    throw err;
+  }
 }
 
-// Facebook Sign-In with popup
+// Facebook Sign-In with popup and redirect fallback
 export async function signInWithFacebook(): Promise<{ user: User; profile: UserProfileData | null; isNewUser: boolean }> {
   const provider = new FacebookAuthProvider();
   provider.addScope('email');
   provider.addScope('public_profile');
 
-  const result = await signInWithPopup(auth, provider);
-  const user = result.user;
-  const profile = await getUserProfile(user.uid);
-  return {
-    user,
-    profile,
-    isNewUser: !profile
-  };
+  try {
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+    const profile = await getUserProfile(user.uid);
+    if (profile) {
+      setActiveSession(user, profile);
+    }
+    return {
+      user,
+      profile,
+      isNewUser: !profile
+    };
+  } catch (err: any) {
+    if (
+      err?.code === 'auth/popup-blocked' ||
+      err?.code === 'auth/cancelled-popup-request'
+    ) {
+      await signInWithRedirect(auth, provider);
+      return new Promise(() => {});
+    }
+    throw err;
+  }
 }
 
 // Social bypass for in-app WebViews or direct 1-click social authentication

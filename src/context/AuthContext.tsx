@@ -52,7 +52,11 @@ interface AuthContextType {
   ) => Promise<void>;
   loginAsGuest: () => Promise<User>;
   upgradeGuest: (provider: 'google' | 'facebook') => Promise<{ isNewUser: boolean }>;
-  completeInitialProfile: (role: UserRole, displayName?: string) => Promise<UserProfileData>;
+  completeInitialProfile: (
+    role: UserRole, 
+    displayName?: string, 
+    extraData?: Partial<UserProfileData>
+  ) => Promise<UserProfileData>;
   requestPhoneOtp: (phoneRaw: string, containerId: string) => Promise<ConfirmationResult>;
   confirmPhoneOtp: (
     confirmationResult: ConfirmationResult,
@@ -206,17 +210,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { isNewUser: result.isNewUser };
   };
 
-  const completeInitialProfile = async (role: UserRole, displayName?: string) => {
+  const completeInitialProfile = async (
+    role: UserRole, 
+    displayName?: string,
+    extraData?: Partial<UserProfileData>
+  ) => {
     if (!auth.currentUser) throw new Error('لا يوجد مستخدم مسجل');
     try {
       const newProf = await createUserProfileDoc(auth.currentUser, {
         role,
         displayName: displayName || auth.currentUser.displayName || (role === 'craftsman' ? 'حرفي جديد' : 'طالب خدمة'),
         email: auth.currentUser.email || '',
-        phone: auth.currentUser.phoneNumber || '',
-        avatar: auth.currentUser.photoURL || undefined
+        phone: extraData?.phone || auth.currentUser.phoneNumber || '',
+        avatar: auth.currentUser.photoURL || undefined,
+        wilaya: extraData?.wilaya || 'الجزائر العاصمة',
+        commune: extraData?.commune || 'الأبيار',
+        trade: extraData?.trade,
+        experienceYears: extraData?.experienceYears,
+        wilayas: extraData?.wilayas,
+        approximatePriceDzd: extraData?.approximatePriceDzd,
+        bio: extraData?.bio,
+        portfolioImages: extraData?.portfolioImages,
+        isProfileComplete: true
       });
       setProfile(newProf);
+      setActiveSession(auth.currentUser, newProf);
       return newProf;
     } catch {
       const fallbackProf: UserProfileData = {
@@ -224,12 +242,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role,
         displayName: displayName || auth.currentUser.displayName || (role === 'craftsman' ? 'حرفي جديد' : 'طالب خدمة'),
         email: auth.currentUser.email || '',
-        phone: auth.currentUser.phoneNumber || '',
+        phone: extraData?.phone || auth.currentUser.phoneNumber || '',
         avatar: auth.currentUser.photoURL || undefined,
+        wilaya: extraData?.wilaya || 'الجزائر العاصمة',
+        commune: extraData?.commune || 'الأبيار',
+        trade: extraData?.trade,
+        experienceYears: extraData?.experienceYears,
+        wilayas: extraData?.wilayas,
+        approximatePriceDzd: extraData?.approximatePriceDzd,
+        bio: extraData?.bio,
+        portfolioImages: extraData?.portfolioImages,
         verification_status: 'pending',
         isProfileComplete: true
       };
       setProfile(fallbackProf);
+      setActiveSession(auth.currentUser, fallbackProf);
       return fallbackProf;
     }
   };

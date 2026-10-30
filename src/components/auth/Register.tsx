@@ -291,22 +291,28 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
     setLoadingType('google');
     setGeneralError(null);
     try {
-      const extraData = {
-        role,
-        trade: role === 'craftsman' ? trade : undefined,
-        experienceYears: role === 'craftsman' ? experienceYears : undefined,
-        wilayas: role === 'craftsman' ? selectedWilayas : undefined,
-        approximatePriceDzd: role === 'craftsman' ? approxPrice : undefined,
-        bio: role === 'craftsman' ? bio : undefined,
-        portfolioImages: role === 'craftsman' ? portfolioImages : undefined,
-        phone: phone || '0550123456',
-        wilaya: wilaya || 'الجزائر العاصمة',
-        commune: commune || 'الأبيار'
-      };
-      await loginWithSocialBypass('google', role, fullName.trim() || undefined, email.trim() || 'bichammmm@gmail.com', extraData);
+      const res = await loginWithGoogle();
+      if (!res.profile) {
+        await completeInitialProfile(role, fullName.trim() || undefined, {
+          trade: role === 'craftsman' ? trade : undefined,
+          experienceYears: role === 'craftsman' ? experienceYears : undefined,
+          wilayas: role === 'craftsman' ? selectedWilayas : undefined,
+          approximatePriceDzd: role === 'craftsman' ? approxPrice : undefined,
+          bio: role === 'craftsman' ? bio : undefined,
+          portfolioImages: role === 'craftsman' ? portfolioImages : undefined,
+          phone: phone || '',
+          wilaya: wilaya || 'الجزائر العاصمة',
+          commune: commune || 'الأبيار'
+        });
+      }
       onSuccess();
     } catch (err: any) {
-      setGeneralError(mapAuthError(err));
+      const mapped = mapAuthError(err);
+      setGeneralError(mapped);
+      setActiveSocialFailedProvider('google');
+      if (isApp) {
+        setShowInAppHelper(true);
+      }
     } finally {
       setLoading(false);
       setLoadingType(null);
@@ -318,22 +324,28 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
     setLoadingType('facebook');
     setGeneralError(null);
     try {
-      const extraData = {
-        role,
-        trade: role === 'craftsman' ? trade : undefined,
-        experienceYears: role === 'craftsman' ? experienceYears : undefined,
-        wilayas: role === 'craftsman' ? selectedWilayas : undefined,
-        approximatePriceDzd: role === 'craftsman' ? approxPrice : undefined,
-        bio: role === 'craftsman' ? bio : undefined,
-        portfolioImages: role === 'craftsman' ? portfolioImages : undefined,
-        phone: phone || '0550123456',
-        wilaya: wilaya || 'الجزائر العاصمة',
-        commune: commune || 'الأبيار'
-      };
-      await loginWithSocialBypass('facebook', role, fullName.trim() || undefined, undefined, extraData);
+      const res = await loginWithFacebook();
+      if (!res.profile) {
+        await completeInitialProfile(role, fullName.trim() || undefined, {
+          trade: role === 'craftsman' ? trade : undefined,
+          experienceYears: role === 'craftsman' ? experienceYears : undefined,
+          wilayas: role === 'craftsman' ? selectedWilayas : undefined,
+          approximatePriceDzd: role === 'craftsman' ? approxPrice : undefined,
+          bio: role === 'craftsman' ? bio : undefined,
+          portfolioImages: role === 'craftsman' ? portfolioImages : undefined,
+          phone: phone || '',
+          wilaya: wilaya || 'الجزائر العاصمة',
+          commune: commune || 'الأبيار'
+        });
+      }
       onSuccess();
     } catch (err: any) {
-      setGeneralError(mapAuthError(err));
+      const mapped = mapAuthError(err);
+      setGeneralError(mapped);
+      setActiveSocialFailedProvider('facebook');
+      if (isApp) {
+        setShowInAppHelper(true);
+      }
     } finally {
       setLoading(false);
       setLoadingType(null);
@@ -375,7 +387,7 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
       {/* Social Register Buttons on Step 1 */}
       {step === 1 && (
         <div className="space-y-2">
-          {/* 1. Google Direct Instant */}
+          {/* 1. Google Button - Opens real device account selection window */}
           <button
             type="button"
             onClick={handleGoogleRegister}
@@ -394,16 +406,16 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
                 </svg>
               )}
               <div className="text-right truncate">
-                <span className="block font-bold text-[13px] text-[#1C2421]">تسجيل فوري مباشر عبر Google</span>
-                <span className="block text-[10px] text-[#0F6B3F] font-normal truncate">بضغطة واحدة ودون طلب كلمة سر أو بريد</span>
+                <span className="block font-bold text-[13px] text-[#1C2421]">اختيار حساب Google من الجهاز</span>
+                <span className="block text-[10px] text-[#0F6B3F] font-normal truncate">تفتح نافذة لاختيار أحد حسابات Google المسجلة في هاتفك</span>
               </div>
             </div>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#EEF6F1] text-[#0F6B3F] shrink-0 border border-[#0F6B3F]/20">
-              مباشر ✓
+              نافذة الحسابات
             </span>
           </button>
 
-          {/* 2. Facebook Direct Instant */}
+          {/* 2. Facebook Button - Real Facebook OAuth dialog */}
           <button
             type="button"
             onClick={handleFacebookRegister}
@@ -419,12 +431,12 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
                 </svg>
               )}
               <div className="text-right truncate">
-                <span className="block font-bold text-[13px] text-white">تسجيل فوري مباشر عبر Facebook</span>
-                <span className="block text-[10px] text-blue-100 font-normal truncate">بضغطة واحدة وبدون كلمة سر</span>
+                <span className="block font-bold text-[13px] text-white">المتابعة بحساب Facebook</span>
+                <span className="block text-[10px] text-blue-100 font-normal truncate">نافذة تأكيد الدخول بحسابك فيسبوك</span>
               </div>
             </div>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white shrink-0">
-              مباشر ✓
+              Facebook
             </span>
           </button>
 
