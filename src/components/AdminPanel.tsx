@@ -4452,11 +4452,19 @@ export const AdminPanel: React.FC = () => {
 
       {/* Document Image Zoom Preview Modal */}
       {previewImage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
-          <div className="relative max-w-2xl w-full bg-slate-900 rounded-3xl overflow-hidden p-2 border border-slate-800">
+        <div 
+          onClick={() => setPreviewImage(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md cursor-pointer"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="relative max-w-2xl w-full bg-slate-900 rounded-3xl overflow-hidden p-2 border border-slate-800 cursor-default"
+          >
             <button
+              type="button"
               onClick={() => setPreviewImage(null)}
-              className="absolute top-4 right-4 z-10 p-2 bg-slate-950/80 text-white rounded-full hover:bg-slate-800 transition-colors"
+              className="absolute top-4 right-4 z-10 p-2.5 bg-slate-950/80 text-white rounded-full hover:bg-slate-800 transition-colors cursor-pointer"
+              aria-label="إغلاق المعاينة"
             >
               <X className="w-5 h-5" />
             </button>

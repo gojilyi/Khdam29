@@ -23,15 +23,34 @@ export const CraftCharterCard: React.FC = () => {
     language 
   } = useApp();
 
+  React.useEffect(() => {
+    if (!isCraftCharterOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsCraftCharterOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isCraftCharterOpen, setIsCraftCharterOpen]);
+
   if (!isCraftCharterOpen || !selectedCraftForCharter) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
-      <div className="w-full max-w-xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900/60 rounded-3xl shadow-2xl overflow-hidden relative max-h-[92vh] flex flex-col">
+    <div 
+      onClick={() => setIsCraftCharterOpen(false)}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in cursor-pointer"
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900/60 rounded-3xl shadow-2xl overflow-hidden relative max-h-[92vh] flex flex-col cursor-default"
+      >
         {/* Close Button */}
         <button
+          type="button"
           onClick={() => setIsCraftCharterOpen(false)}
-          className="absolute rtl:left-4 ltr:right-4 top-4 z-20 p-2 text-slate-500 hover:text-slate-800 dark:text-slate-300 dark:hover:text-white bg-white/80 dark:bg-slate-800/80 rounded-full shadow-sm backdrop-blur-sm"
+          aria-label={language === 'ar' ? 'إغلاق الميثاق' : 'Close charter'}
+          className="absolute rtl:left-4 ltr:right-4 top-4 z-20 w-10 h-10 rounded-full text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white bg-white/90 dark:bg-slate-800/90 shadow-md backdrop-blur-sm flex items-center justify-center border border-slate-200 dark:border-slate-700 cursor-pointer active:scale-95 transition-all"
         >
           <X className="w-5 h-5" />
         </button>

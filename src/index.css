@@ -45,12 +45,18 @@ html, body, #root {
     -webkit-tap-highlight-color: transparent;
   }
 
+  body, button, input, select, textarea, optgroup {
+    font-family: 'Cairo', 'Tajawal', var(--font-sans);
+  }
+
   body {
     background-color: var(--white);
     color: var(--gray-900);
     font-size: clamp(13px, 3.8vw, 15px);
     line-height: 1.5;
-    font-weight: 400;
+    font-weight: 500;
+    direction: rtl;
+    text-align: right;
   }
 
   h1, h2, h3, h4, h5, h6 {

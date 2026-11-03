@@ -167,8 +167,8 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
       errs.phone = phoneCheck.error || 'رقم هاتف جزائري غير صالح';
     }
 
-    if (!email.trim() || !email.includes('@')) {
-      errs.email = 'يرجى إدخال بريد إلكتروني صحيح';
+    if (email.trim() && !email.includes('@')) {
+      errs.email = 'يرجى إدخال بريد إلكتروني صحيح أو تركه فارغاً';
     }
 
     if (!password || password.length < 6) {
@@ -258,7 +258,8 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
     setLoadingType('email');
     try {
       const phoneNorm = normalizeAlgerianPhone(phone).normalized;
-      await registerWithEmail(email.trim(), password, {
+      const emailVal = email.trim() ? email.trim() : undefined;
+      await registerWithEmail(emailVal, password, {
         role,
         displayName: fullName.trim(),
         phone: phoneNorm,
@@ -602,19 +603,21 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
             </div>
           </div>
 
-          {/* Email */}
+          {/* Email (Optional) */}
           <div>
-            <label className="block text-[12px] font-bold text-[#1C2421] mb-1">
-              البريد الإلكتروني <span className="text-[#C62828]">*</span>
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-[12px] font-bold text-[#1C2421]">
+                البريد الإلكتروني
+              </label>
+              <span className="text-[11px] font-normal text-[#5B6660]">اختياري</span>
+            </div>
             <div className="relative">
               <input
                 type="email"
-                required
                 dir="ltr"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setErrors(p => ({ ...p, email: '' })); }}
-                placeholder="name@example.dz"
+                placeholder="name@example.dz (اختياري)"
                 className="w-full h-11 min-h-[44px] bg-white border border-[#DDE3DF] rounded-[8px] px-3 pr-10 text-[13px] text-[#1C2421] focus:outline-none focus:border-[#0F6B3F] focus:ring-1 focus:ring-[#0F6B3F]"
               />
               <Mail className="w-4 h-4 text-[#5B6660] absolute right-3 top-1/2 -translate-y-1/2" strokeWidth={1.75} />

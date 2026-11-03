@@ -35,8 +35,8 @@ export const Login: React.FC<LoginProps> = ({
   const [showInAppHelper, setShowInAppHelper] = useState<boolean>(isApp);
   const [activeSocialFailedProvider, setActiveSocialFailedProvider] = useState<'google' | 'facebook' | 'both'>('both');
 
-  const [loginMethod, setLoginMethod] = useState<'email' | 'phone'>('email');
-  const [email, setEmail] = useState('');
+  const [loginMethod, setLoginMethod] = useState<'password' | 'otp'>('password');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [phone, setPhone] = useState('0550123456');
@@ -47,7 +47,7 @@ export const Login: React.FC<LoginProps> = ({
 
   const rateLimit = checkRateLimit();
 
-  const handleEmailLogin = async (e: React.FormEvent) => {
+  const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (rateLimit.isLocked) {
       setError({
@@ -57,16 +57,16 @@ export const Login: React.FC<LoginProps> = ({
       return;
     }
 
-    if (!email.trim() || !password) {
-      setError({ message: 'يرجى ملء جميع الحقول المطلوبة' });
+    if (!identifier.trim() || !password) {
+      setError({ message: 'يرجى إدخال رقم الهاتف أو البريد وكلمة المرور' });
       return;
     }
 
     setLoading(true);
-    setLoadingType('email');
+    setLoadingType('password');
     setError(null);
     try {
-      await loginWithEmail(email.trim(), password);
+      await loginWithEmail(identifier.trim(), password);
       onSuccess();
     } catch (err: any) {
       setError(mapAuthError(err));
@@ -199,7 +199,7 @@ export const Login: React.FC<LoginProps> = ({
               onSuccess();
             }}
             onSwitchToEmailForm={() => {
-              setLoginMethod('email');
+              setLoginMethod('password');
               const emailInput = document.getElementById('login-email-input');
               emailInput?.focus();
             }} 
@@ -280,97 +280,58 @@ export const Login: React.FC<LoginProps> = ({
         <span className="relative bg-white px-3 text-[11px] text-[#5B6660]">أو تسجيل الدخول عبر</span>
       </div>
 
-      {/* Switcher: Phone (SMS) vs Email */}
+      {/* Switcher: Phone/Email + Password vs SMS OTP */}
       <div className="grid grid-cols-2 gap-1 p-1 bg-[#EEF6F1] rounded-[8px]">
-        {/* 3. Phone (SMS) */}
+        {/* 1. Phone or Email + Password */}
         <button
           type="button"
-          onClick={() => setLoginMethod('phone')}
+          onClick={() => { setLoginMethod('password'); setError(null); }}
           className={`h-9 min-h-[36px] text-[12px] font-bold rounded-[6px] transition-colors cursor-pointer flex items-center justify-center gap-1.5 ${
-            loginMethod === 'phone' ? 'bg-white text-[#0A4D2E] shadow-xs' : 'text-[#5B6660]'
+            loginMethod === 'password' ? 'bg-white text-[#0A4D2E] shadow-xs' : 'text-[#5B6660]'
           }`}
         >
           <Smartphone className="w-3.5 h-3.5" strokeWidth={1.75} />
-          <span>رقم الهاتف (SMS)</span>
+          <span>الهاتف أو البريد</span>
         </button>
 
-        {/* 4. Email */}
+        {/* 2. Phone SMS OTP */}
         <button
           type="button"
-          onClick={() => setLoginMethod('email')}
+          onClick={() => { setLoginMethod('otp'); setError(null); }}
           className={`h-9 min-h-[36px] text-[12px] font-bold rounded-[6px] transition-colors cursor-pointer flex items-center justify-center gap-1.5 ${
-            loginMethod === 'email' ? 'bg-white text-[#0A4D2E] shadow-xs' : 'text-[#5B6660]'
+            loginMethod === 'otp' ? 'bg-white text-[#0A4D2E] shadow-xs' : 'text-[#5B6660]'
           }`}
         >
-          <Mail className="w-3.5 h-3.5" strokeWidth={1.75} />
-          <span>البريد الإلكتروني</span>
+          <KeyRound className="w-3.5 h-3.5" strokeWidth={1.75} />
+          <span>رمز SMS (OTP)</span>
         </button>
       </div>
 
-      {/* Phone Form */}
-      {loginMethod === 'phone' ? (
-        <form onSubmit={handlePhoneStart} className="space-y-3">
+      {/* Phone/Email + Password Form */}
+      {loginMethod === 'password' ? (
+        <form onSubmit={handlePasswordLogin} className="space-y-3">
           <div>
             <label className="block text-[12px] font-bold text-[#1C2421] mb-1">
-              رقم الهاتف الجزائري (05 / 06 / 07)
+              رقم الهاتف الجزائري أو البريد الإلكتروني
             </label>
             <div className="relative">
               <input
-                type="tel"
+                type="text"
                 required
                 dir="ltr"
-                value={phone}
+                value={identifier}
                 onChange={(e) => {
-                  const arabicDigits = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
-                  const val = e.target.value.replace(/[٠-٩]/g, (d) => arabicDigits.indexOf(d).toString());
-                  setPhone(val);
+                  setIdentifier(e.target.value);
                   setError(null);
                 }}
-                placeholder="0550 12 34 56"
-                className="w-full h-11 min-h-[44px] bg-white border border-[#DDE3DF] rounded-[8px] px-3 pr-10 text-[13px] font-mono text-[#1C2421] focus:outline-none focus:border-[#0F6B3F] focus:ring-1 focus:ring-[#0F6B3F]"
+                placeholder="0550 12 34 56 أو name@example.dz"
+                className="w-full h-11 min-h-[44px] bg-white border border-[#DDE3DF] rounded-[8px] px-3 pr-10 text-[13px] text-[#1C2421] focus:outline-none focus:border-[#0F6B3F] focus:ring-1 focus:ring-[#0F6B3F]"
               />
               <Smartphone className="w-4 h-4 text-[#5B6660] absolute right-3 top-1/2 -translate-y-1/2" strokeWidth={1.75} />
             </div>
-            <p className="text-[11px] text-[#5B6660] mt-1">
-              سنرسل رسالة نصية قصيرة SMS تحتوي رمز التأكيد السري.
+            <p className="text-[10px] text-[#5B6660] mt-1">
+              يمكنك كتابة رقم هاتفك (مثلاً 0550123456) أو بريدك الإلكتروني.
             </p>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full h-11 min-h-[44px] bg-[#0F6B3F] hover:bg-[#0A4D2E] disabled:opacity-50 text-white font-bold rounded-[8px] text-[14px] flex items-center justify-center gap-2 transition-colors cursor-pointer mt-2"
-          >
-            {loadingType === 'phone' ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <KeyRound className="w-4 h-4" strokeWidth={1.75} />
-            )}
-            <span>{loadingType === 'phone' ? 'جاري إرسال الرمز...' : 'إرسال رمز التحقق (SMS)'}</span>
-          </button>
-        </form>
-      ) : (
-        /* Email Form */
-        <form onSubmit={handleEmailLogin} className="space-y-3">
-          <div>
-            <label className="block text-[12px] font-bold text-[#1C2421] mb-1">
-              البريد الإلكتروني
-            </label>
-            <div className="relative">
-              <input
-                type="email"
-                required
-                dir="ltr"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  setError(null);
-                }}
-                placeholder="name@example.dz"
-                className="w-full h-11 min-h-[44px] bg-white border border-[#DDE3DF] rounded-[8px] px-3 pr-10 text-[13px] text-[#1C2421] focus:outline-none focus:border-[#0F6B3F] focus:ring-1 focus:ring-[#0F6B3F]"
-              />
-              <Mail className="w-4 h-4 text-[#5B6660] absolute right-3 top-1/2 -translate-y-1/2" strokeWidth={1.75} />
-            </div>
           </div>
 
           <div>
@@ -414,8 +375,50 @@ export const Login: React.FC<LoginProps> = ({
             disabled={loading}
             className="w-full h-11 min-h-[44px] bg-[#0F6B3F] hover:bg-[#0A4D2E] disabled:opacity-50 text-white font-bold rounded-[8px] text-[14px] flex items-center justify-center gap-2 transition-colors cursor-pointer mt-2"
           >
-            <span>{loadingType === 'email' ? 'جاري التحقق...' : 'تسجيل الدخول'}</span>
-            {loadingType === 'email' ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />}
+            <span>{loadingType === 'password' ? 'جاري التحقق...' : 'تسجيل الدخول'}</span>
+            {loadingType === 'password' ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />}
+          </button>
+        </form>
+      ) : (
+        /* Phone SMS OTP Form */
+        <form onSubmit={handlePhoneStart} className="space-y-3">
+          <div>
+            <label className="block text-[12px] font-bold text-[#1C2421] mb-1">
+              رقم الهاتف الجزائري (05 / 06 / 07)
+            </label>
+            <div className="relative">
+              <input
+                type="tel"
+                required
+                dir="ltr"
+                value={phone}
+                onChange={(e) => {
+                  const arabicDigits = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
+                  const val = e.target.value.replace(/[٠-٩]/g, (d) => arabicDigits.indexOf(d).toString());
+                  setPhone(val);
+                  setError(null);
+                }}
+                placeholder="0550 12 34 56"
+                className="w-full h-11 min-h-[44px] bg-white border border-[#DDE3DF] rounded-[8px] px-3 pr-10 text-[13px] font-mono text-[#1C2421] focus:outline-none focus:border-[#0F6B3F] focus:ring-1 focus:ring-[#0F6B3F]"
+              />
+              <Smartphone className="w-4 h-4 text-[#5B6660] absolute right-3 top-1/2 -translate-y-1/2" strokeWidth={1.75} />
+            </div>
+            <p className="text-[11px] text-[#5B6660] mt-1">
+              سنرسل رسالة نصية قصيرة SMS تحتوي رمز التأكيد السري.
+            </p>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full h-11 min-h-[44px] bg-[#0F6B3F] hover:bg-[#0A4D2E] disabled:opacity-50 text-white font-bold rounded-[8px] text-[14px] flex items-center justify-center gap-2 transition-colors cursor-pointer mt-2"
+          >
+            {loadingType === 'phone' ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <KeyRound className="w-4 h-4" strokeWidth={1.75} />
+            )}
+            <span>{loadingType === 'phone' ? 'جاري إرسال الرمز...' : 'إرسال رمز التحقق (SMS)'}</span>
           </button>
         </form>
       )}

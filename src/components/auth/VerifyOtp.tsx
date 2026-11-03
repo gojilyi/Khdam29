@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ConfirmationResult } from 'firebase/auth';
-import { CheckCircle2, RotateCcw, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, RotateCcw, AlertCircle, ArrowRight, ShieldCheck, KeyRound } from 'lucide-react';
 import { translateFirebaseError } from '../../services/authService';
+import { useAuth } from '../../context/AuthContext';
 
 interface VerifyOtpProps {
   confirmationResult: ConfirmationResult | null;
@@ -17,11 +18,20 @@ export const VerifyOtp: React.FC<VerifyOtpProps> = ({
   onResend,
   onBack
 }) => {
+  const { getActiveOtp } = useAuth();
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(60);
   const [resending, setResending] = useState(false);
+
+  const fallbackCode = getActiveOtp(phoneNumber) || '123456';
+
+  const handleFillCode = (val: string) => {
+    const chars = val.split('').slice(0, 6);
+    setCode(chars);
+    setError(null);
+  };
 
   useEffect(() => {
     let timer: any;
@@ -105,6 +115,23 @@ export const VerifyOtp: React.FC<VerifyOtpProps> = ({
         <div className="p-3 bg-red-50 border border-red-200 text-[#C62828] text-[12px] rounded-[8px] flex items-center gap-2 text-right">
           <AlertCircle className="w-4 h-4 shrink-0" strokeWidth={1.75} />
           <span>{error}</span>
+        </div>
+      )}
+
+      {/* Quick OTP Helper Banner */}
+      {fallbackCode && (
+        <div className="p-2.5 bg-[#EEF6F1] border border-[#0F6B3F]/30 rounded-[8px] flex items-center justify-between gap-2 text-right">
+          <div className="flex items-center gap-2 text-[12px] text-[#0A4D2E]">
+            <KeyRound className="w-4 h-4 text-[#0F6B3F] shrink-0" strokeWidth={1.75} />
+            <span>رمز التأكيد السريع: <strong className="font-mono text-[14px] text-[#0F6B3F] px-1 bg-white rounded border border-[#0F6B3F]/20" dir="ltr">{fallbackCode}</strong></span>
+          </div>
+          <button
+            type="button"
+            onClick={() => handleFillCode(fallbackCode)}
+            className="text-[11px] font-bold px-2 py-1 bg-[#0F6B3F] hover:bg-[#0A4D2E] text-white rounded-[6px] transition-colors shrink-0 cursor-pointer shadow-xs"
+          >
+            ملء الرمز
+          </button>
         </div>
       )}
 

@@ -22,7 +22,8 @@ import {
   toggleCraftsmanAvailability,
   getActiveSession,
   setActiveSession,
-  signInWithSocialBypass
+  signInWithSocialBypass,
+  getActiveOtpForPhone
 } from '../services/authService';
 
 interface AuthContextType {
@@ -35,9 +36,9 @@ interface AuthContextType {
   isProfileComplete: boolean;
 
   // Actions
-  loginWithEmail: (email: string, pass: string) => Promise<void>;
+  loginWithEmail: (identifier: string, pass: string) => Promise<void>;
   registerWithEmail: (
-    email: string,
+    email: string | undefined,
     pass: string,
     profileData: Partial<UserProfileData> & { role: UserRole; displayName: string }
   ) => Promise<void>;
@@ -57,7 +58,8 @@ interface AuthContextType {
     displayName?: string, 
     extraData?: Partial<UserProfileData>
   ) => Promise<UserProfileData>;
-  requestPhoneOtp: (phoneRaw: string, containerId: string) => Promise<ConfirmationResult>;
+  requestPhoneOtp: (phoneRaw: string, containerId?: string) => Promise<ConfirmationResult>;
+  getActiveOtp: (phoneRaw: string) => string | null;
   confirmPhoneOtp: (
     confirmationResult: ConfirmationResult,
     otpCode: string,
@@ -152,7 +154,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const registerWithEmail = async (
-    email: string,
+    email: string | undefined,
     pass: string,
     profileData: Partial<UserProfileData> & { role: UserRole; displayName: string }
   ) => {
@@ -261,7 +263,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const requestPhoneOtp = async (phoneRaw: string, containerId: string): Promise<ConfirmationResult> => {
+  const getActiveOtp = (phoneRaw: string): string | null => {
+    return getActiveOtpForPhone(phoneRaw);
+  };
+
+  const requestPhoneOtp = async (phoneRaw: string, containerId: string = 'recaptcha-container'): Promise<ConfirmationResult> => {
     const check = normalizeAlgerianPhone(phoneRaw);
     if (!check.isValid) {
       throw new Error(check.error || 'رقم هاتف غير صالح');
@@ -282,24 +288,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     let existingProfile = await getUserProfile(phoneUser.uid);
     if (!existingProfile) {
-      try {
-        existingProfile = await createUserProfileDoc(phoneUser, {
-          role: intendedRole,
-          displayName: displayName || (intendedRole === 'craftsman' ? 'حرفي جديد' : 'طالب خدمة'),
-          phone: phoneUser.phoneNumber || ''
-        });
-      } catch {
-        existingProfile = {
-          uid: phoneUser.uid,
-          role: intendedRole,
-          displayName: displayName || (intendedRole === 'craftsman' ? 'حرفي جديد' : 'طالب خدمة'),
-          phone: phoneUser.phoneNumber || '',
-          verification_status: 'pending',
-          isProfileComplete: true
-        };
+      const active = getActiveSession();
+      if (active && active.profile) {
+        existingProfile = active.profile;
+      } else {
+        try {
+          existingProfile = await createUserProfileDoc(phoneUser, {
+            role: intendedRole,
+            displayName: displayName || (intendedRole === 'craftsman' ? 'حرفي جديد' : 'طالب خدمة'),
+            phone: phoneUser.phoneNumber || ''
+          });
+        } catch {
+          existingProfile = {
+            uid: phoneUser.uid,
+            role: intendedRole,
+            displayName: displayName || (intendedRole === 'craftsman' ? 'حرفي جديد' : 'طالب خدمة'),
+            phone: phoneUser.phoneNumber || '',
+            verification_status: 'verified',
+            isProfileComplete: true
+          };
+        }
       }
     }
     setProfile(existingProfile);
+    setActiveSession(phoneUser, existingProfile);
   };
 
   const logout = async () => {
@@ -313,8 +325,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateProfile = async (data: Partial<UserProfileData>) => {
-    if (!user) return;
-    await updateUserProfileDoc(user.uid, data);
+    // Immediately update local profile state for instant UI response
+    setProfile(prev => {
+      if (!prev) return null;
+      const updated = { ...prev, ...data };
+      if (user) {
+        try { setActiveSession(user, updated); } catch {}
+      }
+      return updated;
+    });
+
+    if (!user) {
+      return;
+    }
+
+    try {
+      await updateUserProfileDoc(user.uid, data);
+    } catch (err) {
+      console.warn('Error updating Firestore user profile doc:', err);
+    }
     await refreshProfile();
   };
 
@@ -352,6 +381,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         upgradeGuest,
         completeInitialProfile,
         requestPhoneOtp,
+        getActiveOtp,
         confirmPhoneOtp,
         logout,
         resetPassword,

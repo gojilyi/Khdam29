@@ -12,7 +12,27 @@ const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+
+  // Support CLI arguments --port <port> and --host <host> or env vars
+  const args = process.argv.slice(2);
+  let portArg: number | undefined;
+  let hostArg: string | undefined;
+
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--port' && args[i + 1]) {
+      portArg = parseInt(args[i + 1], 10);
+    } else if (args[i].startsWith('--port=')) {
+      portArg = parseInt(args[i].split('=')[1], 10);
+    }
+    if (args[i] === '--host' && args[i + 1]) {
+      hostArg = args[i + 1];
+    } else if (args[i].startsWith('--host=')) {
+      hostArg = args[i].split('=')[1];
+    }
+  }
+
+  const PORT = Number(portArg || process.env.PORT || 3000);
+  const HOST = hostArg || process.env.HOST || '0.0.0.0';
 
   // JSON Body Parser with 10MB limit for image payloads
   app.use(express.json({ limit: '10mb' }));
@@ -229,7 +249,11 @@ async function startServer() {
   const isProd = process.env.NODE_ENV === 'production';
   if (!isProd) {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: process.env.DISABLE_HMR === 'true' ? false : undefined,
+        watch: process.env.DISABLE_HMR === 'true' ? null : undefined,
+      },
       appType: 'spa'
     });
     app.use(vite.middlewares);
@@ -240,8 +264,12 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Khodam Applet running on http://0.0.0.0:${PORT}`);
+  const server = app.listen(PORT, HOST, () => {
+    console.log(`Khodam Applet running on http://${HOST}:${PORT}`);
+  });
+
+  server.on('error', (err: any) => {
+    console.error('Server listen error:', err);
   });
 }
 

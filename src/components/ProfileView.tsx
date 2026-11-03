@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
   User, 
@@ -35,7 +35,10 @@ import {
   Power,
   Camera,
   Image as ImageIcon,
-  Headphones
+  Headphones,
+  Edit3,
+  X,
+  RefreshCw
 } from 'lucide-react';
 import { Language, VerificationLevel } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -73,11 +76,12 @@ export const ProfileView: React.FC = () => {
     isAdminAuthenticated,
     setIsAdminAuthModalOpen,
     logout: appLogout,
+    requestLogout,
     artisanOnline,
     toggleArtisanOnline
   } = useApp();
 
-  const { isLoggedIn, profile, role: authRole, logout: authLogout, toggleAvailability } = useAuth();
+  const { isLoggedIn, profile, role: authRole, logout: authLogout, toggleAvailability, updateProfile } = useAuth();
 
   const isRtl = language === 'ar';
   const ChevronIcon = isRtl ? ChevronLeft : ChevronRight;
@@ -273,10 +277,129 @@ export const ProfileView: React.FC = () => {
   const [editSharePhone, setEditSharePhone] = useState(currentUser.sharePhoneWithArtisans ?? true);
   const [personalSaveSuccess, setPersonalSaveSuccess] = useState(false);
 
-  const handleSavePersonalInfo = (e: React.FormEvent) => {
-    e.preventDefault();
+  // Edit Profile Name and Picture (تغيير اسم وصورة البروفيل)
+  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
+  const [profileEditName, setProfileEditName] = useState(profile?.displayName || currentUser.name || 'هشام بن علي');
+  const [profileEditAvatar, setProfileEditAvatar] = useState(profile?.avatar || currentUser.avatar);
+  const [profileEditSuccess, setProfileEditSuccess] = useState(false);
+  const [profileEditError, setProfileEditError] = useState('');
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const avatarFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Sync state if profile or currentUser updates
+  useEffect(() => {
+    if (profile?.displayName || currentUser.name) {
+      setProfileEditName(profile?.displayName || currentUser.name);
+    }
+    if (profile?.avatar || currentUser.avatar) {
+      setProfileEditAvatar(profile?.avatar || currentUser.avatar);
+    }
+  }, [profile?.displayName, profile?.avatar, currentUser.name, currentUser.avatar]);
+
+  const PRESET_AVATARS = [
+    {
+      url: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80',
+      title: 'حرفي محترف (خوذة أمان)'
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80',
+      title: 'معلم حرفي'
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&auto=format&fit=crop&q=80',
+      title: 'فني تقني'
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&auto=format&fit=crop&q=80',
+      title: 'طالب خدمة 1'
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&auto=format&fit=crop&q=80',
+      title: 'طالب خدمة 2'
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
+      title: 'صورة شخصية أنيقة'
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=80',
+      title: 'مهنية معتمدة'
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&auto=format&fit=crop&q=80',
+      title: 'طالبة خدمة'
+    }
+  ];
+
+  const handleAvatarFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingAvatar(true);
+    setProfileEditError('');
+    try {
+      const dataUrl = await safeReadFile(file);
+      if (dataUrl) {
+        setProfileEditAvatar(dataUrl);
+      }
+    } catch {
+      setProfileEditError('تعذر معالجة الصورة، يرجى تجربة صورة أخرى');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  const handleSaveProfileHeader = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!profileEditName.trim()) {
+      setProfileEditError('يرجى إدخال اسم الحساب');
+      return;
+    }
+
+    const trimmedName = profileEditName.trim();
+    const avatarUrl = profileEditAvatar.trim() || currentUser.avatar;
+
+    // 1. Update AppContext & localStorage
     updateUserProfile({
-      name: editName.trim(),
+      name: trimmedName,
+      avatar: avatarUrl
+    });
+
+    // 2. Sync with local form state
+    setEditName(trimmedName);
+
+    // 3. Update AuthContext & Firestore doc
+    try {
+      await updateProfile({
+        displayName: trimmedName,
+        avatar: avatarUrl
+      });
+    } catch (err) {
+      console.warn('Could not update AuthContext profile:', err);
+    }
+
+    setProfileEditSuccess(true);
+    setTimeout(() => {
+      setProfileEditSuccess(false);
+      setIsEditProfileModalOpen(false);
+    }, 1200);
+  };
+
+  useEffect(() => {
+    if (!isEditProfileModalOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsEditProfileModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isEditProfileModalOpen]);
+
+  const handleSavePersonalInfo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedName = editName.trim();
+    updateUserProfile({
+      name: trimmedName,
       phone: editPhone.trim(),
       email: editEmail.trim(),
       address: editAddress.trim(),
@@ -284,6 +407,14 @@ export const ProfileView: React.FC = () => {
       neighborhood: editNeighborhood.trim(),
       sharePhoneWithArtisans: editSharePhone
     });
+    setProfileEditName(trimmedName);
+    try {
+      await updateProfile({
+        displayName: trimmedName,
+        phone: editPhone.trim(),
+        wilaya: editCity.trim()
+      });
+    } catch {}
     setPersonalSaveSuccess(true);
     setTimeout(() => {
       setPersonalSaveSuccess(false);
@@ -342,37 +473,91 @@ export const ProfileView: React.FC = () => {
           /* Guest Banner */
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-[#EEF6F1] rounded-[12px] border border-[#DDE3DF]">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-[#0F6B3F] text-white flex items-center justify-center shrink-0">
-                <User className="w-6 h-6" strokeWidth={1.75} />
+              <div className="relative group shrink-0">
+                <img
+                  src={currentUser.avatar}
+                  alt={currentUser.name}
+                  className="w-12 h-12 rounded-full object-cover border-2 border-[#0F6B3F]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setIsEditProfileModalOpen(true)}
+                  className="absolute -bottom-1 -left-1 w-5 h-5 rounded-full bg-[#0F6B3F] hover:bg-[#0A4D2E] text-white flex items-center justify-center shadow-xs cursor-pointer"
+                  title="تغيير صورة الحساب"
+                >
+                  <Camera className="w-3 h-3" />
+                </button>
               </div>
               <div>
-                <h3 className="text-[16px] font-bold text-[#1C2421]">تتصفح المنصة كزائر</h3>
+                <h3 className="text-[16px] font-bold text-[#1C2421] flex items-center gap-2">
+                  <span>تتصفح المنصة كزائر ({currentUser.name})</span>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditProfileModalOpen(true)}
+                    className="text-[11px] text-[#0F6B3F] hover:underline font-bold inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    <Edit3 className="w-3 h-3" />
+                    تغيير الاسم والصورة
+                  </button>
+                </h3>
                 <p className="text-[12px] text-[#5B6660]">سجّل الدخول لمتابعة طلباتك أو إدارة خدماتك المهنية</p>
               </div>
             </div>
 
-            <button
-              onClick={() => setIsAuthModalOpen(true)}
-              className="h-10 px-5 bg-[#0F6B3F] hover:bg-[#0A4D2E] text-white rounded-[8px] text-[13px] font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer"
-            >
-              <UserCheck className="w-4 h-4" strokeWidth={1.75} />
-              <span>تسجيل الدخول / إنشاء حساب</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsEditProfileModalOpen(true)}
+                className="h-10 px-3.5 bg-white hover:bg-slate-50 text-[#0F6B3F] border border-[#0F6B3F]/40 rounded-[8px] text-[13px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                title="تخصيص الاسم وصورة البروفيل"
+              >
+                <Camera className="w-4 h-4 text-[#0F6B3F]" />
+                <span>تغيير الاسم والصورة</span>
+              </button>
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="h-10 px-5 bg-[#0F6B3F] hover:bg-[#0A4D2E] text-white rounded-[8px] text-[13px] font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+              >
+                <UserCheck className="w-4 h-4" strokeWidth={1.75} />
+                <span>تسجيل الدخول / إنشاء حساب</span>
+              </button>
+            </div>
           </div>
         ) : (
           /* Logged In User Identity */
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="relative">
+              {/* Profile Avatar with Camera button and hover overlay */}
+              <div className="relative group shrink-0">
                 <img
                   src={profile?.avatar || currentUser.avatar}
                   alt={profile?.displayName || currentUser.name}
-                  className="w-16 h-16 sm:w-18 sm:h-18 rounded-[12px] object-cover border-2 border-[#0F6B3F] shadow-sm"
+                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-[14px] object-cover border-2 border-[#0F6B3F] shadow-sm transition-transform group-hover:scale-[1.02]"
                   referrerPolicy="no-referrer"
                 />
-                <div className="absolute -bottom-1 -left-1 w-5 h-5 rounded-full bg-[#0F6B3F] text-white flex items-center justify-center shadow-xs">
-                  <ShieldCheck className="w-3.5 h-3.5" strokeWidth={2} />
-                </div>
+
+                {/* Hover overlay with Camera */}
+                <button
+                  type="button"
+                  onClick={() => setIsEditProfileModalOpen(true)}
+                  className="absolute inset-0 bg-black/45 text-white rounded-[14px] flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer p-1"
+                  title="تغيير صورة الملف الشخصي"
+                  aria-label="تغيير صورة الملف الشخصي"
+                >
+                  <Camera className="w-5 h-5 mb-0.5 text-white drop-shadow" />
+                  <span className="text-[10px] font-bold text-white drop-shadow">تغيير الصورة</span>
+                </button>
+
+                {/* Corner Camera Button always visible */}
+                <button
+                  type="button"
+                  onClick={() => setIsEditProfileModalOpen(true)}
+                  className="absolute -bottom-1 -left-1 w-6 h-6 rounded-full bg-[#0F6B3F] hover:bg-[#0A4D2E] text-white flex items-center justify-center shadow-md transition-colors cursor-pointer border-2 border-white"
+                  title="تعديل صورة الحساب"
+                  aria-label="تعديل الصورة"
+                >
+                  <Camera className="w-3.5 h-3.5" strokeWidth={2} />
+                </button>
               </div>
 
               <div className="space-y-1">
@@ -380,6 +565,15 @@ export const ProfileView: React.FC = () => {
                   <h2 className="text-[18px] sm:text-[20px] font-bold text-[#1C2421]">
                     {profile?.displayName || currentUser.name}
                   </h2>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditProfileModalOpen(true)}
+                    className="p-1 text-[#0F6B3F] hover:text-[#0A4D2E] hover:bg-[#EEF6F1] rounded-[6px] transition-colors cursor-pointer inline-flex items-center gap-1 text-[12px] font-bold"
+                    title="تعديل اسم وصورة الحساب"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>تعديل</span>
+                  </button>
                   <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#EEF6F1] text-[#0A4D2E] border border-[#DDE3DF] inline-flex items-center gap-1">
                     <ShieldCheck className="w-3 h-3 text-[#0F6B3F]" strokeWidth={2} />
                     <span>
@@ -403,8 +597,18 @@ export const ProfileView: React.FC = () => {
               </div>
             </div>
 
-            {/* Actions: Craftsman Availability Toggle & Sign out */}
+            {/* Actions: Edit profile, Craftsman Availability Toggle & Sign out */}
             <div className="flex flex-wrap sm:flex-col gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsEditProfileModalOpen(true)}
+                className="h-9 px-3.5 bg-[#0F6B3F] hover:bg-[#0A4D2E] text-white rounded-[8px] text-[12px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                title="تعديل اسم الحساب وتغيير صورة البروفيل"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>تغيير الاسم والصورة</span>
+              </button>
+
               {profile?.role === 'craftsman' && (
                 <button
                   onClick={async () => {
@@ -426,10 +630,8 @@ export const ProfileView: React.FC = () => {
               )}
 
               <button
-                onClick={async () => {
-                  await authLogout();
-                  appLogout();
-                }}
+                type="button"
+                onClick={requestLogout}
                 className="h-9 px-3 bg-red-50 hover:bg-red-100 text-[#C62828] border border-red-200 rounded-[8px] text-[12px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                 title="تسجيل الخروج من الحساب"
               >
@@ -1470,6 +1672,207 @@ export const ProfileView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* 8. EDIT PROFILE NAME AND PICTURE MODAL (نافذة تعديل اسم وصورة البروفيل) */}
+      {isEditProfileModalOpen && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+          onClick={() => setIsEditProfileModalOpen(false)}
+        >
+          <div 
+            className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-5 sm:p-6 space-y-5 my-8 text-right max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+            dir="rtl"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                  <Camera className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+                    تعديل اسم وصورة الملف الشخصي
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    يمكنك تغيير الاسم والصورة الرمزية التي تظهر للجميع في خـدّام
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsEditProfileModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 flex items-center justify-center transition-colors cursor-pointer"
+                aria-label="إغلاق النافذة"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Hidden File Input for Direct Gallery / Camera Upload */}
+            <input
+              ref={avatarFileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarFileSelect}
+            />
+
+            {/* Error / Success Alerts */}
+            {profileEditError && (
+              <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 rounded-xl flex items-center gap-2 text-xs text-red-700 dark:text-red-300">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{profileEditError}</span>
+              </div>
+            )}
+
+            {profileEditSuccess && (
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 rounded-xl flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-300">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
+                <span>تم تحديث اسم وصورة البروفيل بنجاح! جاري الحفظ...</span>
+              </div>
+            )}
+
+            {/* Form */}
+            <form onSubmit={handleSaveProfileHeader} className="space-y-4">
+              {/* Avatar Preview & Direct Upload */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                  صورة الملف الشخصي:
+                </label>
+
+                <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200/80 dark:border-slate-800">
+                  <div className="relative group shrink-0">
+                    <img
+                      src={profileEditAvatar || currentUser.avatar}
+                      alt="معاينة الصورة"
+                      className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border-2 border-emerald-600 shadow-md"
+                      referrerPolicy="no-referrer"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => avatarFileInputRef.current?.click()}
+                      className="absolute inset-0 bg-black/40 text-white rounded-2xl flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer p-1"
+                      title="رفع صورة جديدة"
+                    >
+                      <Camera className="w-5 h-5 text-white" />
+                      <span className="text-[10px] font-bold">رفع صورة</span>
+                    </button>
+                  </div>
+
+                  <div className="flex-1 space-y-2 text-center sm:text-right w-full">
+                    <button
+                      type="button"
+                      disabled={isUploadingAvatar}
+                      onClick={() => avatarFileInputRef.current?.click()}
+                      className="w-full sm:w-auto px-4 py-2 bg-[#0F6B3F] hover:bg-[#0A4D2E] text-white rounded-xl text-xs font-bold inline-flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      <Camera className="w-4 h-4" />
+                      <span>{isUploadingAvatar ? 'جاري معالجة الصورة...' : 'رفع صورة من الهاتف أو الكاميرا'}</span>
+                    </button>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      يمكنك التقاط صورة فورية بالكاميرا أو اختيار صورة من معرض هاتفك
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Direct Image URL option */}
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                  أو أدخل رابط صورة مباشر (URL):
+                </label>
+                <input
+                  type="url"
+                  dir="ltr"
+                  placeholder="https://example.com/photo.jpg"
+                  value={profileEditAvatar.startsWith('data:') ? '' : profileEditAvatar}
+                  onChange={(e) => {
+                    if (e.target.value.trim()) {
+                      setProfileEditAvatar(e.target.value.trim());
+                    }
+                  }}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:ring-1 focus:ring-emerald-500 text-left font-mono"
+                />
+              </div>
+
+              {/* Presets Gallery */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                  أو اختر صورة رمزية من النماذج المقترحة:
+                </label>
+                <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 pt-1">
+                  {PRESET_AVATARS.map((preset, idx) => {
+                    const isSelected = profileEditAvatar === preset.url;
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setProfileEditAvatar(preset.url)}
+                        title={preset.title}
+                        className={`relative rounded-xl overflow-hidden aspect-square border-2 transition-all p-0.5 cursor-pointer ${
+                          isSelected
+                            ? 'border-emerald-600 scale-105 shadow-md ring-2 ring-emerald-500/30'
+                            : 'border-slate-200 dark:border-slate-700 hover:border-emerald-400 hover:scale-105'
+                        }`}
+                      >
+                        <img
+                          src={preset.url}
+                          alt={preset.title}
+                          className="w-full h-full object-cover rounded-[8px]"
+                        />
+                        {isSelected && (
+                          <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center">
+                            <Check className="w-2.5 h-2.5" strokeWidth={3} />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Display Name Input */}
+              <div className="space-y-1 pt-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                  اسم الحساب المعروض (الاسم واللقب): <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={profileEditName}
+                  onChange={(e) => setProfileEditName(e.target.value)}
+                  placeholder="مثال: هشام بن علي"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500/40"
+                />
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  يظهر هذا الاسم لجميع مستخدمي المنصة في طلبات الصيانة، المحادثات المباشرة، وبطاقتك التعريفية.
+                </p>
+              </div>
+
+              {/* Modal Buttons */}
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsEditProfileModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold transition-colors cursor-pointer"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUploadingAvatar}
+                  className="px-6 py-2.5 rounded-xl bg-[#0F6B3F] hover:bg-[#0A4D2E] text-white text-xs font-bold transition-colors cursor-pointer shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>حفظ التغييرات</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

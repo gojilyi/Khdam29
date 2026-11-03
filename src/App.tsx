@@ -22,6 +22,7 @@ import { ChatModal } from './components/ChatModal';
 import { OrderFlowModal } from './components/OrderFlowModal';
 import { ReviewModal } from './components/ReviewModal';
 import { AuthModal } from './components/AuthModal';
+import { LogoutConfirmModal } from './components/LogoutConfirmModal';
 import { CraftCharterCard } from './components/CraftCharterCard';
 import { ProfessionalCardModal } from './components/ProfessionalCardModal';
 import { ArtisanFacebookProfile } from './components/ArtisanFacebookProfile';
@@ -425,6 +426,7 @@ const MainContent: React.FC = () => {
 
       {/* Global Interactive Modals */}
       <AuthModal />
+      <LogoutConfirmModal />
       <CraftCharterCard />
       <VoiceCallModal />
       <ChatModal />

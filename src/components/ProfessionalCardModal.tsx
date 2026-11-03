@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
   X, 
@@ -32,7 +32,23 @@ export const ProfessionalCardModal: React.FC = () => {
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
+  // Close on Escape key press
+  useEffect(() => {
+    if (!isProfessionalCardOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsProfessionalCardOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isProfessionalCardOpen, setIsProfessionalCardOpen]);
+
   if (!isProfessionalCardOpen) return null;
+
+  const handleClose = () => {
+    setIsProfessionalCardOpen(false);
+  };
 
   // If a specific artisan was selected, show their card; otherwise show the logged-in user / active profile card
   const artisanName = selectedArtisanForCard?.name || (role === 'artisan' ? 'المعلم كمال بلقاسم' : currentUser.name || 'المعلم كمال بلقاسم');
@@ -56,14 +72,23 @@ export const ProfessionalCardModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in overflow-y-auto">
-      <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-7 shadow-2xl relative my-6">
-        {/* Close Button */}
+    <div 
+      onClick={handleClose}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in overflow-y-auto cursor-pointer"
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-7 shadow-2xl relative my-auto cursor-default max-h-[92vh] overflow-y-auto"
+      >
+        {/* Prominent Top Close Button */}
         <button
-          onClick={() => setIsProfessionalCardOpen(false)}
-          className="absolute rtl:left-4 ltr:right-4 top-4 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl transition-colors z-10"
+          type="button"
+          onClick={handleClose}
+          aria-label={language === 'ar' ? 'إغلاق البطاقة' : 'Close card'}
+          title={language === 'ar' ? 'إغلاق (Esc)' : 'Close (Esc)'}
+          className="absolute rtl:left-4 ltr:right-4 top-4 z-20 w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center transition-all cursor-pointer shadow-md border border-slate-200 dark:border-slate-700 active:scale-95"
         >
-          <X className="w-5 h-5" />
+          <X className="w-5 h-5 text-slate-800 dark:text-slate-100" />
         </button>
 
         {/* Modal Header */}
@@ -235,32 +260,45 @@ export const ProfessionalCardModal: React.FC = () => {
         </div>
 
         {/* Actions Bar */}
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
+        <div className="mt-5 pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             <button
+              type="button"
               onClick={handleDownload}
-              className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-transform active:scale-95"
+              className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-transform active:scale-95 cursor-pointer"
             >
               <Download className="w-4 h-4" />
               <span>{downloadSuccess ? 'تم حفظ البطاقة ✓' : (language === 'ar' ? 'تحميل البطاقة الرقمية' : 'Download ID')}</span>
             </button>
 
             <button
+              type="button"
               onClick={handleShare}
-              className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
+              className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <Share2 className="w-4 h-4" />
               <span>{copiedLink ? 'تم نسخ الرابط ✓' : (language === 'ar' ? 'مشاركة' : 'Share')}</span>
+            </button>
+
+            {/* Explicit Close Button */}
+            <button
+              type="button"
+              onClick={handleClose}
+              className="px-4 py-2.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95 border border-slate-300/70 dark:border-slate-700"
+            >
+              <X className="w-4 h-4 text-red-500" />
+              <span>{language === 'ar' ? 'إغلاق البطاقة' : 'Close'}</span>
             </button>
           </div>
 
           {verificationLevel < 2 && (
             <button
+              type="button"
               onClick={() => {
                 setIsProfessionalCardOpen(false);
                 setActiveTab('profile');
               }}
-              className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1"
+              className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1 cursor-pointer"
             >
               <span>{language === 'ar' ? 'ترقية التوثيق إلى المستوى 2' : 'Upgrade to Level 2'}</span>
               <ChevronRight className="w-3.5 h-3.5 rtl:rotate-180" />

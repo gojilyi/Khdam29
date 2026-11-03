@@ -29,7 +29,8 @@ export const Header: React.FC = () => {
     isAdminAuthenticated,
     setIsAdminAuthModalOpen,
     handleBrandSecretClick,
-    setIsContactModalOpen
+    setIsContactModalOpen,
+    requestLogout
   } = useApp();
 
   const { isLoggedIn, profile, role: authRole, logout, openAuthModalWithRedirect } = useAuth();
@@ -212,18 +213,33 @@ export const Header: React.FC = () => {
             <span className="w-2 h-2 rounded-full bg-emerald-400 absolute top-2 right-2" />
           </button>
 
-          {/* User Auth Profile Trigger */}
+          {/* User Auth Profile Trigger & Direct Logout Button */}
           {isLoggedIn ? (
-            <button
-              onClick={() => setActiveTab('profile')}
-              className="hidden md:flex h-10 px-3 rounded-[8px] items-center gap-1.5 text-white hover:bg-[#0F6B3F] text-[13px] font-medium transition-colors cursor-pointer border border-white/20"
-              aria-label="الحساب الشخصي"
-            >
-              <User className="w-4 h-4 text-[#1E9B5C]" strokeWidth={1.75} />
-              <span className="max-w-[120px] truncate">
-                {profile?.displayName ? profile.displayName.split(' ')[0] : currentUser.name.split(' ')[0]}
-              </span>
-            </button>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <button
+                type="button"
+                onClick={() => setActiveTab('profile')}
+                className="hidden md:flex h-10 px-3 rounded-[8px] items-center gap-1.5 text-white hover:bg-[#0F6B3F] text-[13px] font-medium transition-colors cursor-pointer border border-white/20"
+                aria-label="الحساب الشخصي"
+                title="عرض وتعديل الملف الشخصي"
+              >
+                <User className="w-4 h-4 text-[#1E9B5C]" strokeWidth={1.75} />
+                <span className="max-w-[110px] truncate">
+                  {profile?.displayName ? profile.displayName.split(' ')[0] : currentUser.name.split(' ')[0]}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={requestLogout}
+                className="h-9 sm:h-10 px-2 sm:px-3 rounded-[8px] bg-red-500/20 hover:bg-red-500/35 text-rose-100 hover:text-white border border-rose-400/40 text-[12px] sm:text-[13px] font-bold flex items-center gap-1 sm:gap-1.5 transition-colors cursor-pointer"
+                title="تسجيل الخروج من الحساب"
+                aria-label="تسجيل الخروج"
+              >
+                <LogOut className="w-4 h-4 text-rose-200 rtl:rotate-180" strokeWidth={1.75} />
+                <span className="hidden sm:inline">تسجيل الخروج</span>
+              </button>
+            </div>
           ) : (
             <button
               onClick={() => setIsAuthModalOpen(true)}

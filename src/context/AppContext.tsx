@@ -79,6 +79,9 @@ interface AppContextType {
   updateUserProfile: (data: Partial<AuthUser>) => void;
   isAuthModalOpen: boolean;
   setIsAuthModalOpen: (open: boolean) => void;
+  isLogoutConfirmOpen: boolean;
+  setIsLogoutConfirmOpen: (open: boolean) => void;
+  requestLogout: () => void;
   loginWithMethod: (method: AuthMethod, data?: { name?: string; phone?: string; email?: string; role?: Role }) => void;
   logout: () => void;
 
@@ -397,24 +400,56 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [activeTab, setActiveTab] = useState<string>('home');
 
   // Auth User State & Personal Information
-  const [currentUser, setCurrentUser] = useState<AuthUser>({
-    id: 'usr_default',
-    name: 'هشام بن علي',
-    phone: '+213 550 12 34 56',
-    email: 'hichem.b@example.dz',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    role: 'client',
-    method: 'sms',
-    isLoggedIn: true,
-    address: 'حي البساتين، عمارة 14، الشقة 5',
-    city: 'الجزائر العاصمة',
-    neighborhood: 'حيدرة / الأبيار',
-    sharePhoneWithArtisans: true
+  const [currentUser, setCurrentUser] = useState<AuthUser>(() => {
+    try {
+      const saved = localStorage.getItem('khodam_auth_user');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch {}
+    return {
+      id: 'usr_default',
+      name: 'هشام بن علي',
+      phone: '+213 550 12 34 56',
+      email: 'hichem.b@example.dz',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      role: 'client',
+      method: 'sms',
+      isLoggedIn: true,
+      address: 'حي البساتين، عمارة 14، الشقة 5',
+      city: 'الجزائر العاصمة',
+      neighborhood: 'حيدرة / الأبيار',
+      sharePhoneWithArtisans: true
+    };
   });
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
+  const requestLogout = () => setIsLogoutConfirmOpen(true);
 
   const updateUserProfile = (data: Partial<AuthUser>) => {
-    setCurrentUser(prev => ({ ...prev, ...data }));
+    setCurrentUser(prev => {
+      const next = { ...prev, ...data };
+      try {
+        localStorage.setItem('khodam_auth_user', JSON.stringify(next));
+      } catch (e) {
+        console.error(e);
+      }
+      return next;
+    });
+
+    // Also sync matching user in artisans directory if an artisan
+    if (data.name || data.avatar) {
+      setArtisans(prev => prev.map(art => {
+        if (art.name === currentUser.name || art.id === 'art_1') {
+          return {
+            ...art,
+            ...(data.name ? { name: data.name } : {}),
+            ...(data.avatar ? { avatar: data.avatar } : {})
+          };
+        }
+        return art;
+      }));
+    }
   };
 
   // Work Posts & Portfolio State
@@ -2997,6 +3032,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateUserProfile,
         isAuthModalOpen,
         setIsAuthModalOpen,
+        isLogoutConfirmOpen,
+        setIsLogoutConfirmOpen,
+        requestLogout,
         loginWithMethod,
         logout,
         isCraftCharterOpen,

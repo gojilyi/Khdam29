@@ -48,7 +48,7 @@ export const ALGERIA_WILAYAS: Wilaya[] = [
   { code: '26', name: 'المدية', nameLatin: 'Médéa', communes: ['المدية', 'البرواقية', 'قصر البخاري', 'بني سليمان'] },
   { code: '27', name: 'مستغانم', nameLatin: 'Mostaganem', communes: ['مستغانم', 'عين تادلس', 'سيدي علي', 'حاسي ماماش'] },
   { code: '28', name: 'المسيلة', nameLatin: 'M’Sila', communes: ['المسيلة', 'بوسعادة', 'مقرة', 'سيدي عيسى'] },
-  { code: '29', name: 'معسكر', nameLatin: 'Mascara', communes: ['معسكر', 'سيق', 'تيغنيف', 'المحمدية'] },
+  { code: '29', name: 'معسكر', nameLatin: 'Mascara', communes: ['معسكر', 'سيق', 'تيغنيف', 'المحمدية', 'البرج', 'خلوية', 'المناور'] },
   { code: '30', name: 'ورقلة', nameLatin: 'Ouargla', communes: ['ورقلة', 'حاسي مسعود', 'تقرت', 'الرويسات'] },
   { 
     code: '31', 
