@@ -210,6 +210,11 @@ interface AppContextType {
   submitLevel1: (idCardImage: string, selfieImage: string) => void;
   submitLevel2: (diplomaImage: string, diplomaTitle: string) => void;
 
+  // Verification button visibility toggle (Admin can remove or hide verification button for ID & Diploma)
+  showIdAndDiplomaVerification: boolean;
+  setShowIdAndDiplomaVerification: (show: boolean) => void;
+  toggleIdAndDiplomaVerification: () => void;
+
   // Secret Admin Access (Easter Egg 7 clicks on Khodam + Encrypted SHA-256 Authentication)
   isAdminAuthenticated: boolean;
   setIsAdminAuthenticated: (auth: boolean) => void;
@@ -470,6 +475,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Verification Requests & Admin Management State
   const [verificationRequests, setVerificationRequests] = useState<VerificationRequest[]>(sampleVerificationRequests);
+
+  // Verification button visibility toggle (Admin can remove or hide verification button for ID & Diploma)
+  const [showIdAndDiplomaVerification, setShowIdAndDiplomaVerification] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('khodam_show_verification_button');
+      return saved !== null ? saved === 'true' : true;
+    } catch {
+      return true;
+    }
+  });
+
+  const toggleIdAndDiplomaVerification = () => {
+    setShowIdAndDiplomaVerification(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('khodam_show_verification_button', String(next));
+      } catch {}
+      return next;
+    });
+  };
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
     try {
       return sessionStorage.getItem('khodam_admin_auth') === 'true';
@@ -3246,7 +3271,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         togglePartnerPostLike,
         addPartnerPostComment,
         deletePartnerPost,
-        updatePartnerPostStatus
+        updatePartnerPostStatus,
+        showIdAndDiplomaVerification,
+        setShowIdAndDiplomaVerification,
+        toggleIdAndDiplomaVerification
       }}
     >
       {children}

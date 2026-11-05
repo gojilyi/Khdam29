@@ -69,6 +69,7 @@ export interface Artisan {
   categoryId: string;
   subCategoryIds: string[];
   trade?: string;
+  trades?: string[];
   experienceYears?: number;
   completedJobsCount?: number;
   skills?: string[];

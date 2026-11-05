@@ -62,6 +62,7 @@ export const ProfileView: React.FC = () => {
     addPostComment,
     submitLevel1,
     submitLevel2,
+    showIdAndDiplomaVerification,
     verificationRequests,
     setIsAuthModalOpen,
     artisans,
@@ -977,11 +978,12 @@ export const ProfileView: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. Verification Workflow Hub (Level 1 & Level 2) */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 space-y-5 shadow-sm">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wide">
-            <ShieldCheck className="w-4 h-4" />
+      {/* 3. Verification Workflow Hub (Level 1 & Level 2) - Admin controllable visibility */}
+      {showIdAndDiplomaVerification && (
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 space-y-5 shadow-sm">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wide">
+              <ShieldCheck className="w-4 h-4" />
             <span>نظام شارات التوثيق المعتمد (2 مستويات)</span>
           </div>
           <h3 className="text-lg font-black text-slate-900 dark:text-white mt-1">
@@ -1269,6 +1271,7 @@ export const ProfileView: React.FC = () => {
           </form>
         )}
       </div>
+      )}
 
       {/* 4. User's Published Works Portfolio with Hearts & Comments */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 space-y-4 shadow-sm">

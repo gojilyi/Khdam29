@@ -32,7 +32,10 @@ import {
   Edit3,
   X,
   Maximize2,
-  RotateCcw
+  RotateCcw,
+  Shield,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 interface InlineTextEditorState {
@@ -66,7 +69,9 @@ export const AdminLiveEditorBar: React.FC = () => {
     categories,
     role,
     currentUser,
-    setIsAdminAuthModalOpen
+    setIsAdminAuthModalOpen,
+    showIdAndDiplomaVerification,
+    toggleIdAndDiplomaVerification
   } = useApp();
 
   const isEffectiveAdmin = isAdminAuthenticated || role === 'admin' || currentUser?.role === 'admin';
@@ -694,11 +699,33 @@ export const AdminLiveEditorBar: React.FC = () => {
                 {/* Open Full Admin Panel Button */}
                 <button
                   onClick={() => setActiveTab('admin')}
-                  className="p-2 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl font-black text-[11px] flex items-center justify-center gap-1.5 transition-transform active:scale-95 shadow-sm col-span-2 sm:col-span-1 cursor-pointer"
+                  className="p-2 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl font-black text-[11px] flex items-center justify-center gap-1.5 transition-transform active:scale-95 shadow-sm cursor-pointer"
                   title="العودة إلى لوحة تحكم المشرف الشاملة"
                 >
                   <Settings className="w-3.5 h-3.5" />
                   <span>لوحة الأدمن ⚙️</span>
+                </button>
+
+                {/* Quick Toggle for ID & Diploma Verification Buttons */}
+                <button
+                  onClick={() => {
+                    toggleIdAndDiplomaVerification();
+                    setToastMessage(
+                      !showIdAndDiplomaVerification
+                        ? 'تم إظهار زر تثبيت الهوية والدبلوم'
+                        : 'تم إخفاء وإزالة زر تثبيت الهوية والدبلوم'
+                    );
+                    setTimeout(() => setToastMessage(''), 3000);
+                  }}
+                  className={`p-2 border rounded-xl font-bold text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer col-span-2 sm:col-span-1 ${
+                    showIdAndDiplomaVerification
+                      ? 'bg-emerald-500/20 hover:bg-emerald-500 hover:text-slate-950 text-emerald-300 border-emerald-500/50'
+                      : 'bg-rose-500/20 hover:bg-rose-500 hover:text-white text-rose-300 border-rose-500/50'
+                  }`}
+                  title="إظهار أو إخفاء/إزالة أزرار توثيق الهوية والدبلوم في حسابات المستخدمين والحرفيين"
+                >
+                  <Shield className="w-3.5 h-3.5 shrink-0" />
+                  <span>{showIdAndDiplomaVerification ? 'زر الهوية/الدبلوم: ظاهر' : 'زر الهوية/الدبلوم: مُزال ومخفي'}</span>
                 </button>
 
                 {/* Reset Custom Texts if any */}

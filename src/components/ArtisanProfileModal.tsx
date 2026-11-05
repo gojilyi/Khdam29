@@ -60,9 +60,17 @@ export const ArtisanProfileModal: React.FC = () => {
               <h2 className="text-[20px] font-bold text-[#1C2421]">
                 {selectedArtisan.name}
               </h2>
-              <Badge variant="green">
-                {selectedArtisan.trade}
-              </Badge>
+              {selectedArtisan.trades && selectedArtisan.trades.length > 0 ? (
+                selectedArtisan.trades.map((t, idx) => (
+                  <Badge key={idx} variant={idx === 0 ? "green" : "neutral"}>
+                    {t}
+                  </Badge>
+                ))
+              ) : (
+                <Badge variant="green">
+                  {selectedArtisan.trade}
+                </Badge>
+              )}
               {selectedArtisan.verification?.idVerified && (
                 <span className="inline-flex items-center gap-1 text-[12px] text-[#0A4D2E] bg-[#EEF6F1] px-2 py-0.5 rounded-[8px]">
                   <ShieldCheck className="w-3.5 h-3.5 text-[#0F6B3F]" strokeWidth={1.75} />

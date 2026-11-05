@@ -45,6 +45,7 @@ export const ArtisanDirectory: React.FC = () => {
       // 1. Trade filter
       if (selectedTrade !== 'all') {
         const matchesTrade = art.trade?.toLowerCase().includes(selectedTrade.toLowerCase()) ||
+          art.trades?.some(t => t.toLowerCase().includes(selectedTrade.toLowerCase())) ||
           art.skills?.some(s => s.toLowerCase().includes(selectedTrade.toLowerCase())) ||
           art.bio?.toLowerCase().includes(selectedTrade.toLowerCase());
         if (!matchesTrade) return false;
@@ -55,6 +56,7 @@ export const ArtisanDirectory: React.FC = () => {
         const q = searchWord.toLowerCase().trim();
         const matchesQuery = art.name.toLowerCase().includes(q) ||
           art.trade?.toLowerCase().includes(q) ||
+          art.trades?.some(t => t.toLowerCase().includes(q)) ||
           art.city?.toLowerCase().includes(q) ||
           art.neighborhood?.toLowerCase().includes(q) ||
           art.bio?.toLowerCase().includes(q);
@@ -251,10 +253,15 @@ export const ArtisanDirectory: React.FC = () => {
                       )}
                     </div>
 
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                       <span className="text-[13px] font-semibold text-[#0F6B3F]">
                         {artisan.trade}
                       </span>
+                      {artisan.trades && artisan.trades.length > 1 && (
+                        <span className="text-[10px] font-bold bg-[#E8F5E9] text-[#0A4D2E] px-1.5 py-0.2 rounded-md border border-[#0F6B3F]/20">
+                          +{artisan.trades.length - 1} مهن
+                        </span>
+                      )}
                       <span className="text-[#DDE3DF]">·</span>
                       <Rating 
                         rating={artisan.rating} 

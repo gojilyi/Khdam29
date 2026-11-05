@@ -38,6 +38,7 @@ service cloud.firestore {
         && (!('wilaya' in data) || (data.wilaya is string && data.wilaya.size() <= 60))
         && (!('commune' in data) || (data.commune is string && data.commune.size() <= 60))
         && (!('avatar' in data) || (data.avatar is string && data.avatar.size() <= 500))
+        && (!('trades' in data) || (data.trades is list && data.trades.size() <= 30))
         && (!('verification_status' in data) || (data.verification_status in ['pending', 'verified']));
     }
 
@@ -46,6 +47,7 @@ service cloud.firestore {
       return data.uid is string && data.uid.size() <= 128
         && data.name is string && data.name.size() > 0 && data.name.size() <= 120
         && data.trade is string && data.trade.size() > 0 && data.trade.size() <= 120
+        && (!('trades' in data) || (data.trades is list && data.trades.size() <= 30))
         && (!('experienceYears' in data) || data.experienceYears is number)
         && (!('wilayas' in data) || (data.wilayas is list && data.wilayas.size() <= 58))
         && (!('bio' in data) || (data.bio is string && data.bio.size() <= 1500))

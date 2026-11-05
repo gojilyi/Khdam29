@@ -88,8 +88,10 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
   const [showPassword, setShowPassword] = useState(false);
   const [avatar] = useState('https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80');
 
-  // Craftsman specific
-  const [trade, setTrade] = useState('سبّاك');
+  // Craftsman specific - multiple trades support
+  const [selectedTrades, setSelectedTrades] = useState<string[]>(['سبّاك']);
+  const [tradeSearch, setTradeSearch] = useState('');
+  const [customTradeInput, setCustomTradeInput] = useState('');
   const [experienceYears, setExperienceYears] = useState(5);
   const [selectedWilayas, setSelectedWilayas] = useState<string[]>(['الجزائر العاصمة', 'البليدة']);
   const [wilayaSearch, setWilayaSearch] = useState('');
@@ -128,6 +130,35 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
 
   const selectOnlyMyWilaya = () => {
     setSelectedWilayas([wilaya]);
+  };
+
+  // Trade selection helpers for multi-trade support
+  const toggleTrade = (t: string) => {
+    if (selectedTrades.includes(t)) {
+      if (selectedTrades.length > 1) {
+        setSelectedTrades(selectedTrades.filter(item => item !== t));
+      }
+    } else {
+      setSelectedTrades([...selectedTrades, t]);
+    }
+    setErrors(p => ({ ...p, trade: '' }));
+  };
+
+  const removeTrade = (t: string) => {
+    if (selectedTrades.length > 1) {
+      setSelectedTrades(selectedTrades.filter(item => item !== t));
+    }
+  };
+
+  const addCustomTrade = () => {
+    if (customTradeInput.trim()) {
+      const trimmed = customTradeInput.trim();
+      if (!selectedTrades.includes(trimmed)) {
+        setSelectedTrades([...selectedTrades, trimmed]);
+      }
+      setCustomTradeInput('');
+      setErrors(p => ({ ...p, trade: '' }));
+    }
   };
 
   const addPortfolioImage = () => {
@@ -179,11 +210,11 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
     return Object.keys(errs).length === 0;
   };
 
-  // Step 2 Validation
+  // Step 2 Validation (Requires at least 1 trade)
   const validateStep2 = (): boolean => {
     const errs: Record<string, string> = {};
-    if (!trade) {
-      errs.trade = 'يرجى اختيار مهنتك الرئيسية';
+    if (selectedTrades.length === 0) {
+      errs.trade = 'يرجى اختيار مهنة أو تخصص واحد على الأقل';
     }
     if (experienceYears < 0) {
       errs.experienceYears = 'سنوات الخبرة غير صحيحة';
@@ -266,7 +297,8 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
         wilaya,
         commune,
         avatar,
-        trade: role === 'craftsman' ? trade : undefined,
+        trade: role === 'craftsman' ? (selectedTrades[0] || 'سبّاك') : undefined,
+        trades: role === 'craftsman' ? selectedTrades : undefined,
         experienceYears: role === 'craftsman' ? experienceYears : undefined,
         wilayas: role === 'craftsman' ? selectedWilayas : undefined,
         approximatePriceDzd: role === 'craftsman' ? approxPrice : undefined,
@@ -295,7 +327,8 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
       const res = await loginWithGoogle();
       if (!res.profile) {
         await completeInitialProfile(role, fullName.trim() || undefined, {
-          trade: role === 'craftsman' ? trade : undefined,
+          trade: role === 'craftsman' ? (selectedTrades[0] || 'سبّاك') : undefined,
+          trades: role === 'craftsman' ? selectedTrades : undefined,
           experienceYears: role === 'craftsman' ? experienceYears : undefined,
           wilayas: role === 'craftsman' ? selectedWilayas : undefined,
           approximatePriceDzd: role === 'craftsman' ? approxPrice : undefined,
@@ -328,7 +361,8 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
       const res = await loginWithFacebook();
       if (!res.profile) {
         await completeInitialProfile(role, fullName.trim() || undefined, {
-          trade: role === 'craftsman' ? trade : undefined,
+          trade: role === 'craftsman' ? (selectedTrades[0] || 'سبّاك') : undefined,
+          trades: role === 'craftsman' ? selectedTrades : undefined,
           experienceYears: role === 'craftsman' ? experienceYears : undefined,
           wilayas: role === 'craftsman' ? selectedWilayas : undefined,
           approximatePriceDzd: role === 'craftsman' ? approxPrice : undefined,
@@ -677,20 +711,109 @@ export const Register: React.FC<RegisterProps> = ({ role, onSwitchToLogin, onSuc
       {/* CRAFTSMAN STEP 2: Trade, Experience, Pricing */}
       {role === 'craftsman' && step === 2 && (
         <div className="space-y-3">
-          {/* Trade Select */}
-          <div>
-            <label className="block text-[12px] font-bold text-[#1C2421] mb-1">
-              المهنة الرئيسية <span className="text-[#C62828]">*</span>
-            </label>
-            <select
-              value={trade}
-              onChange={(e) => setTrade(e.target.value)}
-              className="w-full h-11 min-h-[44px] bg-white border border-[#DDE3DF] rounded-[8px] px-3 text-[13px] text-[#1C2421] font-bold focus:outline-none focus:border-[#0F6B3F]"
-            >
-              {TRADES.map(t => (
-                <option key={t} value={t}>{t}</option>
+          {/* Multi-Trade Selection */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-[12px] font-bold text-[#1C2421] flex items-center gap-1.5">
+                <Wrench className="w-3.5 h-3.5 text-[#0F6B3F]" strokeWidth={1.75} />
+                <span>المهن والتخصصات التي تتقنها</span>
+                <span className="text-[#C62828]">*</span>
+              </label>
+              <span className="text-[11px] font-bold text-[#0F6B3F] bg-[#EEF6F1] px-2.5 py-0.5 rounded-full border border-[#0F6B3F]/20">
+                {selectedTrades.length} {selectedTrades.length === 1 ? 'مهنة مختارة' : 'مهن مختارة'}
+              </span>
+            </div>
+
+            <p className="text-[11px] text-[#5B6660]">
+              يمكنك اختيار أكثر من مهنة وحرفة لزيادة فرص ظهورك للزبائن في نتائج البحث المختلفة.
+            </p>
+
+            {/* Selected Trades Tags */}
+            <div className="flex flex-wrap gap-1.5 p-2.5 bg-[#EEF6F1]/50 border border-[#DDE3DF] rounded-[10px] min-h-[46px] items-center">
+              {selectedTrades.map((t, idx) => (
+                <span
+                  key={t}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[8px] text-[12px] font-bold transition-all shadow-xs ${
+                    idx === 0 
+                      ? 'bg-[#0F6B3F] text-white border border-[#0F6B3F]' 
+                      : 'bg-white text-[#0A4D2E] border border-[#0F6B3F]/30'
+                  }`}
+                >
+                  {idx === 0 && (
+                    <span className="text-[10px] bg-white/25 text-white px-1.5 py-0.2 rounded font-normal" title="المهنة الأساسية">
+                      رئيسية ★
+                    </span>
+                  )}
+                  <span>{t}</span>
+                  {selectedTrades.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeTrade(t)}
+                      className="p-0.5 hover:bg-black/15 rounded-full cursor-pointer transition-colors"
+                      title="إزالة هذه المهنة"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </span>
               ))}
-            </select>
+            </div>
+
+            {/* Search Filter for Trades */}
+            <div className="relative">
+              <input
+                type="text"
+                value={tradeSearch}
+                onChange={(e) => setTradeSearch(e.target.value)}
+                placeholder="ابحث عن مهنة أخرى لإضافتها (مثل: كهربائي، دهّان، تكييف)..."
+                className="w-full h-10 bg-white border border-[#DDE3DF] rounded-[8px] px-3 pr-9 text-[12px] text-[#1C2421] focus:outline-none focus:border-[#0F6B3F]"
+              />
+              <Wrench className="w-4 h-4 text-[#5B6660] absolute right-3 top-1/2 -translate-y-1/2" strokeWidth={1.75} />
+            </div>
+
+            {/* Available Trades Chips Grid */}
+            <div className="max-h-40 overflow-y-auto p-1.5 border border-[#DDE3DF] rounded-[8px] bg-slate-50/70 flex flex-wrap gap-1.5">
+              {TRADES.filter(t => !tradeSearch.trim() || t.toLowerCase().includes(tradeSearch.trim().toLowerCase())).map(t => {
+                const isSelected = selectedTrades.includes(t);
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => toggleTrade(t)}
+                    className={`px-2.5 py-1 text-[11px] font-bold rounded-[6px] border transition-all cursor-pointer flex items-center gap-1 ${
+                      isSelected
+                        ? 'bg-[#0F6B3F] text-white border-[#0F6B3F] shadow-xs'
+                        : 'bg-white text-slate-700 hover:border-[#0F6B3F]/60 border-[#DDE3DF]'
+                    }`}
+                  >
+                    {isSelected ? <CheckCircle2 className="w-3 h-3 text-white" /> : <Plus className="w-3 h-3 text-slate-400" />}
+                    <span>{t}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Add Custom Trade Input if not in list */}
+            <div className="flex gap-1.5 pt-0.5">
+              <input
+                type="text"
+                value={customTradeInput}
+                onChange={(e) => setCustomTradeInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustomTrade(); } }}
+                placeholder="تخصص أو مهنة أخرى غير موجودة بالقائمة..."
+                className="flex-1 h-9 bg-white border border-[#DDE3DF] rounded-[8px] px-3 text-[12px] text-[#1C2421] focus:outline-none focus:border-[#0F6B3F]"
+              />
+              <button
+                type="button"
+                onClick={addCustomTrade}
+                disabled={!customTradeInput.trim()}
+                className="px-3 h-9 bg-[#EEF6F1] hover:bg-[#DDEFE6] text-[#0F6B3F] border border-[#0F6B3F]/30 rounded-[8px] text-[11px] font-bold transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1 shrink-0"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>إضافة</span>
+              </button>
+            </div>
+
             {errors.trade && <p className="text-[11px] text-[#C62828] mt-1">{errors.trade}</p>}
           </div>
 

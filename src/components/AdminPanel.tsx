@@ -69,6 +69,8 @@ export const AdminPanel: React.FC = () => {
     setIsAdminAuthModalOpen, 
     checkAdminPassword,
     verificationRequests,
+    showIdAndDiplomaVerification,
+    toggleIdAndDiplomaVerification,
     approveVerification,
     rejectVerification,
     updateArtisanLevel,
@@ -846,6 +848,60 @@ export const AdminPanel: React.FC = () => {
                 <p className="text-xs text-slate-500">
                   المستوى الأول: مطابقة بطاقة الهوية البيومترية مع الصورة الشخصية · المستوى الثاني: فحص صحة الدبلوم المهني
                 </p>
+              </div>
+
+              {/* Admin ID & Diploma Verification Button Visibility Control */}
+              <div className={`p-4 rounded-2xl border transition-all ${
+                showIdAndDiplomaVerification 
+                  ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800' 
+                  : 'bg-rose-50/60 dark:bg-rose-950/20 border-rose-300 dark:border-rose-800'
+              }`}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className={`w-5 h-5 ${showIdAndDiplomaVerification ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`} />
+                      <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                        التحكم في ظهور زر تثبيت الهوية والدبلوم للحرفيين
+                      </h4>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        showIdAndDiplomaVerification
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-rose-600 text-white'
+                      }`}>
+                        {showIdAndDiplomaVerification ? 'الزر ظاهر ومفعّل' : 'الزر مخفي ومُزال'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 dark:text-slate-300">
+                      {showIdAndDiplomaVerification
+                        ? 'أزرار رفع وتثبيت بطاقة الهوية الوطنية والدبلوم المهني ظاهرة حالياً في الملف الشخصي ولوحة الحرفيين.'
+                        : 'تم إخفاء وإزالة أزرار تثبيت الهوية والدبلوم من واجهات الحرفيين وحساباتهم الشخصية بالكامل.'}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={toggleIdAndDiplomaVerification}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-sm ${
+                        showIdAndDiplomaVerification
+                          ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                          : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                      }`}
+                    >
+                      {showIdAndDiplomaVerification ? (
+                        <>
+                          <EyeOff className="w-4 h-4" />
+                          <span>إخفاء وإزالة الزر من التطبيق</span>
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="w-4 h-4" />
+                          <span>إظهار وتفعيل زر التثبيت مجدداً</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-4">

@@ -38,6 +38,7 @@ export interface UserProfileData {
 
   // Craftsman-specific fields
   trade?: string;
+  trades?: string[];
   experienceYears?: number;
   wilayas?: string[];
   bio?: string;
@@ -263,7 +264,8 @@ export async function createUserProfileDoc(
     updatedAt: new Date().toISOString(),
 
     // Craftsman metadata if role is craftsman
-    trade: profile.trade,
+    trade: profile.trade || profile.trades?.[0],
+    trades: profile.trades && profile.trades.length > 0 ? profile.trades : (profile.trade ? [profile.trade] : undefined),
     experienceYears: profile.experienceYears,
     wilayas: profile.wilayas || [profile.wilaya || 'الجزائر العاصمة'],
     bio: profile.bio || '',
@@ -278,7 +280,7 @@ export async function createUserProfileDoc(
     await setDoc(doc(db, 'users', uid), userProfile, { merge: true });
 
     // If craftsman with completed profile, publish public profile document
-    if (profile.role === 'craftsman' && profile.trade) {
+    if (profile.role === 'craftsman' && (profile.trade || (profile.trades && profile.trades.length > 0))) {
       try {
         await syncPublicCraftsmanProfile(uid, userProfile);
       } catch {
@@ -295,10 +297,12 @@ export async function createUserProfileDoc(
 // Sync public craftsman profile
 export async function syncPublicCraftsmanProfile(uid: string, profile: UserProfileData) {
   const publicPath = `craftsmen_public/${uid}`;
+  const effectiveTrades = profile.trades && profile.trades.length > 0 ? profile.trades : (profile.trade ? [profile.trade] : ['سباك وترصيص صحي']);
   const publicDoc = {
     uid,
     name: profile.displayName,
-    trade: profile.trade || 'سباك وترصيص صحي',
+    trade: profile.trade || effectiveTrades[0] || 'سباك وترصيص صحي',
+    trades: effectiveTrades,
     experienceYears: profile.experienceYears || 5,
     wilayas: profile.wilayas || [profile.wilaya || 'الجزائر العاصمة'],
     bio: profile.bio || 'حرفي متخصص معتمد في منصة خدام',
@@ -571,7 +575,8 @@ export async function registerWithEmail(
     isProfileComplete: profile.role === 'client' ? true : !!profile.isProfileComplete,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    trade: profile.trade,
+    trade: profile.trade || profile.trades?.[0],
+    trades: profile.trades && profile.trades.length > 0 ? profile.trades : (profile.trade ? [profile.trade] : undefined),
     experienceYears: profile.experienceYears,
     wilayas: profile.wilayas,
     bio: profile.bio,

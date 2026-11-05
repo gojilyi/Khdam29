@@ -48,6 +48,7 @@ export const ArtisanDashboard: React.FC = () => {
     geoAlertRadiusKm,
     setGeoAlertRadiusKm,
     triggerSimulatedGeoAlert,
+    showIdAndDiplomaVerification,
     t, 
     language 
   } = useApp();
@@ -566,78 +567,80 @@ export const ArtisanDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Professional Credentials & Verification Badges Hub */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 space-y-4">
-        <div>
-          <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-bold text-xs uppercase">
-            <Award className="w-4 h-4" />
-            <span>{t.verificationDocuments}</span>
-          </div>
-          <h3 className="text-base font-bold text-slate-900 dark:text-white mt-1">
-            {language === 'ar' ? 'توثيق الهوية والشهادات المهنية' : 'Verification Badges & Proofs'}
-          </h3>
-          <p className="text-xs text-slate-500">
-            {language === 'ar' 
-              ? 'الحرفيون الموثقون يحصلون على شارة التوثيق الرسمية ويزيد معدل طلباتهم بأكثر من 4 أضعاف' 
-              : 'Verified artisans get official badges and 4x more customer requests'}
-          </p>
-        </div>
-
-        {showDocUploadSuccess && (
-          <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 rounded-xl text-emerald-800 dark:text-emerald-300 text-xs font-semibold flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>{language === 'ar' ? 'تم رفع الوثيقة بنجاح وهي قيد الاعتماد من فريق التحقق خدام.' : 'Document uploaded successfully!'}</span>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* National ID Card Card */}
-          <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-xs text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                <UserCheck className="w-4 h-4 text-amber-500" />
-                <span>{t.uploadId}</span>
-              </span>
-              <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full">
-                {language === 'ar' ? 'معتمدة ومطابقة' : 'Verified'}
-              </span>
+      {/* Professional Credentials & Verification Badges Hub (Admin controllable) */}
+      {showIdAndDiplomaVerification && (
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 space-y-4">
+          <div>
+            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-bold text-xs uppercase">
+              <Award className="w-4 h-4" />
+              <span>{t.verificationDocuments}</span>
             </div>
-            <p className="text-[11px] text-slate-500">
-              {language === 'ar' ? 'تم التحقق من تطابق بطاقة الهوية البيومترية مع البيانات الشخصية للحرفي.' : 'National biometric ID verified.'}
+            <h3 className="text-base font-bold text-slate-900 dark:text-white mt-1">
+              {language === 'ar' ? 'توثيق الهوية والشهادات المهنية' : 'Verification Badges & Proofs'}
+            </h3>
+            <p className="text-xs text-slate-500">
+              {language === 'ar' 
+                ? 'الحرفيون الموثقون يحصلون على شارة التوثيق الرسمية ويزيد معدل طلباتهم بأكثر من 4 أضعاف' 
+                : 'Verified artisans get official badges and 4x more customer requests'}
             </p>
-            <button
-              onClick={() => handleDocUpload('id')}
-              className="w-full py-1.5 px-3 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
-            >
-              <Upload className="w-3.5 h-3.5" />
-              <span>{language === 'ar' ? 'تحديث نسخة الهوية' : 'Re-upload ID'}</span>
-            </button>
           </div>
 
-          {/* Vocational Certificate Card */}
-          <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-xs text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                <Award className="w-4 h-4 text-blue-500" />
-                <span>{t.uploadCert}</span>
-              </span>
-              <span className="text-[10px] font-bold text-blue-600 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-full">
-                {language === 'ar' ? 'شهادة دولة معتمدة' : 'Certified'}
-              </span>
+          {showDocUploadSuccess && (
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 rounded-xl text-emerald-800 dark:text-emerald-300 text-xs font-semibold flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{language === 'ar' ? 'تم رفع الوثيقة بنجاح وهي قيد الاعتماد من فريق التحقق خدام.' : 'Document uploaded successfully!'}</span>
             </div>
-            <p className="text-[11px] text-slate-500">
-              {language === 'ar' ? 'شهادة الكفاءة المهنية الصادرة من مركز التكوين المهني والتمهين (CAP).' : 'Vocational qualification certificate.'}
-            </p>
-            <button
-              onClick={() => handleDocUpload('cert')}
-              className="w-full py-1.5 px-3 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
-            >
-              <Upload className="w-3.5 h-3.5" />
-              <span>{language === 'ar' ? 'إضافة شهادة أو دبلوم آخر' : 'Add another certificate'}</span>
-            </button>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* National ID Card Card */}
+            <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-xs text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                  <UserCheck className="w-4 h-4 text-amber-500" />
+                  <span>{t.uploadId}</span>
+                </span>
+                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full">
+                  {language === 'ar' ? 'معتمدة ومطابقة' : 'Verified'}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500">
+                {language === 'ar' ? 'تم التحقق من تطابق بطاقة الهوية البيومترية مع البيانات الشخصية للحرفي.' : 'National biometric ID verified.'}
+              </p>
+              <button
+                onClick={() => handleDocUpload('id')}
+                className="w-full py-1.5 px-3 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span>{language === 'ar' ? 'تحديث نسخة الهوية' : 'Re-upload ID'}</span>
+              </button>
+            </div>
+
+            {/* Vocational Certificate Card */}
+            <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-xs text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                  <Award className="w-4 h-4 text-blue-500" />
+                  <span>{t.uploadCert}</span>
+                </span>
+                <span className="text-[10px] font-bold text-blue-600 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-full">
+                  {language === 'ar' ? 'شهادة دولة معتمدة' : 'Certified'}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500">
+                {language === 'ar' ? 'شهادة الكفاءة المهنية الصادرة من مركز التكوين المهني والتمهين (CAP).' : 'Vocational qualification certificate.'}
+              </p>
+              <button
+                onClick={() => handleDocUpload('cert')}
+                className="w-full py-1.5 px-3 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span>{language === 'ar' ? 'إضافة شهادة أو دبلوم آخر' : 'Add another certificate'}</span>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
